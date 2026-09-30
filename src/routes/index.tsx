@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { HotelLobbyWorkbench } from '@/components/hotel-lobby/HotelLobbyWorkbench'
 import { MotionGallery } from '@/components/hotel-lobby/MotionGallery'
 import { SiteHeader } from '@/components/layout/SiteHeader'
+import { SiteFooter } from '@/components/layout/SiteFooter'
 import { HOTEL_LOBBY_TEMPLATES } from '@/config/hotel-lobby'
 
 const faqItems = [
@@ -254,18 +255,7 @@ function HomePage() {
         <a className="seo-cta" href="#generator">Open generator ↑</a>
       </section>
 
-      <footer className="site-footer">
-        <div>
-          <a className="brand" href="/">Hotel Lobby AI</a>
-          <p>Independent AI video tool for creating hotel-lobby-style motion videos.</p>
-        </div>
-        <div className="footer-links">
-          <a href="/">Hotel Lobby AI</a>
-          <a href="/migos-ai-video">Migos AI Video</a>
-          <a href="#faq">FAQ</a>
-        </div>
-        <p className="disclaimer">Hotel Lobby AI is an independent tool and is not affiliated with or endorsed by Migos or related rights holders.</p>
-      </footer>
+      <SiteFooter />
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
     </main>
