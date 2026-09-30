@@ -5,7 +5,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { AuthModal } from '@/components/auth/AuthModal'
 import { ResultsGallery } from '@/components/hotel-lobby/ResultsGallery'
 import { createUploadUrl } from '@/server/storage'
-import { createGeneration, listGenerationTasks, refreshGenerationTask, type GenerationTask } from '@/server/generation'
+import { createGeneration, listGenerationTasks, refreshGenerationTask, retryGenerationTask, type GenerationTask } from '@/server/generation'
 
 type ImageState = { file: File | null; previewUrl: string | null }
 const emptyImage: ImageState = { file: null, previewUrl: null }
@@ -26,6 +26,7 @@ export function HotelLobbyWorkbench() {
   const [submitStage, setSubmitStage] = useState<'idle' | 'uploading' | 'starting'>('idle')
   const [error, setError] = useState('')
   const [tasks, setTasks] = useState<GenerationTask[]>([])
+  const [retryingTaskId, setRetryingTaskId] = useState<string | null>(null)
   const videoInput = useRef<HTMLInputElement>(null)
 
   const selectedVideo = referenceVideo.previewUrl || template?.previewVideoUrl || null
@@ -112,6 +113,27 @@ export function HotelLobbyWorkbench() {
     await submitAfterAuth()
   }
 
+  const handleRetry = async (taskId: string) => {
+    if (retryingTaskId) return
+    setRetryingTaskId(taskId)
+    setError('')
+    try {
+      const task = await retryGenerationTask({ data: { taskId } })
+      setTasks(current => [{
+        id: task.id,
+        status: task.status,
+        result_url: null,
+        failure_message: null,
+        created_at: new Date().toISOString(),
+        provider_task_id: null,
+      }, ...current])
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Retry failed')
+    } finally {
+      setRetryingTaskId(null)
+    }
+  }
+
   const handleAuthed = () => {
     setAuthed(true)
     void loadTasks()
@@ -153,7 +175,7 @@ export function HotelLobbyWorkbench() {
         </button>
       </div>
     </div>
-    <ResultsGallery tasks={tasks}/>
+    <ResultsGallery tasks={tasks} onRetry={(taskId) => void handleRetry(taskId)} retryingTaskId={retryingTaskId}/>
     <AuthModal open={authOpen} onClose={() => { setAuthOpen(false); setPendingGenerate(false) }} onAuthed={handleAuthed}/>
     {pickerOpen && <TemplatePicker onClose={() => setPickerOpen(false)} onSelect={(t) => {
       setTemplate(t); setReferenceVideo({file:null,previewUrl:null}); setPrompt(t.defaultPrompt); setPickerOpen(false)
