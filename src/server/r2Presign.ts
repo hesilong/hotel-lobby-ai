@@ -24,13 +24,18 @@ const toHex = (value: ArrayBuffer): string =>
 const sha256Hex = async (value: string): Promise<string> =>
   toHex(await crypto.subtle.digest('SHA-256', textEncoder.encode(value)))
 
+const toArrayBuffer = (value: ArrayBuffer | Uint8Array): ArrayBuffer => {
+  if (value instanceof ArrayBuffer) return value
+  return Uint8Array.from(value).buffer
+}
+
 const hmacSha256 = async (
   key: ArrayBuffer | Uint8Array,
   value: string,
 ): Promise<ArrayBuffer> => {
   const cryptoKey = await crypto.subtle.importKey(
     'raw',
-    key,
+    toArrayBuffer(key),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign'],
