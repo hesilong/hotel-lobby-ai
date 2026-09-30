@@ -136,3 +136,6 @@ body{background:#f7f8fb;color:#17191f}
   .story-media{border-radius:20px}
   .story-copy h2{font-size:30px}
 }
+
+.generator-bridge-note{margin:12px 0 0;text-align:right;color:#8b909b;font-size:11px;line-height:1.5}
+@media(max-width:760px){.generator-bridge-note{text-align:left}}
