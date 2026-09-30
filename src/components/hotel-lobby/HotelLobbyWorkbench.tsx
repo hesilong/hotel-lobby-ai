@@ -66,7 +66,6 @@ export function HotelLobbyWorkbench() {
           Generate
         </button>
       </div>
-      <p className="generator-bridge-note">Generation continues on ClothMotion, where the full generation service is currently available.</p>
     </div>
     {pickerOpen && <TemplatePicker onClose={() => setPickerOpen(false)} onSelect={(t) => {
       setTemplate(t); setReferenceVideo({file:null,previewUrl:null}); setPrompt(t.defaultPrompt); setPickerOpen(false)
