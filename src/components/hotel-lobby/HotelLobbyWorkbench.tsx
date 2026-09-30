@@ -23,14 +23,15 @@ export function HotelLobbyWorkbench() {
   const [authOpen, setAuthOpen] = useState(false)
   const [authed, setAuthed] = useState(false)
   const [pendingGenerate, setPendingGenerate] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
+  const [submitStage, setSubmitStage] = useState<'idle' | 'uploading' | 'starting'>('idle')
   const [error, setError] = useState('')
   const [tasks, setTasks] = useState<GenerationTask[]>([])
   const videoInput = useRef<HTMLInputElement>(null)
 
   const selectedVideo = referenceVideo.previewUrl || template?.previewVideoUrl || null
   const ratio = template?.defaultRatio || '16:9'
-  const canGenerate = Boolean(personA.file && personB.file && (template || referenceVideo.file) && !submitting)
+  const isSubmitting = submitStage !== 'idle'
+  const canGenerate = Boolean(personA.file && personB.file && (template || referenceVideo.file) && !isSubmitting)
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient()
@@ -76,11 +77,12 @@ export function HotelLobbyWorkbench() {
   }
 
   const submitAfterAuth = async () => {
-    if (!personA.file || !personB.file || (!template && !referenceVideo.file) || submitting) return
-    setSubmitting(true); setError('')
+    if (!personA.file || !personB.file || (!template && !referenceVideo.file) || isSubmitting) return
+    setSubmitStage('uploading'); setError('')
     try {
       const [imageAUrl, imageBUrl] = await Promise.all([upload(personA.file, 'image'), upload(personB.file, 'image')])
       const referenceVideoUrl = template?.sourceVideoUrl || (referenceVideo.file ? await upload(referenceVideo.file, 'video') : '')
+      setSubmitStage('starting')
       const task = await createGeneration({ data: {
         imageAUrl, imageBUrl,
         referenceTemplateId: template?.id || null,
@@ -90,6 +92,10 @@ export function HotelLobbyWorkbench() {
         resolution,
         aspectRatio: ratio,
       } })
+      // The generation button is only responsible for handing the job off.
+      // As soon as the server returns a task id, let the user start another job;
+      // ongoing generation progress belongs to the result task card.
+      setSubmitStage('idle')
       setTasks(current => [{
         id: task.id, status: task.status, result_url: null, failure_message: null,
         created_at: new Date().toISOString(), provider_task_id: null,
@@ -97,7 +103,7 @@ export function HotelLobbyWorkbench() {
       setPendingGenerate(false)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Generation failed')
-    } finally { setSubmitting(false) }
+    } finally { setSubmitStage('idle') }
   }
 
   const onGenerate = async () => {
@@ -142,8 +148,8 @@ export function HotelLobbyWorkbench() {
         <select value={resolution} onChange={e=>setResolution(e.target.value as typeof resolution)}><option>720p</option><option>1080p</option><option>4k</option></select>
         <select value={ratio} disabled><option>{ratio}</option></select>
         <button disabled={!canGenerate} className="generate" onClick={() => void onGenerate()}>
-          {submitting ? <Loader2 size={16} className="spin"/> : <Zap size={16} fill="currentColor"/>}
-          {submitting ? 'Submitting…' : 'Generate'}
+          {isSubmitting ? <Loader2 size={16} className="spin"/> : <Zap size={16} fill="currentColor"/>}
+          {submitStage === 'uploading' ? 'Uploading…' : submitStage === 'starting' ? 'Starting…' : 'Generate'}
         </button>
       </div>
     </div>
