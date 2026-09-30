@@ -1,40 +1,36 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { Loader2 } from 'lucide-react'
-import { getSupabaseBrowserClient } from '@/lib/supabase/client'
+import { completeOAuthSignIn } from '@/server/auth'
 
 export const Route = createFileRoute('/auth/callback')({
   component: AuthCallbackPage,
 })
 
 function AuthCallbackPage() {
-  const navigate = useNavigate()
   const [error, setError] = useState('')
 
   useEffect(() => {
     const complete = async () => {
       const params = new URLSearchParams(window.location.search)
       const code = params.get('code')
-      const next = params.get('next') || '/'
+      const flowId = params.get('sb_flow_id')
 
       if (!code) {
         setError('Google sign-in did not return an authorization code.')
         return
       }
 
-      const supabase = getSupabaseBrowserClient()
-      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
-
-      if (exchangeError) {
-        setError(exchangeError.message)
-        return
+      try {
+        await completeOAuthSignIn({ data: { code, flowId } })
+        window.location.replace('/')
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Unable to complete Google sign-in.')
       }
-
-      await navigate({ to: next as '/' })
     }
 
     void complete()
-  }, [navigate])
+  }, [])
 
   return <main className="auth-callback-page">
     {error ? <>
