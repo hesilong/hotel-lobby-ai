@@ -51,17 +51,18 @@ export const createUploadUrl = createServerFn({ method: 'POST' })
 
     const { client, bucket, publicBase, apiBase } = r2Config()
     const key = `uploads/${auth.user.id}/${data.kind}/${Date.now()}-${crypto.randomUUID()}.${safeExt(data.fileName)}`
+    const url = `${apiBase}/${bucket}/${key}?X-Amz-Expires=600`
 
-    const url = new URL(`${apiBase}/${bucket}/${key}`)
-    url.searchParams.set('X-Amz-Expires', '600')
-
-    const signedRequest = await client.sign(
-      new Request(url, {
-        method: 'PUT',
-        headers: { 'Content-Type': data.mimeType },
-      }),
-      { aws: { signQuery: true } },
-    )
+    const signedRequest = await client.sign(url, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': data.mimeType,
+      },
+      aws: {
+        signQuery: true,
+        allHeaders: true,
+      },
+    })
 
     return {
       uploadUrl: signedRequest.url.toString(),
@@ -91,6 +92,9 @@ export async function persistGeneratedVideo(params: { taskId: string; sourceUrl:
       'Cache-Control': 'public, max-age=31536000, immutable',
     },
     body: bytes,
+    aws: {
+      allHeaders: true,
+    },
   })
 
   if (!uploadResponse.ok) {
