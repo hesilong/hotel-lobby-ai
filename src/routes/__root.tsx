@@ -1,5 +1,6 @@
 import { HeadContent, Outlet, Scripts, createRootRoute } from '@tanstack/react-router'
 import appCss from '@/styles/app.css?url'
+import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics'
 
 export const Route = createRootRoute({
   head: () => ({
@@ -27,6 +28,7 @@ function RootDocument() {
       <head><HeadContent /></head>
       <body>
         <Outlet />
+        <GoogleAnalytics measurementId={import.meta.env.VITE_GA4_MEASUREMENT_ID || 'G-QRGEK14KFY'} />
         <Scripts />
       </body>
     </html>
