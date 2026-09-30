@@ -4,6 +4,7 @@ import { MotionGallery } from '@/components/hotel-lobby/MotionGallery'
 import { SiteHeader } from '@/components/layout/SiteHeader'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { HOTEL_LOBBY_TEMPLATES } from '@/config/hotel-lobby'
+import { HOTEL_LOBBY_FRIENDS_WEBP, HOTEL_LOBBY_PETS_WEBP, HOTEL_LOBBY_STREETWEAR_WEBP } from '@/config/hotel-lobby-visuals'
 
 const faqItems = [
   {
@@ -121,9 +122,18 @@ function HomePage() {
           <p>Keep the Hotel Lobby AI motion structure while changing who appears, what they wear, and which performance drives the result.</p>
         </div>
         <div className="showcase-grid">
-          <article><div className="showcase-mark">01</div><h3>Friends & creators</h3><p>Use two clear portraits to build a shared Hotel Lobby AI video for social posts, collabs, or trend remixes.</p></article>
-          <article><div className="showcase-mark">02</div><h3>Characters & concepts</h3><p>Try original characters, stylized portraits, or themed looks while keeping the same two-person motion structure.</p></article>
-          <article><div className="showcase-mark">03</div><h3>Fashion variations</h3><p>Compare outfits, visual identities, and scene energy while reusing a motion reference you already like.</p></article>
+          <article>
+            <img src={HOTEL_LOBBY_FRIENDS_WEBP} alt="Two friends in a Hotel Lobby AI style scene" loading="lazy" />
+            <div className="showcase-body"><div className="showcase-mark">01</div><h3>Friends & creators</h3><p>Use two clear portraits to build a shared Hotel Lobby AI video for social posts, collabs, or trend remixes.</p></div>
+          </article>
+          <article>
+            <img src={HOTEL_LOBBY_PETS_WEBP} alt="Two pets in a Hotel Lobby AI style scene" loading="lazy" />
+            <div className="showcase-body"><div className="showcase-mark">02</div><h3>Pets & playful concepts</h3><p>Try pets or original subjects while keeping the same two-character motion structure and clear left/right roles.</p></div>
+          </article>
+          <article>
+            <img src={HOTEL_LOBBY_STREETWEAR_WEBP} alt="Streetwear duo in a Hotel Lobby AI style scene" loading="lazy" />
+            <div className="showcase-body"><div className="showcase-mark">03</div><h3>Fashion variations</h3><p>Compare outfits, visual identities, and scene energy while reusing a motion reference you already like.</p></div>
+          </article>
         </div>
       </section>
 

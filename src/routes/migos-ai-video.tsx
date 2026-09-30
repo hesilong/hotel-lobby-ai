@@ -4,6 +4,7 @@ import { MotionGallery } from '@/components/hotel-lobby/MotionGallery'
 import { SiteHeader } from '@/components/layout/SiteHeader'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { HOTEL_LOBBY_TEMPLATES } from '@/config/hotel-lobby'
+import { HOTEL_LOBBY_FRIENDS_WEBP, HOTEL_LOBBY_STREETWEAR_WEBP } from '@/config/hotel-lobby-visuals'
 
 const faqItems = [
   {
@@ -98,6 +99,18 @@ function MigosAiPage() {
           <article><b>01</b><h3>Add Person A and Person B</h3><p>Use separate images with visible faces so the model has a clear identity source for each performer.</p></article>
           <article><b>02</b><h3>Choose the movement</h3><p>Select a built-in Hotel Lobby AI reference or upload your own video for a different performance.</p></article>
           <article><b>03</b><h3>Generate the Migos AI video</h3><p>Start the task and let the results area update while you prepare another variation.</p></article>
+        </div>
+      </section>
+
+      <section className="section migos-visual-story">
+        <div className="visual-story-copy">
+          <span className="section-kicker">Visual examples</span>
+          <h2>Keep the duo format, change the cast</h2>
+          <p>The same reference-driven workflow can be used with different people, outfits, and visual styles while preserving the two-person performance structure.</p>
+        </div>
+        <div className="visual-story-grid">
+          <figure><img src={HOTEL_LOBBY_FRIENDS_WEBP} alt="Friends in a Hotel Lobby AI duo scene" loading="lazy" /><figcaption>Friends & creator duos</figcaption></figure>
+          <figure><img src={HOTEL_LOBBY_STREETWEAR_WEBP} alt="Streetwear duo in a Hotel Lobby AI scene" loading="lazy" /><figcaption>Streetwear & fashion edits</figcaption></figure>
         </div>
       </section>
 

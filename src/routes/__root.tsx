@@ -6,7 +6,7 @@ export const Route = createRootRoute({
     meta: [
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { name: 'theme-color', content: '#080a10' },
+      { name: 'theme-color', content: '#f7f8fb' },
       { title: 'Hotel Lobby AI Video Generator' },
       {
         name: 'description',
