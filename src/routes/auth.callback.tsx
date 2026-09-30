@@ -4,6 +4,12 @@ import { Loader2 } from 'lucide-react'
 import { completeOAuthSignIn } from '@/server/auth'
 
 export const Route = createFileRoute('/auth/callback')({
+  head: () => ({
+    meta: [
+      { title: 'Signing in – Hotel Lobby AI' },
+      { name: 'robots', content: 'noindex,nofollow' },
+    ],
+  }),
   component: AuthCallbackPage,
 })
 

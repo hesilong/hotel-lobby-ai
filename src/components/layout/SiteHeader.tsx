@@ -32,8 +32,9 @@ export function SiteHeader() {
         <a className="brand" href="/">Hotel Lobby AI</a>
         <div className="header-right">
           <nav>
-            <a href="#templates">Templates</a>
-            <a href="#how-it-works">How it works</a>
+            <a href="/#templates">Templates</a>
+            <a href="/#how-it-works">How it works</a>
+            <a href="/migos-ai-video">Migos AI</a>
           </nav>
 
           {authed ? (

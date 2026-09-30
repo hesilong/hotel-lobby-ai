@@ -6,13 +6,17 @@ export const Route = createRootRoute({
     meta: [
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+      { name: 'theme-color', content: '#080a10' },
       { title: 'Hotel Lobby AI Video Generator' },
       {
         name: 'description',
-        content: 'Create the viral Hotel Lobby AI video from two photos and a reference motion video.',
+        content: 'Create Hotel Lobby AI videos from two photos and a reference motion video.',
       },
     ],
-    links: [{ rel: 'stylesheet', href: appCss }],
+    links: [
+      { rel: 'stylesheet', href: appCss },
+      { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+    ],
   }),
   component: RootDocument,
 })
