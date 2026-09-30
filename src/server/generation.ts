@@ -99,6 +99,79 @@ export const createGeneration = createServerFn({ method: 'POST' })
     }
   })
 
+export const retryGenerationTask = createServerFn({ method: 'POST' })
+  .inputValidator((input: { taskId: string }) => input)
+  .handler(async ({ data }) => {
+    const user = await authUser()
+    const admin = getSupabaseAdminClient()
+    const { data: previous, error } = await admin.from('generation_tasks')
+      .select('id,user_id,status,image_a_url,image_b_url,reference_template_id,reference_video_url,prompt,duration_seconds,resolution,aspect_ratio')
+      .eq('id', data.taskId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (error || !previous) throw new Error('TASK_NOT_FOUND')
+    if (previous.status !== 'failed') throw new Error('TASK_NOT_RETRYABLE')
+
+    const input: CreateGenerationInput = {
+      imageAUrl: previous.image_a_url,
+      imageBUrl: previous.image_b_url,
+      referenceTemplateId: previous.reference_template_id,
+      referenceVideoUrl: previous.reference_video_url,
+      prompt: previous.prompt,
+      duration: previous.duration_seconds,
+      resolution: previous.resolution as CreateGenerationInput['resolution'],
+      aspectRatio: previous.aspect_ratio as CreateGenerationInput['aspectRatio'],
+    }
+
+    await assertReferenceImagesAllowed([input.imageAUrl, input.imageBUrl])
+
+    const isMock = mockEnabled()
+    const { data: task, error: insertError } = await admin.from('generation_tasks').insert({
+      user_id: user.id,
+      status: isMock ? 'processing' : 'pending',
+      image_a_url: input.imageAUrl,
+      image_b_url: input.imageBUrl,
+      reference_template_id: input.referenceTemplateId ?? null,
+      reference_video_url: input.referenceVideoUrl,
+      prompt: input.prompt.trim(),
+      duration_seconds: input.duration,
+      resolution: input.resolution,
+      aspect_ratio: input.aspectRatio,
+      provider: isMock ? 'mock' : 'kie',
+      model_id: isMock ? 'mock/reference-to-video' : 'kling-3.0-omni/reference-to-video',
+      provider_task_id: isMock ? `mock:${Date.now()}` : null,
+    }).select('id,status').single()
+
+    if (insertError || !task) throw new Error(insertError?.message || 'TASK_CREATE_FAILED')
+    if (isMock) return { id: task.id, status: 'processing' as const }
+
+    try {
+      const upstream = await submitKieReferenceVideo({
+        imageUrls: [input.imageAUrl, input.imageBUrl],
+        videoUrl: input.referenceVideoUrl,
+        prompt: input.prompt.trim(),
+        duration: input.duration,
+        resolution: input.resolution,
+        aspectRatio: input.aspectRatio,
+      })
+      await admin.from('generation_tasks').update({
+        status: 'processing',
+        provider_task_id: upstream.taskId,
+        updated_at: new Date().toISOString(),
+      }).eq('id', task.id)
+      return { id: task.id, status: 'processing' as const }
+    } catch (retryError) {
+      const message = retryError instanceof Error ? retryError.message : 'GENERATION_SUBMIT_FAILED'
+      await admin.from('generation_tasks').update({
+        status: 'failed',
+        failure_message: message,
+        updated_at: new Date().toISOString(),
+      }).eq('id', task.id)
+      throw retryError
+    }
+  })
+
 export const listGenerationTasks = createServerFn({ method: 'GET' }).handler(async () => {
   const user = await authUser()
   const admin = getSupabaseAdminClient()
