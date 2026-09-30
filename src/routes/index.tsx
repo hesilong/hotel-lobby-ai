@@ -200,43 +200,85 @@ function HomePage() {
         </div>
       </section>
 
-      <section className="section editorial-section">
-        <div className="editorial-lead">
+      <section className="section story-guide">
+        <div className="story-guide-intro">
           <span className="section-kicker">Hotel Lobby AI Guide</span>
-          <h2>How the Hotel Lobby AI Generator works in practice</h2>
-          <p>This guide explains the format, the inputs that matter most, and how to get more consistent results without turning the page into a wall of repeated keywords.</p>
+          <p>A practical guide to the format, the inputs that matter most, and the choices that make a Hotel Lobby AI video more consistent.</p>
         </div>
 
-        <div className="editorial-grid">
-          <article>
-            <h3>What is Hotel Lobby AI?</h3>
-            <p>Hotel Lobby AI is a two-person AI video format that turns separate portrait images into a coordinated performance guided by a reference motion. Instead of describing every movement in a long prompt, a Hotel Lobby AI Video Generator uses the selected reference to shape rhythm, camera framing, gestures, body movement, and pacing. That makes the workflow useful for creators who want the recognizable Hotel Lobby AI trend without manually directing every second of animation. The basic structure is simple: one image for Person A, one image for Person B, and one motion reference that defines how the pair should move on screen.</p>
+        <div className="story-guide-list">
+          <article className="story-row">
+            <div className="story-copy">
+              <span className="story-number">01</span>
+              <h2>What is Hotel Lobby AI?</h2>
+              <p>Hotel Lobby AI is a two-person AI video format that turns separate portrait images into a coordinated performance guided by a reference motion. Instead of describing every movement in a long prompt, a Hotel Lobby AI Video Generator uses the selected reference to shape rhythm, camera framing, gestures, body movement, and pacing.</p>
+              <p>That makes the workflow useful for creators who want the recognizable Hotel Lobby AI trend without manually directing every second of animation. The basic structure is simple: one image for Person A, one image for Person B, and one motion reference that defines how the pair should move on screen.</p>
+            </div>
+            <figure className="story-media">
+              <img src={HOTEL_LOBBY_FRIENDS_WEBP} alt="Two friends demonstrating the Hotel Lobby AI two-person video format" loading="lazy" />
+            </figure>
           </article>
 
-          <article>
-            <h3>How to create a Hotel Lobby AI video</h3>
-            <p>Start with two clear images that show each person separately. Person A is treated as the left-side identity and Person B as the right-side identity, which helps reduce accidental swaps during generation. Then choose one of the built-in Hotel Lobby motion templates or upload your own reference video. The Hotel Lobby AI Generator combines those identity references with the motion source so the resulting video can follow the timing of the reference while preserving recognizable facial and outfit details. Clear faces, balanced lighting, and enough body detail generally make the task easier for the model.</p>
+          <article className="story-row story-row-reverse">
+            <div className="story-copy">
+              <span className="story-number">02</span>
+              <h2>How to create a Hotel Lobby AI video</h2>
+              <p>Start with two clear images that show each person separately. Person A is treated as the left-side identity and Person B as the right-side identity, which helps reduce accidental swaps during generation.</p>
+              <p>Then choose one of the built-in Hotel Lobby motion templates or upload your own reference video. The Hotel Lobby AI Generator combines those identity references with the motion source so the resulting video can follow the timing of the reference while preserving recognizable facial and outfit details. Clear faces, balanced lighting, and enough body detail generally make the task easier for the model.</p>
+              <a className="text-link inline" href="#generator">Try the generator ↑</a>
+            </div>
+            <figure className="story-media">
+              <img src={HOTEL_LOBBY_STREETWEAR_WEBP} alt="Two people used as references for a Hotel Lobby AI video" loading="lazy" />
+            </figure>
           </article>
 
-          <article>
-            <h3>Why the motion reference matters</h3>
-            <p>The motion reference is what separates this workflow from a generic text-to-video prompt. A built-in Hotel Lobby AI template is useful when you want a fast route to a familiar performance. A custom reference video is better when you want a different pose sequence, camera move, or pacing. In both cases, the motion clip provides the choreography while your uploaded photos provide the identities. This division makes a reference-driven Hotel Lobby video generator more predictable for this kind of trend than asking a model to invent all movement from text alone.</p>
+          <article className="story-row">
+            <div className="story-copy">
+              <span className="story-number">03</span>
+              <h2>Why the motion reference matters</h2>
+              <p>The motion reference is what separates this workflow from a generic text-to-video prompt. A built-in Hotel Lobby AI template is useful when you want a fast route to a familiar performance, while a custom reference video is better when you want a different pose sequence, camera move, or pacing.</p>
+              <p>In both cases, the motion clip provides the choreography while your uploaded photos provide the identities. This division makes a reference-driven Hotel Lobby video generator more predictable for this kind of trend than asking a model to invent all movement from text alone.</p>
+            </div>
+            <figure className="story-media story-video">
+              <video src={HOTEL_LOBBY_TEMPLATES[0].previewVideoUrl} muted loop autoPlay playsInline />
+            </figure>
           </article>
 
-          <article>
-            <h3>Best photos for a Hotel Lobby AI Generator</h3>
-            <p>The Hotel Lobby AI trend works best when the two source images are visually clean. Avoid heavily cropped faces, strong blur, large accessories that hide facial structure, or group photos with several people overlapping. Consistent source quality gives the Hotel Lobby AI Video Generator more information to work with from frame to frame. If the reference includes full-body movement, a three-quarter or full-body source image can also help. Clothing is easier to preserve when the outfit is visible, while simpler backgrounds reduce unrelated visual noise.</p>
+          <article className="story-row story-row-reverse">
+            <div className="story-copy">
+              <span className="story-number">04</span>
+              <h2>Best photos for a Hotel Lobby AI Generator</h2>
+              <p>The Hotel Lobby AI trend works best when the two source images are visually clean. Avoid heavily cropped faces, strong blur, large accessories that hide facial structure, or group photos with several people overlapping.</p>
+              <p>Consistent source quality gives the Hotel Lobby AI Video Generator more information to work with from frame to frame. If the reference includes full-body movement, a three-quarter or full-body source image can also help. Clothing is easier to preserve when the outfit is visible, while simpler backgrounds reduce unrelated visual noise.</p>
+            </div>
+            <figure className="story-media">
+              <img src={HOTEL_LOBBY_FRIENDS_WEBP} alt="Clear source portraits for a Hotel Lobby AI Generator" loading="lazy" />
+            </figure>
           </article>
 
-          <article>
-            <h3>Ways to use the Hotel Lobby video generator</h3>
-            <p>You can use the Hotel Lobby video generator for short-form social content, meme-style edits, duo performances, character experiments, fashion variations, and creator collaborations. The point is not limited to reproducing one exact viral clip. The same Hotel Lobby AI Generator can combine different people, outfits, visual styles, and motion references while keeping the basic two-person format. If you are testing creative directions, you can start several tasks and compare which source images and motion references produce the most stable or interesting result.</p>
+          <article className="story-row">
+            <div className="story-copy">
+              <span className="story-number">05</span>
+              <h2>Ways to use the Hotel Lobby video generator</h2>
+              <p>You can use the Hotel Lobby video generator for short-form social content, meme-style edits, duo performances, character experiments, fashion variations, and creator collaborations. The point is not limited to reproducing one exact viral clip.</p>
+              <p>The same Hotel Lobby AI Generator can combine different people, outfits, visual styles, and motion references while keeping the basic two-person format. If you are testing creative directions, you can start several tasks and compare which source images and motion references produce the most stable or interesting result.</p>
+            </div>
+            <figure className="story-media">
+              <img src={HOTEL_LOBBY_PETS_WEBP} alt="Creative pet example made with the Hotel Lobby video generator format" loading="lazy" />
+            </figure>
           </article>
 
-          <article>
-            <h3>Hotel Lobby AI and Migos AI</h3>
-            <p>People also search for this style using terms such as Migos AI, Migos AI video, and Migos Hotel Lobby AI. Those searches often point to the same broader two-person hotel-lobby-style AI trend. Hotel Lobby AI provides the main generator for this workflow, while the dedicated Migos AI Video Generator page focuses on that search intent more directly. Hotel Lobby AI is an independent tool and is not affiliated with or endorsed by Migos or related rights holders. The goal is simply to offer a focused generator for users creating their own authorized versions of the trend.</p>
-            <a className="text-link inline" href="/migos-ai-video">Explore the Migos AI page →</a>
+          <article className="story-row story-row-reverse">
+            <div className="story-copy">
+              <span className="story-number">06</span>
+              <h2>Hotel Lobby AI and Migos AI</h2>
+              <p>People also search for this style using terms such as Migos AI, Migos AI video, and Migos Hotel Lobby AI. Those searches often point to the same broader two-person hotel-lobby-style AI trend.</p>
+              <p>Hotel Lobby AI provides the main generator for this workflow, while the dedicated Migos AI Video Generator page focuses on that search intent more directly. Hotel Lobby AI is an independent tool and is not affiliated with or endorsed by Migos or related rights holders.</p>
+              <a className="text-link inline" href="/migos-ai-video">Explore the Migos AI page →</a>
+            </div>
+            <figure className="story-media">
+              <img src={HOTEL_LOBBY_STREETWEAR_WEBP} alt="Streetwear duo representing the Hotel Lobby AI and Migos AI search trend" loading="lazy" />
+            </figure>
           </article>
         </div>
       </section>
