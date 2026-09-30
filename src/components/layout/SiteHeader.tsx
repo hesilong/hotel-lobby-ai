@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
-import { LogOut, UserRound } from 'lucide-react'
+import { LogIn, LogOut, UserRound } from 'lucide-react'
+import { AuthModal } from '@/components/auth/AuthModal'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 
 export function SiteHeader() {
   const [authed, setAuthed] = useState(false)
   const [email, setEmail] = useState<string | null>(null)
+  const [authOpen, setAuthOpen] = useState(false)
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient()
@@ -15,6 +17,7 @@ export function SiteHeader() {
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setAuthed(Boolean(session))
       setEmail(session?.user.email ?? null)
+      if (session) setAuthOpen(false)
     })
     return () => listener.subscription.unsubscribe()
   }, [])
@@ -24,21 +27,35 @@ export function SiteHeader() {
   }
 
   return (
-    <header className="site-header">
-      <a className="brand" href="/">Hotel Lobby AI</a>
-      <div className="header-right">
-        <nav>
-          <a href="#templates">Templates</a>
-          <a href="#how-it-works">How it works</a>
-        </nav>
-        {authed ? (
-          <button className="header-account" onClick={() => void signOut()} title={email || 'Signed in'}>
-            <UserRound size={14} />
-            <span className="header-email">{email || 'Account'}</span>
-            <LogOut size={14} />
-          </button>
-        ) : null}
-      </div>
-    </header>
+    <>
+      <header className="site-header">
+        <a className="brand" href="/">Hotel Lobby AI</a>
+        <div className="header-right">
+          <nav>
+            <a href="#templates">Templates</a>
+            <a href="#how-it-works">How it works</a>
+          </nav>
+
+          {authed ? (
+            <button className="header-account" onClick={() => void signOut()} title={email || 'Signed in'}>
+              <UserRound size={14} />
+              <span className="header-email">{email || 'Account'}</span>
+              <LogOut size={14} />
+            </button>
+          ) : (
+            <button className="header-signin" onClick={() => setAuthOpen(true)}>
+              <LogIn size={14} />
+              Sign in
+            </button>
+          )}
+        </div>
+      </header>
+
+      <AuthModal
+        open={authOpen}
+        onClose={() => setAuthOpen(false)}
+        onAuthed={() => setAuthed(true)}
+      />
+    </>
   )
 }
