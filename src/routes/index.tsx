@@ -8,28 +8,28 @@ import { HOTEL_LOBBY_FRIENDS_WEBP, HOTEL_LOBBY_PETS_WEBP, HOTEL_LOBBY_STREETWEAR
 
 const faqItems = [
   {
-    q: 'What is Hotel Lobby AI?',
-    a: 'Hotel Lobby AI is a two-person AI video workflow that combines two identity images with a motion reference to create a coordinated hotel-lobby-style performance.',
+    q: 'How long does a Hotel Lobby AI video take to generate?',
+    a: 'Generation time depends on video length, provider load, and model availability. After a task is accepted, it continues processing in the Results area while you can prepare another generation.',
   },
   {
-    q: 'How do I make a Hotel Lobby AI video?',
-    a: 'Upload one image for Person A and one for Person B, choose a built-in motion or upload your own reference video, then start generation.',
+    q: 'Can I start another video while one is still generating?',
+    a: 'Yes. Once the server accepts the current task, the Generate button becomes available again and the existing task keeps processing in the background.',
   },
   {
-    q: 'What photos work best?',
-    a: 'Use sharp, well-lit images with one visible person per photo. Frontal or three-quarter views with unobstructed faces usually give the model more identity detail.',
+    q: 'What image and video formats can I upload?',
+    a: 'Reference images should use common formats such as JPG or PNG. Custom reference videos should use a supported video format such as MP4 or MOV and stay within the upload limits shown by the tool.',
   },
   {
-    q: 'Can I upload my own reference video?',
-    a: 'Yes. You can use one of the built-in Hotel Lobby motion templates or upload a compatible custom reference video.',
+    q: 'Can I use my own reference motion video?',
+    a: 'Yes. You can use a built-in motion template or upload your own compatible reference video when you want a different performance, pacing, or camera movement.',
   },
   {
-    q: 'Can I generate more than one version?',
-    a: 'Yes. Once a task has been accepted, the Generate button becomes available again so you can start another variation while earlier tasks continue processing.',
+    q: 'What should I do if the two identities get mixed up?',
+    a: 'Try clearer source photos with one visible person per image, stronger facial detail, and less occlusion. Keeping Person A and Person B visually distinct also helps reduce identity swaps.',
   },
   {
-    q: 'Is Hotel Lobby AI the same as Migos AI?',
-    a: 'The terms overlap in current search behavior. Some users search for Migos AI when they mean the same two-person hotel-lobby-style AI video trend. This site is an independent tool and is not affiliated with Migos.',
+    q: 'Are my generated videos saved?',
+    a: 'Generation records and available results may be stored with your account so they can appear in your Results history. Availability can depend on storage, provider, and service retention limits.',
   },
 ]
 
