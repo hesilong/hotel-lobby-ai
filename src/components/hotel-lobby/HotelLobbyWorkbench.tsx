@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Loader2, LogOut, Play, Plus, Upload, X, Zap } from 'lucide-react'
+import { Loader2, Play, Plus, Upload, X, Zap } from 'lucide-react'
 import { HOTEL_LOBBY_DEFAULT_PROMPT, HOTEL_LOBBY_TEMPLATES, type MotionTemplate } from '@/config/hotel-lobby'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { AuthModal } from '@/components/auth/AuthModal'
@@ -112,14 +112,10 @@ export function HotelLobbyWorkbench() {
     if (pendingGenerate) window.setTimeout(() => void submitAfterAuth(), 150)
   }
 
-  const signOut = async () => {
-    await getSupabaseBrowserClient().auth.signOut()
-    setAuthed(false); setTasks([])
-  }
 
   return <div className="workbench-shell">
     <div className="workbench">
-      {authed && <button className="session-button" onClick={signOut}><LogOut size={13}/> Sign out</button>}
+
       <div className="asset-row">
         <ImageUpload label="Person A" state={personA} onPick={(f) => setImage(f, setPersonA)} onClear={() => setPersonA(emptyImage)} />
         <ImageUpload label="Person B" state={personB} onPick={(f) => setImage(f, setPersonB)} onClear={() => setPersonB(emptyImage)} />

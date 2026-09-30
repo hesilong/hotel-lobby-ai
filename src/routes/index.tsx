@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { HotelLobbyWorkbench } from '@/components/hotel-lobby/HotelLobbyWorkbench'
 import { MotionGallery } from '@/components/hotel-lobby/MotionGallery'
+import { SiteHeader } from '@/components/layout/SiteHeader'
 import { HOTEL_LOBBY_TEMPLATES } from '@/config/hotel-lobby'
 
 export const Route = createFileRoute('/')({
@@ -23,10 +24,7 @@ export const Route = createFileRoute('/')({
 function HomePage() {
   return (
     <main>
-      <header className="site-header">
-        <a className="brand" href="/">Hotel Lobby AI</a>
-        <nav><a href="#templates">Templates</a><a href="#how-it-works">How it works</a></nav>
-      </header>
+      <SiteHeader />
 
       <section className="hero">
         <div className="hero-glow hero-glow-a" /><div className="hero-glow hero-glow-b" />
