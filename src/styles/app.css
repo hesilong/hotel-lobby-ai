@@ -94,6 +94,9 @@ body{background:#f7f8fb;color:#17191f}
 .auth-callback-page p{color:#747986}
 .auth-callback-page a{color:#6f46d9}
 .generation-error{border-color:#fecaca;background:#fff1f2;color:#b42318}
+.generator-safety-note{margin:12px 2px 0;color:#737985;font-size:11px;line-height:1.55;text-align:left}
+.generator-safety-note a{color:#5f46c8;font-weight:700;text-decoration:underline;text-underline-offset:2px}
+.generator-safety-note a:hover{color:#4d35b3}
 .legal-hero>p,.legal-page p,.legal-page li{color:#6f7480}
 .legal-page>p:first-child{color:#555b66}
 .migos-visual-story{display:grid;grid-template-columns:.72fr 1.28fr;gap:48px;align-items:center}
