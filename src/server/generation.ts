@@ -1,7 +1,9 @@
 import { createServerFn } from '@tanstack/react-start'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
-import { assertReferenceImagesAllowed } from '@/server/moderation'
+import { assertPromptAllowed, assertReferenceImagesAllowed } from '@/server/moderation'
+import { deductCredits, refundCredits } from '@/server/credits'
+import { calculateGenerationCredits } from '@/config/generation-cost'
 import { getKieTask, submitKieReferenceVideo } from '@/server/kie'
 import { persistGeneratedVideo } from '@/server/storage'
 
@@ -24,6 +26,7 @@ export type GenerationTask = {
   created_at: string
   provider_task_id: string | null
   provider?: string | null
+  credits_used?: number
 }
 
 const mockEnabled = () => process.env.MOCK_GENERATION === 'true'
@@ -38,65 +41,133 @@ async function authUser() {
   return auth.user
 }
 
+function validateInput(data: CreateGenerationInput) {
+  if (!/^https?:\/\//.test(data.imageAUrl) || !/^https?:\/\//.test(data.imageBUrl) || !/^https?:\/\//.test(data.referenceVideoUrl)) {
+    throw new Error('INVALID_ASSET_URL')
+  }
+  if (!data.prompt.trim() || data.prompt.length > 3072) throw new Error('INVALID_PROMPT')
+  if (data.duration < 3 || data.duration > 15) throw new Error('INVALID_DURATION')
+  if (!['720p', '1080p', '4k'].includes(data.resolution)) throw new Error('INVALID_RESOLUTION')
+}
+
+async function refundTaskIfNeeded(taskId: string, userId: string, reason: string) {
+  const admin = getSupabaseAdminClient()
+  const { data: task, error } = await admin.from('generation_tasks')
+    .select('id,credits_used,credits_refunded')
+    .eq('id', taskId)
+    .eq('user_id', userId)
+    .maybeSingle()
+  if (error || !task) return
+  const used = Number(task.credits_used || 0)
+  const refunded = Number(task.credits_refunded || 0)
+  const amount = Math.max(0, used - refunded)
+  if (amount <= 0) return
+
+  try {
+    await refundCredits({
+      admin,
+      userId,
+      amount,
+      taskId,
+      meta: { failure_reason: reason },
+    })
+    await admin.from('generation_tasks').update({
+      credits_refunded: used,
+      updated_at: new Date().toISOString(),
+    }).eq('id', taskId)
+  } catch (error) {
+    console.error('[credits] refund failed', { taskId, userId, reason, error })
+  }
+}
+
+async function submitGenerationForUser(userId: string, data: CreateGenerationInput) {
+  validateInput(data)
+
+  // CREEM requires prompt moderation before billing or model invocation.
+  await assertPromptAllowed({ prompt: data.prompt, userId })
+  await assertReferenceImagesAllowed([data.imageAUrl, data.imageBUrl], userId)
+
+  const credits = calculateGenerationCredits(data.duration, data.resolution)
+  const isMock = mockEnabled()
+  const admin = getSupabaseAdminClient()
+
+  const { data: task, error } = await admin.from('generation_tasks').insert({
+    user_id: userId,
+    status: 'pending',
+    image_a_url: data.imageAUrl,
+    image_b_url: data.imageBUrl,
+    reference_template_id: data.referenceTemplateId ?? null,
+    reference_video_url: data.referenceVideoUrl,
+    prompt: data.prompt.trim(),
+    duration_seconds: data.duration,
+    resolution: data.resolution,
+    aspect_ratio: data.aspectRatio,
+    provider: isMock ? 'mock' : 'kie',
+    model_id: isMock ? 'mock/reference-to-video' : 'kling-3.0-omni/reference-to-video',
+    provider_task_id: null,
+    credits_used: credits,
+    credits_refunded: 0,
+  }).select('id,status').single()
+  if (error || !task) throw new Error(error?.message || 'TASK_CREATE_FAILED')
+
+  try {
+    const debit = await deductCredits({
+      admin,
+      userId,
+      amount: credits,
+      taskId: task.id,
+      meta: {
+        duration: data.duration,
+        resolution: data.resolution,
+        model: isMock ? 'mock/reference-to-video' : 'kling-3.0-omni/reference-to-video',
+      },
+    })
+
+    if (isMock) {
+      await admin.from('generation_tasks').update({
+        status: 'processing',
+        provider_task_id: `mock:${Date.now()}`,
+        updated_at: new Date().toISOString(),
+      }).eq('id', task.id)
+      return { id: task.id, status: 'processing' as const, creditsUsed: credits, balance: debit.balance }
+    }
+
+    const upstream = await submitKieReferenceVideo({
+      imageUrls: [data.imageAUrl, data.imageBUrl],
+      videoUrl: data.referenceVideoUrl,
+      prompt: data.prompt.trim(),
+      duration: data.duration,
+      resolution: data.resolution,
+      aspectRatio: data.aspectRatio,
+    })
+    await admin.from('generation_tasks').update({
+      status: 'processing',
+      provider_task_id: upstream.taskId,
+      updated_at: new Date().toISOString(),
+    }).eq('id', task.id)
+    return { id: task.id, status: 'processing' as const, creditsUsed: credits, balance: debit.balance }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'GENERATION_SUBMIT_FAILED'
+    if (message === 'INSUFFICIENT_CREDITS') {
+      await admin.from('generation_tasks').delete().eq('id', task.id)
+      throw error
+    }
+    await admin.from('generation_tasks').update({
+      status: 'failed',
+      failure_message: message,
+      failure_code: 'SUBMIT_FAILED',
+      updated_at: new Date().toISOString(),
+    }).eq('id', task.id)
+    await refundTaskIfNeeded(task.id, userId, message)
+    throw error
+  }
+}
+
 export const createGeneration = createServerFn({ method: 'POST' })
   .inputValidator((input: CreateGenerationInput) => input)
   .handler(async ({ data }) => {
     const user = await authUser()
-    if (!/^https?:\/\//.test(data.imageAUrl) || !/^https?:\/\//.test(data.imageBUrl) || !/^https?:\/\//.test(data.referenceVideoUrl)) {
-      throw new Error('INVALID_ASSET_URL')
-    }
-    if (!data.prompt.trim() || data.prompt.length > 3072) throw new Error('INVALID_PROMPT')
-    if (data.duration < 3 || data.duration > 15) throw new Error('INVALID_DURATION')
-
-    await assertReferenceImagesAllowed([data.imageAUrl, data.imageBUrl])
-
-    const isMock = mockEnabled()
-    const admin = getSupabaseAdminClient()
-    const { data: task, error } = await admin.from('generation_tasks').insert({
-      user_id: user.id,
-      status: isMock ? 'processing' : 'pending',
-      image_a_url: data.imageAUrl,
-      image_b_url: data.imageBUrl,
-      reference_template_id: data.referenceTemplateId ?? null,
-      reference_video_url: data.referenceVideoUrl,
-      prompt: data.prompt.trim(),
-      duration_seconds: data.duration,
-      resolution: data.resolution,
-      aspect_ratio: data.aspectRatio,
-      provider: isMock ? 'mock' : 'kie',
-      model_id: isMock ? 'mock/reference-to-video' : 'kling-3.0-omni/reference-to-video',
-      provider_task_id: isMock ? `mock:${Date.now()}` : null,
-    }).select('id,status').single()
-    if (error || !task) throw new Error(error?.message || 'TASK_CREATE_FAILED')
-
-    if (isMock) {
-      return { id: task.id, status: 'processing' as const }
-    }
-
-    try {
-      const upstream = await submitKieReferenceVideo({
-        imageUrls: [data.imageAUrl, data.imageBUrl],
-        videoUrl: data.referenceVideoUrl,
-        prompt: data.prompt.trim(),
-        duration: data.duration,
-        resolution: data.resolution,
-        aspectRatio: data.aspectRatio,
-      })
-      await admin.from('generation_tasks').update({
-        status: 'processing',
-        provider_task_id: upstream.taskId,
-        updated_at: new Date().toISOString(),
-      }).eq('id', task.id)
-      return { id: task.id, status: 'processing' as const }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'GENERATION_SUBMIT_FAILED'
-      await admin.from('generation_tasks').update({
-        status: 'failed',
-        failure_message: message,
-        updated_at: new Date().toISOString(),
-      }).eq('id', task.id)
-      throw error
-    }
+    return submitGenerationForUser(user.id, data)
   })
 
 export const retryGenerationTask = createServerFn({ method: 'POST' })
@@ -113,7 +184,7 @@ export const retryGenerationTask = createServerFn({ method: 'POST' })
     if (error || !previous) throw new Error('TASK_NOT_FOUND')
     if (previous.status !== 'failed') throw new Error('TASK_NOT_RETRYABLE')
 
-    const input: CreateGenerationInput = {
+    return submitGenerationForUser(user.id, {
       imageAUrl: previous.image_a_url,
       imageBUrl: previous.image_b_url,
       referenceTemplateId: previous.reference_template_id,
@@ -122,61 +193,14 @@ export const retryGenerationTask = createServerFn({ method: 'POST' })
       duration: previous.duration_seconds,
       resolution: previous.resolution as CreateGenerationInput['resolution'],
       aspectRatio: previous.aspect_ratio as CreateGenerationInput['aspectRatio'],
-    }
-
-    await assertReferenceImagesAllowed([input.imageAUrl, input.imageBUrl])
-
-    const isMock = mockEnabled()
-    const { data: task, error: insertError } = await admin.from('generation_tasks').insert({
-      user_id: user.id,
-      status: isMock ? 'processing' : 'pending',
-      image_a_url: input.imageAUrl,
-      image_b_url: input.imageBUrl,
-      reference_template_id: input.referenceTemplateId ?? null,
-      reference_video_url: input.referenceVideoUrl,
-      prompt: input.prompt.trim(),
-      duration_seconds: input.duration,
-      resolution: input.resolution,
-      aspect_ratio: input.aspectRatio,
-      provider: isMock ? 'mock' : 'kie',
-      model_id: isMock ? 'mock/reference-to-video' : 'kling-3.0-omni/reference-to-video',
-      provider_task_id: isMock ? `mock:${Date.now()}` : null,
-    }).select('id,status').single()
-
-    if (insertError || !task) throw new Error(insertError?.message || 'TASK_CREATE_FAILED')
-    if (isMock) return { id: task.id, status: 'processing' as const }
-
-    try {
-      const upstream = await submitKieReferenceVideo({
-        imageUrls: [input.imageAUrl, input.imageBUrl],
-        videoUrl: input.referenceVideoUrl,
-        prompt: input.prompt.trim(),
-        duration: input.duration,
-        resolution: input.resolution,
-        aspectRatio: input.aspectRatio,
-      })
-      await admin.from('generation_tasks').update({
-        status: 'processing',
-        provider_task_id: upstream.taskId,
-        updated_at: new Date().toISOString(),
-      }).eq('id', task.id)
-      return { id: task.id, status: 'processing' as const }
-    } catch (retryError) {
-      const message = retryError instanceof Error ? retryError.message : 'GENERATION_SUBMIT_FAILED'
-      await admin.from('generation_tasks').update({
-        status: 'failed',
-        failure_message: message,
-        updated_at: new Date().toISOString(),
-      }).eq('id', task.id)
-      throw retryError
-    }
+    })
   })
 
 export const listGenerationTasks = createServerFn({ method: 'GET' }).handler(async () => {
   const user = await authUser()
   const admin = getSupabaseAdminClient()
   const { data, error } = await admin.from('generation_tasks')
-    .select('id,status,result_url,failure_message,created_at,provider_task_id,provider')
+    .select('id,status,result_url,failure_message,created_at,provider_task_id,provider,credits_used')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(20)
@@ -190,7 +214,7 @@ export const refreshGenerationTask = createServerFn({ method: 'POST' })
     const user = await authUser()
     const admin = getSupabaseAdminClient()
     const { data: task, error } = await admin.from('generation_tasks')
-      .select('id,user_id,status,provider,provider_task_id,result_url,failure_message,created_at')
+      .select('id,user_id,status,provider,provider_task_id,result_url,failure_message,created_at,credits_used')
       .eq('id', data.taskId).eq('user_id', user.id).maybeSingle()
     if (error || !task) throw new Error('TASK_NOT_FOUND')
     if (task.status === 'completed' || task.status === 'failed') return task as GenerationTask
@@ -204,7 +228,7 @@ export const refreshGenerationTask = createServerFn({ method: 'POST' })
         result_url: mockResultUrl(),
         updated_at: new Date().toISOString(),
       }).eq('id', task.id)
-        .select('id,status,result_url,failure_message,created_at,provider_task_id,provider')
+        .select('id,status,result_url,failure_message,created_at,provider_task_id,provider,credits_used')
         .single()
       if (updateError || !updated) throw new Error(updateError?.message || 'MOCK_TASK_UPDATE_FAILED')
       return updated as GenerationTask
@@ -217,25 +241,41 @@ export const refreshGenerationTask = createServerFn({ method: 'POST' })
       try {
         const persistedUrl = await persistGeneratedVideo({ taskId: task.id, sourceUrl: upstream.resultUrl })
         const { data: updated } = await admin.from('generation_tasks').update({
-          status: 'completed', result_url: persistedUrl, updated_at: new Date().toISOString(),
-        }).eq('id', task.id).select('id,status,result_url,failure_message,created_at,provider_task_id,provider').single()
+          status: 'completed',
+          result_url: persistedUrl,
+          updated_at: new Date().toISOString(),
+        }).eq('id', task.id)
+          .select('id,status,result_url,failure_message,created_at,provider_task_id,provider,credits_used')
+          .single()
         return updated as GenerationTask
       } catch (error) {
         const message = error instanceof Error ? error.message : 'RESULT_PERSIST_FAILED'
         const { data: updated } = await admin.from('generation_tasks').update({
-          status: 'failed', failure_message: message, updated_at: new Date().toISOString(),
-        }).eq('id', task.id).select('id,status,result_url,failure_message,created_at,provider_task_id,provider').single()
+          status: 'failed',
+          failure_message: message,
+          failure_code: 'RESULT_PERSIST_FAILED',
+          updated_at: new Date().toISOString(),
+        }).eq('id', task.id)
+          .select('id,status,result_url,failure_message,created_at,provider_task_id,provider,credits_used')
+          .single()
+        await refundTaskIfNeeded(task.id, user.id, message)
         return updated as GenerationTask
       }
     }
+
     if (upstream.state === 'fail') {
+      const message = upstream.failMessage || 'Generation failed'
       const { data: updated } = await admin.from('generation_tasks').update({
         status: 'failed',
         failure_code: upstream.failCode || null,
-        failure_message: upstream.failMessage || 'Generation failed',
+        failure_message: message,
         updated_at: new Date().toISOString(),
-      }).eq('id', task.id).select('id,status,result_url,failure_message,created_at,provider_task_id,provider').single()
+      }).eq('id', task.id)
+        .select('id,status,result_url,failure_message,created_at,provider_task_id,provider,credits_used')
+        .single()
+      await refundTaskIfNeeded(task.id, user.id, message)
       return updated as GenerationTask
     }
+
     return task as GenerationTask
   })
