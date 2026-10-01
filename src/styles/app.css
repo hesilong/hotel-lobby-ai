@@ -199,7 +199,7 @@ body{background:#f7f8fb;color:#17191f}
 
 .support-card{align-items:flex-start;flex-direction:column;padding:22px}.support-card h2{font-size:26px}.support-email{width:100%;white-space:normal;text-align:center}}
 
-.faq-heading{max-width:760px}
+.faq-heading{max-width:760px;margin-left:auto;margin-right:auto;text-align:center}
 .faq-heading p{margin:12px 0 0;color:#6f7480;line-height:1.7}
 .faq-heading p a{color:#6f46d9;font-weight:800}
 .faq-heading p a:hover{text-decoration:underline}
