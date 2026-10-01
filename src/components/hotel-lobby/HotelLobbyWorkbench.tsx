@@ -633,7 +633,18 @@ function TemplatePicker({ onClose, onSelect }: { onClose: () => void; onSelect: 
   return <div className="modal-backdrop" onMouseDown={(e) => { if(e.currentTarget===e.target) onClose() }}>
     <div className="modal"><div className="modal-head"><div><h3>Choose a reference video</h3></div><button onClick={onClose}><X/></button></div>
       <div className="template-grid">{HOTEL_LOBBY_TEMPLATES.map(t => <button key={t.id} onClick={() => onSelect(t)}>
-        <video src={t.previewVideoUrl} muted playsInline preload="metadata"/><span>{t.name}</span>
+        <video
+          src={t.previewVideoUrl}
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          onMouseEnter={(e) => void e.currentTarget.play().catch(() => undefined)}
+          onMouseLeave={(e) => {
+            e.currentTarget.pause()
+            e.currentTarget.currentTime = 0
+          }}
+        /><span>{t.name}</span>
       </button>)}</div>
     </div>
   </div>
