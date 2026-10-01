@@ -639,6 +639,8 @@ function TemplatePicker({ onClose, onSelect }: { onClose: () => void; onSelect: 
           loop
           playsInline
           preload="metadata"
+          disablePictureInPicture
+          controlsList="nodownload nofullscreen noremoteplayback"
           onMouseEnter={(e) => void e.currentTarget.play().catch(() => undefined)}
           onMouseLeave={(e) => {
             e.currentTarget.pause()
