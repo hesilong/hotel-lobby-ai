@@ -232,3 +232,29 @@ body{background:#f7f8fb;color:#17191f}
   .hero-background img{object-position:center 26%}
   .hero-home .hero-copy h1 span{display:block}
 }
+
+.site-header-overlay{position:absolute;top:0;left:50%;transform:translateX(-50%);z-index:40;width:100%;background:transparent;border-bottom-color:rgba(255,255,255,.16);backdrop-filter:none;color:#fff}
+.site-header-overlay .brand{color:#fff}
+.site-header-overlay nav{color:rgba(255,255,255,.82)}
+.site-header-overlay nav a:hover{color:#fff}
+.site-header-overlay .header-credits{background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.24);color:#fff;box-shadow:none;backdrop-filter:blur(10px)}
+.site-header-overlay .header-credits:hover{background:rgba(255,255,255,.2);color:#fff}
+.site-header-overlay .header-signin{background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.24);color:#fff;backdrop-filter:blur(10px)}
+.site-header-overlay .header-signin:hover{background:rgba(255,255,255,.2);color:#fff}
+.header-account-menu{position:relative;display:flex;align-items:center}
+.header-avatar{width:34px;height:34px;border-radius:50%;border:1px solid #dfe2e8;background:#fff;color:#343944;display:grid;place-items:center;padding:0;overflow:hidden;cursor:pointer;box-shadow:0 1px 2px rgba(24,28,38,.04)}
+.header-avatar img{width:100%;height:100%;display:block;object-fit:cover}
+.header-avatar span{font-size:12px;font-weight:850}
+.header-avatar:hover{box-shadow:0 3px 10px rgba(24,28,38,.12)}
+.site-header-overlay .header-avatar{border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.16);color:#fff;backdrop-filter:blur(10px);box-shadow:none}
+.site-header-overlay .header-avatar:hover{background:rgba(255,255,255,.24)}
+.header-account-popover{position:absolute;right:0;top:44px;width:230px;padding:8px;background:#fff;border:1px solid #e1e4ea;border-radius:12px;box-shadow:0 18px 50px rgba(24,28,38,.16);color:#252933}
+.header-account-email{display:flex;align-items:center;gap:8px;padding:9px 10px 11px;border-bottom:1px solid #eceef2;font-size:12px;color:#676d78;min-width:0}
+.header-account-email span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.header-signout{width:100%;margin-top:6px;border:0;background:transparent;color:#343944;padding:9px 10px;border-radius:8px;display:flex;align-items:center;gap:8px;text-align:left;font-size:12px;font-weight:750;cursor:pointer}
+.header-signout:hover{background:#f4f5f8}
+@media(max-width:760px){
+  .site-header-overlay{padding:0 18px}
+  .site-header-overlay .header-credits{display:none}
+  .header-account-popover{right:-2px;width:210px}
+}
