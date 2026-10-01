@@ -30,8 +30,7 @@ export function PricingPanel({
 }) {
   const [catalog, setCatalog] = useState<Catalog | null>(null)
   const [billing, setBilling] = useState<BillingState | null>(null)
-  const [cycle, setCycle] = useState<BillingCycle>('monthly')
-  const [tab, setTab] = useState<'plans' | 'credits'>(modal ? 'credits' : 'plans')
+  const [pricingMode, setPricingMode] = useState<'monthly' | 'yearly' | 'credits'>(modal ? 'credits' : 'monthly')
   const [busy, setBusy] = useState('')
   const [error, setError] = useState('')
   const [authOpen, setAuthOpen] = useState(false)
@@ -154,6 +153,7 @@ export function PricingPanel({
   const current = billing?.subscription
   const balance = billing?.credits ?? 0
   const shortfall = requiredCredits ? Math.max(0, requiredCredits - balance) : 0
+  const cycle: BillingCycle = pricingMode === 'yearly' ? 'yearly' : 'monthly'
 
   return <>
     <div className={modal ? 'pricing-panel pricing-panel-modal' : 'pricing-panel'}>
@@ -165,19 +165,84 @@ export function PricingPanel({
           <p>Subscribe for monthly credits or buy a one-time credit pack. Paid credits work across Hotel Lobby AI generations.</p>}
       </div>
 
-      <div className="pricing-tabs">
-        <button className={tab === 'plans' ? 'active' : ''} onClick={() => setTab('plans')}>Plans</button>
-        <button className={tab === 'credits' ? 'active' : ''} onClick={() => setTab('credits')}>Credit Packs</button>
+      <div className="pricing-switcher" role="tablist" aria-label="Pricing options">
+        <button
+          type="button"
+          className={pricingMode === 'monthly' ? 'active' : ''}
+          onClick={() => setPricingMode('monthly')}
+        >
+          Monthly
+        </button>
+        <button
+          type="button"
+          className={pricingMode === 'yearly' ? 'active' : ''}
+          onClick={() => setPricingMode('yearly')}
+        >
+          Yearly <span>Save 20%</span>
+        </button>
+        <button
+          type="button"
+          className={pricingMode === 'credits' ? 'active' : ''}
+          onClick={() => setPricingMode('credits')}
+        >
+          Credit Packs
+        </button>
       </div>
 
       {error && <div className="pricing-error">{error}</div>}
 
-      {tab === 'plans' ? <>
-        <div className="billing-cycle">
-          <button className={cycle === 'monthly' ? 'active' : ''} onClick={() => setCycle('monthly')}>Monthly</button>
-          <button className={cycle === 'yearly' ? 'active' : ''} onClick={() => setCycle('yearly')}>Yearly <span>Save 20%</span></button>
+      {pricingMode === 'credits' ? (
+        <div className="pricing-grid pricing-grid-packs">
+          {(Object.keys(packs) as CreditPackKey[]).map((key, index) => {
+            const pack = packs[key]
+            const recommended = shortfall > 0 && pack.credits >= shortfall &&
+              (index === 0 || packs[(Object.keys(packs) as CreditPackKey[])[index - 1]].credits < shortfall)
+            const featured = recommended || (!modal && key === 'creator')
+            return <article key={key} className={featured ? 'pricing-card featured' : 'pricing-card'}>
+              {featured && <span className="pricing-badge">{recommended ? 'Recommended' : 'Most popular'}</span>}
+              <h3>{pack.name}</h3>
+              <p className="pricing-capacity"><span>{pack.credits.toLocaleString()}</span> credits</p>
+              <div className="pricing-price"><strong>${pack.priceUsd.toFixed(2)}</strong><span>one-time</span></div>
+              <div className="pricing-feature-title">Included</div>
+              <ul>
+                <li><Check size={15}/> Credits valid for 180 days</li>
+                <li><Check size={15}/> No subscription required</li>
+                <li><Check size={15}/> Use for any Hotel Lobby AI generation</li>
+              </ul>
+              <button
+                type="button"
+                className="pricing-buy"
+                disabled={Boolean(busy) || !pack.configured}
+                onClick={() => void checkout({ type: 'credit_pack', key })}
+              >
+                {busy === `pack-${key}` ? <Loader2 className="spin" size={16}/> : <Zap size={16}/>}
+                {pack.configured ? `Buy ${pack.name}` : 'Coming soon'}
+              </button>
+            </article>
+          })}
         </div>
-        <div className="pricing-grid">
+      ) : (
+        <div className={modal ? 'pricing-grid pricing-grid-paid' : 'pricing-grid pricing-grid-plans'}>
+          {!modal && <article className="pricing-card">
+            <h3>Free</h3>
+            <p className="pricing-capacity"><span>10</span> welcome credits</p>
+            <div className="pricing-price"><strong>$0</strong><span>/mo</span></div>
+            <div className="pricing-feature-title">Included</div>
+            <ul>
+              <li><Check size={15}/> Try Hotel Lobby AI generation</li>
+              <li><Check size={15}/> Upload your own photos and motion</li>
+              <li><Check size={15}/> Generated result history</li>
+            </ul>
+            <button
+              type="button"
+              className="pricing-buy pricing-buy-secondary"
+              disabled={authed && !current}
+              onClick={() => { if (!authed) setAuthOpen(true) }}
+            >
+              {authed && !current ? 'Current plan' : 'Get started'}
+            </button>
+          </article>}
+
           {(['pro','ultimate'] as const).map(planId => {
             const plan = catalog.plans[planId]
             const monthlyDisplay = cycle === 'monthly' ? plan.monthlyPriceUsd : plan.yearlyMonthlyEquivalentUsd
@@ -186,9 +251,10 @@ export function PricingPanel({
             return <article key={planId} className={planId === 'ultimate' ? 'pricing-card featured' : 'pricing-card'}>
               {planId === 'ultimate' && <span className="pricing-badge">Most popular</span>}
               <h3>{plan.name}</h3>
-              <p className="pricing-capacity">{plan.monthlyCredits.toLocaleString()} credits / month</p>
+              <p className="pricing-capacity"><span>{plan.monthlyCredits.toLocaleString()}</span> credits / month</p>
               <div className="pricing-price"><strong>${monthlyDisplay.toFixed(2)}</strong><span>/mo</span></div>
               {cycle === 'yearly' && <p className="pricing-billed">Billed ${plan.yearlyPriceUsd.toFixed(2)} yearly</p>}
+              <div className="pricing-feature-title">Supported features</div>
               <ul>
                 <li><Check size={15}/> Reference-to-video generation</li>
                 <li><Check size={15}/> Custom motion uploads</li>
@@ -207,28 +273,7 @@ export function PricingPanel({
             </article>
           })}
         </div>
-      </> : <div className="pricing-grid pricing-grid-packs">
-        {(Object.keys(packs) as CreditPackKey[]).map((key, index) => {
-          const pack = packs[key]
-          const recommended = shortfall > 0 && pack.credits >= shortfall &&
-            (index === 0 || packs[(Object.keys(packs) as CreditPackKey[])[index - 1]].credits < shortfall)
-          return <article key={key} className={recommended || key === 'creator' ? 'pricing-card featured' : 'pricing-card'}>
-            {(recommended || key === 'creator') && <span className="pricing-badge">{recommended ? 'Recommended' : 'Most popular'}</span>}
-            <h3>{pack.name}</h3>
-            <p className="pricing-capacity">{pack.credits.toLocaleString()} credits</p>
-            <div className="pricing-price"><strong>${pack.priceUsd.toFixed(2)}</strong><span> one-time</span></div>
-            <ul>
-              <li><Check size={15}/> Valid for 180 days</li>
-              <li><Check size={15}/> No subscription required</li>
-              <li><Check size={15}/> Use for any Hotel Lobby AI generation</li>
-            </ul>
-            <button type="button" className="pricing-buy" disabled={Boolean(busy) || !pack.configured} onClick={() => void checkout({ type: 'credit_pack', key })}>
-              {busy === `pack-${key}` ? <Loader2 className="spin" size={16}/> : <Zap size={16}/>}
-              {pack.configured ? `Buy ${pack.name}` : 'Coming soon'}
-            </button>
-          </article>
-        })}
-      </div>}
+      )}
 
       {current && <div className="subscription-manage">
         <div>
