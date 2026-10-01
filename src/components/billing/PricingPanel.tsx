@@ -223,26 +223,6 @@ export function PricingPanel({
         </div>
       ) : (
         <div className={modal ? 'pricing-grid pricing-grid-paid' : 'pricing-grid pricing-grid-plans'}>
-          {!modal && <article className="pricing-card">
-            <h3>Free</h3>
-            <p className="pricing-capacity"><span>10</span> welcome credits</p>
-            <div className="pricing-price"><strong>$0</strong><span>/mo</span></div>
-            <div className="pricing-feature-title">Included</div>
-            <ul>
-              <li><Check size={15}/> Try Hotel Lobby AI generation</li>
-              <li><Check size={15}/> Upload your own photos and motion</li>
-              <li><Check size={15}/> Generated result history</li>
-            </ul>
-            <button
-              type="button"
-              className="pricing-buy pricing-buy-secondary"
-              disabled={authed && !current}
-              onClick={() => { if (!authed) setAuthOpen(true) }}
-            >
-              {authed && !current ? 'Current plan' : 'Get started'}
-            </button>
-          </article>}
-
           {(['pro','ultimate'] as const).map(planId => {
             const plan = catalog.plans[planId]
             const monthlyDisplay = cycle === 'monthly' ? plan.monthlyPriceUsd : plan.yearlyMonthlyEquivalentUsd
