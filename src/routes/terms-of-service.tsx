@@ -71,7 +71,7 @@ function TermsPage() {
           You are responsible for determining whether you have the rights needed for your intended use.
         </p>
 
-        <h2>5. Acceptable use</h2>
+        <h2 id="acceptable-use">5. Acceptable use</h2>
         <p>You may not use the Service to create, upload, request, distribute, or facilitate content that:</p>
         <ul>
           <li>violates applicable law or another person's rights;</li>
