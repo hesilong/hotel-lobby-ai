@@ -182,3 +182,6 @@ body{background:#f7f8fb;color:#17191f}
 .pricing-loading{display:flex;align-items:center;justify-content:center;gap:8px;min-height:240px;color:#777d88}
 @media(max-width:900px){.pricing-grid-packs{grid-template-columns:1fr}.pricing-grid{max-width:620px}}
 @media(max-width:760px){.header-credits{min-width:auto;padding:8px}.pricing-page{padding:58px 18px 80px}.pricing-modal-shell{padding:20px 14px;border-radius:20px}.pricing-grid{grid-template-columns:1fr}.pricing-card{min-height:0;padding:22px}.subscription-manage{align-items:flex-start;flex-direction:column}.pricing-tabs,.billing-cycle{width:100%}.pricing-tabs button,.billing-cycle button{flex:1;padding-left:10px;padding-right:10px}}
+
+.asset-uploading{position:absolute;inset:0;display:grid;place-items:center;background:rgba(255,255,255,.42);backdrop-filter:blur(1px);pointer-events:none}
+.asset-uploading svg{filter:drop-shadow(0 1px 2px rgba(0,0,0,.12))}
