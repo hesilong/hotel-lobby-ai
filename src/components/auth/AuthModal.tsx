@@ -20,7 +20,8 @@ export function AuthModal({ open, onClose, onAuthed }: { open: boolean; onClose:
     setGoogleBusy(true)
     setError('')
     const supabase = getSupabaseBrowserClient()
-    const redirectTo = `${window.location.origin}/auth/callback?next=/`
+    const currentPath = `${window.location.pathname}${window.location.search}`
+    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(currentPath)}`
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -57,7 +58,7 @@ export function AuthModal({ open, onClose, onAuthed }: { open: boolean; onClose:
     <div className="auth-modal">
       <button className="auth-close" onClick={onClose}><X size={18}/></button>
       <h3>{mode === 'signin' ? 'Sign in to generate' : 'Create your account'}</h3>
-      <p>Your uploads stay in this page. After signing in, generation continues with the same inputs.</p>
+      <p>Sign in to continue with generation, billing, and your saved results.</p>
 
       <button className="auth-google" disabled={googleBusy || busy} onClick={() => void signInWithGoogle()}>
         {googleBusy ? <Loader2 className="spin" size={16}/> : <GoogleMark/>}
