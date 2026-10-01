@@ -38,6 +38,7 @@ export function HotelLobbyWorkbench() {
   const [prompt, setPrompt] = useState(HOTEL_LOBBY_DEFAULT_PROMPT)
   const [duration, setDuration] = useState(10)
   const [resolution, setResolution] = useState<'720p'|'1080p'|'4k'>('720p')
+  const [aspectRatio, setAspectRatio] = useState<'16:9'|'9:16'|'1:1'>('16:9')
   const [pickerOpen, setPickerOpen] = useState(false)
   const [sourceOpen, setSourceOpen] = useState(false)
   const [authOpen, setAuthOpen] = useState(false)
@@ -57,7 +58,6 @@ export function HotelLobbyWorkbench() {
   const assetErrorTimer = useRef<number | null>(null)
 
   const selectedVideo = referenceVideo.previewUrl || template?.previewVideoUrl || null
-  const ratio = template?.defaultRatio || '16:9'
   const cost = calculateGenerationCredits(duration, resolution)
   const isSubmitting = submitStage !== 'idle'
   const imagesReady = personA.status === 'approved' && personB.status === 'approved'
@@ -382,7 +382,7 @@ export function HotelLobbyWorkbench() {
       prompt,
       duration,
       resolution,
-      aspectRatio: ratio,
+      aspectRatio,
     })
   }
 
@@ -438,6 +438,7 @@ export function HotelLobbyWorkbench() {
     })
     setTemplate(selected)
     setPrompt(selected.defaultPrompt)
+    setAspectRatio(selected.defaultRatio)
     setPickerOpen(false)
   }
 
@@ -490,7 +491,11 @@ export function HotelLobbyWorkbench() {
       <div className="controls">
         <select value={duration} onChange={e=>setDuration(Number(e.target.value))}><option value={5}>5s</option><option value={10}>10s</option><option value={15}>15s</option></select>
         <select value={resolution} onChange={e=>setResolution(e.target.value as typeof resolution)}><option>720p</option><option>1080p</option><option>4k</option></select>
-        <select value={ratio} disabled><option>{ratio}</option></select>
+        <select value={aspectRatio} onChange={e=>setAspectRatio(e.target.value as typeof aspectRatio)}>
+          <option value="16:9">16:9</option>
+          <option value="9:16">9:16</option>
+          <option value="1:1">1:1</option>
+        </select>
         <button disabled={!canGenerate} className="generate" onClick={() => void onGenerate()}>
           {isSubmitting ? <Loader2 size={16} className="spin"/> : <Zap size={16} fill="currentColor"/>}
           {submitStage === 'moderating' ? 'Checking…' :
