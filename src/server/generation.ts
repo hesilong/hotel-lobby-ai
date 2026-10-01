@@ -10,8 +10,11 @@ import { HOTEL_LOBBY_TEMPLATES } from '@/config/hotel-lobby'
 
 export type CreateGenerationInput = {
   imageAAssetId?: string | null
+  imageAAssetToken?: string | null
   imageBAssetId?: string | null
+  imageBAssetToken?: string | null
   referenceVideoAssetId?: string | null
+  referenceVideoAssetToken?: string | null
   imageAUrl: string
   imageBUrl: string
   referenceTemplateId?: string | null
@@ -175,24 +178,29 @@ export const createGeneration = createServerFn({ method: 'POST' })
   .inputValidator((input: CreateGenerationInput) => input)
   .handler(async ({ data }) => {
     const user = await authUser()
-    if (!data.imageAAssetId || !data.imageBAssetId) throw new Error('REFERENCE_IMAGES_NOT_READY')
+    if (!data.imageAAssetId || !data.imageAAssetToken || !data.imageBAssetId || !data.imageBAssetToken) {
+      throw new Error('REFERENCE_IMAGES_NOT_READY')
+    }
 
     if (data.referenceTemplateId) {
       const template = HOTEL_LOBBY_TEMPLATES.find(item => item.id === data.referenceTemplateId)
       if (!template || template.sourceVideoUrl !== data.referenceVideoUrl) {
         throw new Error('REFERENCE_VIDEO_NOT_READY')
       }
-    } else if (!data.referenceVideoAssetId) {
+    } else if (!data.referenceVideoAssetId || !data.referenceVideoAssetToken) {
       throw new Error('REFERENCE_VIDEO_NOT_READY')
     }
 
     await verifyPreparedAssets({
       userId: user.id,
       imageAAssetId: data.imageAAssetId,
+      imageAAssetToken: data.imageAAssetToken,
       imageAUrl: data.imageAUrl,
       imageBAssetId: data.imageBAssetId,
+      imageBAssetToken: data.imageBAssetToken,
       imageBUrl: data.imageBUrl,
       referenceVideoAssetId: data.referenceTemplateId ? null : data.referenceVideoAssetId,
+      referenceVideoAssetToken: data.referenceTemplateId ? null : data.referenceVideoAssetToken,
       referenceVideoUrl: data.referenceVideoUrl,
     })
 
