@@ -101,7 +101,9 @@ function HomePage() {
       <SiteHeader />
 
       <section className="hero hero-home">
-        <div className="hero-glow hero-glow-a" /><div className="hero-glow hero-glow-b" />
+        <div className="hero-background" aria-hidden="true">
+          <img src={HOTEL_LOBBY_FRIENDS_WEBP} alt="" />
+        </div>
         <div className="hero-copy">
           <span className="eyebrow">Viral AI Video</span>
           <h1>Hotel Lobby <span>AI Video Generator</span></h1>
