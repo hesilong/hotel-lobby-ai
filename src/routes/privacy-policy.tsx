@@ -107,10 +107,15 @@ function PrivacyPolicyPage() {
 
         <h2>7. Data retention</h2>
         <p>
-          We retain account information, generation records, uploaded files, generated results, and operational logs
-          for as long as reasonably necessary to provide the Service, maintain security and reliability, resolve disputes,
-          meet legal obligations, or enforce our agreements. Retention periods may differ depending on the type of data
-          and the systems involved.
+          Uploaded reference images and videos are treated as temporary input assets and are generally scheduled for
+          automatic deletion from our temporary upload storage approximately 24 hours after upload. Actual deletion may
+          occur later because cloud-storage lifecycle jobs are processed asynchronously.
+        </p>
+        <p>
+          Generated videos, generation records, account information, billing records, and operational logs may be retained
+          longer so that we can provide result history, operate and secure the Service, resolve disputes, meet legal
+          obligations, and enforce our agreements. Retention periods may differ depending on the type of data and the
+          systems involved.
         </p>
 
         <h2>8. Data security</h2>
