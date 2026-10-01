@@ -45,10 +45,10 @@ function PrivacyPolicyPage() {
         <h3>Google Sign-In and Google user data</h3>
         <p>
           If you choose Google Sign-In, we use Google OAuth only to authenticate your account and receive basic account
-          information needed for sign-in, such as your email address and profile identifier. We do not use Google APIs
-          or Google user data to generate, modify, analyze, or distribute uploaded images, videos, prompts, or
-          AI-generated content. Google account information is used only for authentication, account operation, security,
-          and support as described in this Privacy Policy.
+          information needed for sign-in, such as your email address and profile identifier. We do not use Google
+          Generative AI APIs (including Gemini or Imagen), Google Photos, Google Drive, or other Google APIs to generate,
+          modify, analyze, or process uploaded images, videos, prompts, or AI-generated media. Google account information
+          is used only for authentication, account operation, security, and support as described in this Privacy Policy.
         </p>
 
         <h3>Content you provide</h3>
