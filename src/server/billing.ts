@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { CREDIT_PACKS, PLANS, planProductId, publicPricingCatalog, type BillingCycle, type CreditPackKey } from '@/config/products'
+import { reconcileYearlySubscriptionCredits } from '@/server/credits'
 
 const creemBase = () => {
   const base = (process.env.CREEM_API_URL || process.env.CREEM_BASE_URL || 'https://api.creem.io').replace(/\/+$/, '')
@@ -27,10 +28,11 @@ export const getPricingCatalog = createServerFn({ method: 'GET' }).handler(async
 export const getBillingState = createServerFn({ method: 'GET' }).handler(async () => {
   const user = await requireUser()
   const admin = getSupabaseAdminClient()
+  await reconcileYearlySubscriptionCredits(admin, user.id)
   const [{ data: profile, error: profileError }, { data: subscription, error: subscriptionError }] = await Promise.all([
     admin.from('profiles').select('credits').eq('id', user.id).maybeSingle(),
     admin.from('subscriptions')
-      .select('id,plan_code,billing_cycle,plan_id,pending_plan_id,status,current_period_start,current_period_end,cancel_at,creem_subscription_id,updated_at')
+      .select('id,plan_code,billing_cycle,plan_id,pending_plan_id,status,current_period_start,current_period_end,next_credit_reset_at,cancel_at,creem_subscription_id,updated_at')
       .eq('user_id', user.id)
       .order('updated_at', { ascending: false })
       .limit(1)
