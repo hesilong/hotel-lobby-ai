@@ -3,7 +3,6 @@ import { HotelLobbyWorkbench } from '@/components/hotel-lobby/HotelLobbyWorkbenc
 import { MotionGallery } from '@/components/hotel-lobby/MotionGallery'
 import { SiteHeader } from '@/components/layout/SiteHeader'
 import { SiteFooter } from '@/components/layout/SiteFooter'
-import { HOTEL_LOBBY_TEMPLATES } from '@/config/hotel-lobby'
 import { HOTEL_LOBBY_FRIENDS_WEBP, HOTEL_LOBBY_PETS_WEBP, HOTEL_LOBBY_STREETWEAR_WEBP } from '@/config/hotel-lobby-visuals'
 
 const faqItems = [
@@ -34,9 +33,18 @@ const faqItems = [
 ]
 
 const HOME_MOTION_TEMPLATES = [
-  HOTEL_LOBBY_TEMPLATES[2],
-  HOTEL_LOBBY_TEMPLATES[0],
-  HOTEL_LOBBY_TEMPLATES[1],
+  {
+    id: 'home-motion-3',
+    previewVideoUrl: 'https://cdn.clothmotion.app/templates/hotel-lobby-ai/preview/hotel-lobby-ai-3.mp4',
+  },
+  {
+    id: 'home-motion-4',
+    previewVideoUrl: 'https://cdn.clothmotion.app/templates/hotel-lobby-ai/preview/hotel-lobby-ai-4.mp4',
+  },
+  {
+    id: 'home-motion-2',
+    previewVideoUrl: 'https://cdn.clothmotion.app/templates/hotel-lobby-ai/preview/hotel-lobby-ai-2.mp4',
+  },
 ]
 
 const promptIdeas = [
