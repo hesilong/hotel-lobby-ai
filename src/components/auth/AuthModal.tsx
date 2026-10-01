@@ -57,7 +57,7 @@ export function AuthModal({ open, onClose, onAuthed }: { open: boolean; onClose:
   return <div className="modal-backdrop">
     <div className="auth-modal">
       <button className="auth-close" onClick={onClose}><X size={18}/></button>
-      <h3>{mode === 'signin' ? 'Sign in to generate' : 'Create your account'}</h3>
+      <h3>{mode === 'signin' ? 'Sign in' : 'Create your account'}</h3>
       <p>Sign in to continue with generation, billing, and your saved results.</p>
 
       <button className="auth-google" disabled={googleBusy || busy} onClick={() => void signInWithGoogle()}>
