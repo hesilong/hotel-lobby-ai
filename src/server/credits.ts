@@ -414,3 +414,44 @@ export async function revokeUnusedCreditPack(params: {
 
   return { handled: true, refundedCredits: remaining }
 }
+
+
+export async function revokeSubscriptionCredits(params: {
+  admin: AdminClient
+  userId: string
+  reason?: string
+}) {
+  const { data: grants, error } = await params.admin
+    .from('credit_grants')
+    .select('id,credits_remaining')
+    .eq('user_id', params.userId)
+    .eq('source', 'subscription')
+    .eq('status', 'active')
+    .gt('credits_remaining', 0)
+  if (error) throw new Error(error.message)
+
+  const remaining = (grants || []).reduce((sum, grant) => sum + Number(grant.credits_remaining || 0), 0)
+  if (remaining > 0) {
+    const balance = await getCreditBalance(params.admin, params.userId)
+    const removable = Math.min(balance, remaining)
+    if (removable > 0) {
+      await adjustCredits({
+        admin: params.admin,
+        userId: params.userId,
+        delta: -removable,
+        reason: params.reason || 'subscription_revoked',
+        meta: { revoked_credits: removable },
+      })
+    }
+  }
+
+  for (const grant of grants || []) {
+    await params.admin.from('credit_grants').update({
+      status: 'revoked',
+      credits_remaining: 0,
+      updated_at: new Date().toISOString(),
+    }).eq('id', grant.id)
+  }
+
+  return { revokedCredits: remaining }
+}
