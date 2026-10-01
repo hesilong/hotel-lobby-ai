@@ -6,19 +6,33 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { AuthModal } from '@/components/auth/AuthModal'
 import { PricingPanel } from '@/components/billing/PricingPanel'
 import { ResultsGallery } from '@/components/hotel-lobby/ResultsGallery'
-import { createUploadUrl } from '@/server/storage'
+import { createUploadUrl, finalizeUploadedAsset } from '@/server/storage'
 import { getBillingState } from '@/server/billing'
 import { createGeneration, listGenerationTasks, refreshGenerationTask, retryGenerationTask, type CreateGenerationInput, type GenerationTask } from '@/server/generation'
 
-type ImageState = { file: File | null; previewUrl: string | null }
-const emptyImage: ImageState = { file: null, previewUrl: null }
+type ImageAssetState = {
+  previewUrl: string | null
+  publicUrl: string | null
+  assetId: string | null
+  status: 'empty' | 'uploading' | 'moderating' | 'approved'
+}
+
+type VideoAssetState = {
+  previewUrl: string | null
+  publicUrl: string | null
+  assetId: string | null
+  status: 'empty' | 'uploading' | 'ready'
+}
+
+const emptyImage: ImageAssetState = { previewUrl: null, publicUrl: null, assetId: null, status: 'empty' }
+const emptyVideo: VideoAssetState = { previewUrl: null, publicUrl: null, assetId: null, status: 'empty' }
 const RECOVERY_KEY = 'hotel_lobby_generation_recovery_v1'
 
 export function HotelLobbyWorkbench() {
-  const [personA, setPersonA] = useState<ImageState>(emptyImage)
-  const [personB, setPersonB] = useState<ImageState>(emptyImage)
+  const [personA, setPersonA] = useState<ImageAssetState>(emptyImage)
+  const [personB, setPersonB] = useState<ImageAssetState>(emptyImage)
   const [template, setTemplate] = useState<MotionTemplate | null>(null)
-  const [referenceVideo, setReferenceVideo] = useState<{ file: File | null; previewUrl: string | null }>({ file: null, previewUrl: null })
+  const [referenceVideo, setReferenceVideo] = useState<VideoAssetState>(emptyVideo)
   const [prompt, setPrompt] = useState(HOTEL_LOBBY_DEFAULT_PROMPT)
   const [duration, setDuration] = useState(10)
   const [resolution, setResolution] = useState<'720p'|'1080p'|'4k'>('720p')
@@ -28,26 +42,46 @@ export function HotelLobbyWorkbench() {
   const [pricingOpen, setPricingOpen] = useState(false)
   const [authed, setAuthed] = useState(false)
   const [pendingGenerate, setPendingGenerate] = useState(false)
-  const [submitStage, setSubmitStage] = useState<'idle'|'uploading'|'moderating'|'starting'|'syncing'>('idle')
+  const [submitStage, setSubmitStage] = useState<'idle'|'moderating'|'starting'|'syncing'>('idle')
   const [error, setError] = useState('')
+  const [assetError, setAssetError] = useState('')
   const [tasks, setTasks] = useState<GenerationTask[]>([])
   const [credits, setCredits] = useState<number | null>(null)
   const [retryingTaskId, setRetryingTaskId] = useState<string | null>(null)
   const videoInput = useRef<HTMLInputElement>(null)
+  const personARequest = useRef<string | null>(null)
+  const personBRequest = useRef<string | null>(null)
+  const videoRequest = useRef<string | null>(null)
+  const assetErrorTimer = useRef<number | null>(null)
 
   const selectedVideo = referenceVideo.previewUrl || template?.previewVideoUrl || null
   const ratio = template?.defaultRatio || '16:9'
   const cost = calculateGenerationCredits(duration, resolution)
   const isSubmitting = submitStage !== 'idle'
-  const canGenerate = Boolean(personA.file && personB.file && (template || referenceVideo.file) && !isSubmitting)
+  const imagesReady = personA.status === 'approved' && personB.status === 'approved'
+  const referenceReady = Boolean(template || referenceVideo.status === 'ready')
+  const canGenerate = Boolean(imagesReady && referenceReady && prompt.trim() && !isSubmitting)
+
+  const publishCredits = (value: number | null) => {
+    setCredits(value)
+    if (typeof window !== 'undefined' && value !== null) {
+      window.dispatchEvent(new CustomEvent('hla:credits-changed', { detail: value }))
+    }
+  }
+
+  const showAssetError = (message: string) => {
+    setAssetError(message)
+    if (assetErrorTimer.current) window.clearTimeout(assetErrorTimer.current)
+    assetErrorTimer.current = window.setTimeout(() => setAssetError(''), 6000)
+  }
 
   const loadBilling = async () => {
     try {
       const state = await getBillingState()
-      setCredits(state.credits)
+      publishCredits(state.credits)
       return state.credits
     } catch {
-      setCredits(null)
+      publishCredits(null)
       return null
     }
   }
@@ -73,11 +107,17 @@ export function HotelLobbyWorkbench() {
         void loadTasks()
         void loadBilling()
       } else {
-        setCredits(null)
+        publishCredits(null)
         setTasks([])
       }
     })
     return () => listener.subscription.unsubscribe()
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (assetErrorTimer.current) window.clearTimeout(assetErrorTimer.current)
+    }
   }, [])
 
   useEffect(() => {
@@ -105,7 +145,7 @@ export function HotelLobbyWorkbench() {
       const balance = await loadBilling()
       if (balance !== null && balance >= required) {
         try {
-          setSubmitStage('starting')
+          setSubmitStage('moderating')
           const task = await createGeneration({ data: draft! })
           window.sessionStorage.removeItem(RECOVERY_KEY)
           setTasks(current => [{
@@ -117,7 +157,7 @@ export function HotelLobbyWorkbench() {
             provider_task_id: null,
             credits_used: task.creditsUsed,
           }, ...current])
-          setCredits(task.balance)
+          publishCredits(task.balance)
           const url = new URL(window.location.href)
           url.searchParams.delete('purchase_return')
           url.searchParams.delete('purchase_type')
@@ -155,16 +195,124 @@ export function HotelLobbyWorkbench() {
     void loadBilling()
   }
 
-  const setImage = (file: File | undefined, setter: (state: ImageState) => void) => {
-    if (!file) return
-    setter({ file, previewUrl: URL.createObjectURL(file) })
+  const uploadFile = async (file: File, kind: 'image' | 'video') => {
+    const signed = await createUploadUrl({ data: { fileName: file.name, mimeType: file.type, kind } })
+    const response = await fetch(signed.uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type },
+      body: file,
+    })
+    if (!response.ok) throw new Error('UPLOAD_FAILED')
+    return signed
   }
 
-  const upload = async (file: File, kind: 'image'|'video') => {
-    const signed = await createUploadUrl({ data: { fileName: file.name, mimeType: file.type, kind } })
-    const res = await fetch(signed.uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file })
-    if (!res.ok) throw new Error('Upload failed')
-    return signed.publicUrl
+  const prepareImage = async (
+    file: File | undefined,
+    slot: 'A' | 'B',
+  ) => {
+    if (!file) return
+    const requestId = crypto.randomUUID()
+    const requestRef = slot === 'A' ? personARequest : personBRequest
+    const setter = slot === 'A' ? setPersonA : setPersonB
+    requestRef.current = requestId
+    setError('')
+    setAssetError('')
+
+    const previewUrl = URL.createObjectURL(file)
+    setter(current => {
+      if (current.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(current.previewUrl)
+      return { previewUrl, publicUrl: null, assetId: null, status: 'uploading' }
+    })
+
+    try {
+      const signed = await uploadFile(file, 'image')
+      if (requestRef.current !== requestId) return
+      setter(current => ({ ...current, publicUrl: signed.publicUrl, assetId: signed.assetId, status: 'moderating' }))
+
+      const finalized = await finalizeUploadedAsset({ data: { assetId: signed.assetId } })
+      if (requestRef.current !== requestId) return
+      setter(current => ({
+        ...current,
+        publicUrl: finalized.publicUrl,
+        assetId: finalized.assetId,
+        status: 'approved',
+      }))
+    } catch (e) {
+      if (requestRef.current !== requestId) return
+      requestRef.current = null
+      setter(current => {
+        if (current.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(current.previewUrl)
+        return emptyImage
+      })
+      const message = e instanceof Error ? e.message : 'IMAGE_MODERATION_UNAVAILABLE'
+      showAssetError(
+        message.includes('IMAGE_REJECTED')
+          ? 'This image can’t be used. Please choose another image.'
+          : message.includes('UNSUPPORTED_FILE_TYPE')
+            ? 'Please choose a JPG, PNG, or WebP image.'
+            : 'We couldn’t verify this image right now. Please try again shortly.',
+      )
+    }
+  }
+
+  const clearImage = (slot: 'A' | 'B') => {
+    const requestRef = slot === 'A' ? personARequest : personBRequest
+    const setter = slot === 'A' ? setPersonA : setPersonB
+    requestRef.current = null
+    setter(current => {
+      if (current.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(current.previewUrl)
+      return emptyImage
+    })
+  }
+
+  const prepareVideo = async (file: File | undefined) => {
+    if (!file) return
+    const requestId = crypto.randomUUID()
+    videoRequest.current = requestId
+    setTemplate(null)
+    setSourceOpen(false)
+    setAssetError('')
+
+    const previewUrl = URL.createObjectURL(file)
+    setReferenceVideo(current => {
+      if (current.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(current.previewUrl)
+      return { previewUrl, publicUrl: null, assetId: null, status: 'uploading' }
+    })
+
+    try {
+      const signed = await uploadFile(file, 'video')
+      if (videoRequest.current !== requestId) return
+      const finalized = await finalizeUploadedAsset({ data: { assetId: signed.assetId } })
+      if (videoRequest.current !== requestId) return
+      setReferenceVideo(current => ({
+        ...current,
+        publicUrl: finalized.publicUrl,
+        assetId: finalized.assetId,
+        status: 'ready',
+      }))
+    } catch (e) {
+      if (videoRequest.current !== requestId) return
+      videoRequest.current = null
+      setReferenceVideo(current => {
+        if (current.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(current.previewUrl)
+        return emptyVideo
+      })
+      const message = e instanceof Error ? e.message : 'UPLOAD_FAILED'
+      showAssetError(
+        message.includes('UNSUPPORTED_FILE_TYPE')
+          ? 'Please choose an MP4, MOV, or WebM reference video.'
+          : 'We couldn’t upload this reference video. Please try again.',
+      )
+    }
+  }
+
+  const clearVideo = () => {
+    videoRequest.current = null
+    setReferenceVideo(current => {
+      if (current.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(current.previewUrl)
+      return emptyVideo
+    })
+    setTemplate(null)
   }
 
   const runGeneration = async (data: CreateGenerationInput) => {
@@ -182,7 +330,7 @@ export function HotelLobbyWorkbench() {
         provider_task_id: null,
         credits_used: task.creditsUsed,
       }, ...current])
-      setCredits(task.balance)
+      publishCredits(task.balance)
       setPendingGenerate(false)
       setSubmitStage('idle')
       return true
@@ -201,27 +349,32 @@ export function HotelLobbyWorkbench() {
   }
 
   const submitAfterAuth = async () => {
-    if (!personA.file || !personB.file || (!template && !referenceVideo.file) || isSubmitting) return
-    setSubmitStage('uploading')
+    if (
+      personA.status !== 'approved' ||
+      personB.status !== 'approved' ||
+      !personA.publicUrl ||
+      !personB.publicUrl ||
+      !personA.assetId ||
+      !personB.assetId ||
+      (!template && (referenceVideo.status !== 'ready' || !referenceVideo.publicUrl || !referenceVideo.assetId)) ||
+      isSubmitting
+    ) return
+
     setError('')
-    try {
-      const [imageAUrl, imageBUrl] = await Promise.all([upload(personA.file, 'image'), upload(personB.file, 'image')])
-      const referenceVideoUrl = template?.sourceVideoUrl || (referenceVideo.file ? await upload(referenceVideo.file, 'video') : '')
-      setSubmitStage('starting')
-      await runGeneration({
-        imageAUrl,
-        imageBUrl,
-        referenceTemplateId: template?.id || null,
-        referenceVideoUrl,
-        prompt,
-        duration,
-        resolution,
-        aspectRatio: ratio,
-      })
-    } catch (e) {
-      setError(friendlyError(e instanceof Error ? e.message : 'Generation failed'))
-      setSubmitStage('idle')
-    }
+    setSubmitStage('starting')
+    await runGeneration({
+      imageAAssetId: personA.assetId,
+      imageBAssetId: personB.assetId,
+      referenceVideoAssetId: template ? null : referenceVideo.assetId,
+      imageAUrl: personA.publicUrl,
+      imageBUrl: personB.publicUrl,
+      referenceTemplateId: template?.id || null,
+      referenceVideoUrl: template?.sourceVideoUrl || referenceVideo.publicUrl || '',
+      prompt,
+      duration,
+      resolution,
+      aspectRatio: ratio,
+    })
   }
 
   const onGenerate = async () => {
@@ -253,7 +406,7 @@ export function HotelLobbyWorkbench() {
         provider_task_id: null,
         credits_used: task.creditsUsed,
       }, ...current])
-      setCredits(task.balance)
+      publishCredits(task.balance)
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Retry failed'
       if (message.includes('INSUFFICIENT_CREDITS')) setPricingOpen(true)
@@ -268,32 +421,60 @@ export function HotelLobbyWorkbench() {
     if (pendingGenerate) window.setTimeout(() => void submitAfterAuth(), 150)
   }
 
+  const chooseTemplate = (selected: MotionTemplate) => {
+    videoRequest.current = null
+    setReferenceVideo(current => {
+      if (current.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(current.previewUrl)
+      return emptyVideo
+    })
+    setTemplate(selected)
+    setPrompt(selected.defaultPrompt)
+    setPickerOpen(false)
+  }
+
   return <div className="workbench-shell">
     <div className="workbench">
-      <div className="workbench-balance">
-        <span>{authed ? <>Balance <strong>⚡ {credits ?? '—'}</strong></> : 'Sign in when you are ready to generate'}</span>
-        {authed && <button type="button" onClick={() => setPricingOpen(true)}>Buy credits</button>}
-      </div>
-
       <div className="asset-row">
-        <ImageUpload label="Person A" state={personA} onPick={(f) => setImage(f, setPersonA)} onClear={() => setPersonA(emptyImage)} />
-        <ImageUpload label="Person B" state={personB} onPick={(f) => setImage(f, setPersonB)} onClear={() => setPersonB(emptyImage)} />
+        <ImageUpload
+          label="Person A"
+          state={personA}
+          onPick={(file) => void prepareImage(file, 'A')}
+          onClear={() => clearImage('A')}
+        />
+        <ImageUpload
+          label="Person B"
+          state={personB}
+          onPick={(file) => void prepareImage(file, 'B')}
+          onClear={() => clearImage('B')}
+        />
         <div className="reference-slot">
-          <button className="asset-tile portrait" onClick={() => setSourceOpen(v => !v)} type="button">
-            {selectedVideo ? <><video src={selectedVideo} muted loop playsInline /><span className="asset-overlay"><Play size={15} fill="currentColor" /></span></> : <Plus size={22} />}
+          <button className="asset-tile" onClick={() => setSourceOpen(v => !v)} type="button">
+            {selectedVideo ? <>
+              <video src={selectedVideo} muted loop playsInline />
+              <span className="asset-overlay"><Play size={15} fill="currentColor" /></span>
+            </> : <Plus size={22} />}
           </button>
-          {selectedVideo && <button className="remove-asset" onClick={() => { setReferenceVideo({ file: null, previewUrl: null }); setTemplate(null) }}><X size={11}/></button>}
-          <span>Video<br/>Reference</span>
+          {selectedVideo && <button className="remove-asset" type="button" onClick={clearVideo}><X size={11}/></button>}
+          <span>Video Reference</span>
           {sourceOpen && <div className="source-menu">
-            <button onClick={() => { setSourceOpen(false); videoInput.current?.click() }}><Upload size={15}/> Upload video</button>
-            <button onClick={() => { setSourceOpen(false); setPickerOpen(true) }}><Play size={15}/> Choose template</button>
+            <button type="button" onClick={() => { setSourceOpen(false); videoInput.current?.click() }}><Upload size={15}/> Upload video</button>
+            <button type="button" onClick={() => { setSourceOpen(false); setPickerOpen(true) }}><Play size={15}/> Choose template</button>
           </div>}
-          <input hidden ref={videoInput} type="file" accept="video/mp4,video/quicktime,video/webm" onChange={(e) => {
-            const f=e.target.files?.[0]
-            if(f){ setTemplate(null); setReferenceVideo({file:f, previewUrl:URL.createObjectURL(f)}) }
-          }} />
+          <input
+            hidden
+            ref={videoInput}
+            type="file"
+            accept="video/mp4,video/quicktime,video/webm"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              e.currentTarget.value = ''
+              void prepareVideo(file)
+            }}
+          />
         </div>
       </div>
+
+      {assetError && <div className="asset-error" role="alert">{assetError}</div>}
 
       <textarea className="prompt" value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={5} aria-label="Prompt" />
       {error && <div className="generation-error">{error}</div>}
@@ -303,11 +484,10 @@ export function HotelLobbyWorkbench() {
         <select value={ratio} disabled><option>{ratio}</option></select>
         <button disabled={!canGenerate} className="generate" onClick={() => void onGenerate()}>
           {isSubmitting ? <Loader2 size={16} className="spin"/> : <Zap size={16} fill="currentColor"/>}
-          {submitStage === 'uploading' ? 'Uploading…' :
-           submitStage === 'moderating' ? 'Checking…' :
+          {submitStage === 'moderating' ? 'Checking…' :
            submitStage === 'starting' ? 'Starting…' :
            submitStage === 'syncing' ? 'Syncing credits…' :
-           <>⚡ {cost} Generate</>}
+           <>{cost} Generate</>}
         </button>
       </div>
     </div>
@@ -322,34 +502,51 @@ export function HotelLobbyWorkbench() {
           requiredCredits={cost}
           returnPath="/"
           onClose={() => setPricingOpen(false)}
-          onBalanceChange={setCredits}
+          onBalanceChange={publishCredits}
         />
       </div>
     </div>}
 
-    {pickerOpen && <TemplatePicker onClose={() => setPickerOpen(false)} onSelect={(t) => {
-      setTemplate(t)
-      setReferenceVideo({file:null,previewUrl:null})
-      setPrompt(t.defaultPrompt)
-      setPickerOpen(false)
-    }} />}
+    {pickerOpen && <TemplatePicker onClose={() => setPickerOpen(false)} onSelect={chooseTemplate} />}
   </div>
 }
 
 function friendlyError(message: string) {
   if (message.includes('PROMPT_REJECTED')) return 'This prompt cannot be used. Please revise it and try again.'
   if (message.includes('MODERATION_UNAVAILABLE')) return 'Safety check is temporarily unavailable. Please try again shortly.'
-  if (message.includes('IMAGE_REJECTED')) return 'One of the reference images cannot be used. Please choose another image.'
-  if (message.includes('IMAGE_MODERATION')) return 'Unable to verify the reference image right now. Please try again shortly.'
+  if (message.includes('REFERENCE_IMAGES_NOT_READY') || message.includes('IMAGE_A_NOT_READY') || message.includes('IMAGE_B_NOT_READY')) {
+    return 'Please choose your two reference images again.'
+  }
+  if (message.includes('REFERENCE_VIDEO_NOT_READY')) return 'Please choose the reference video again.'
   if (message.includes('AUTH_REQUIRED')) return 'Please sign in and try again.'
   return message
 }
 
-function ImageUpload({ label, state, onPick, onClear }: { label: string; state: ImageState; onPick: (file?: File) => void; onClear: () => void }) {
+function ImageUpload({
+  label,
+  state,
+  onPick,
+  onClear,
+}: {
+  label: string
+  state: ImageAssetState
+  onPick: (file?: File) => void
+  onClear: () => void
+}) {
   return <label className="image-slot">
     <div className="asset-tile">{state.previewUrl ? <img src={state.previewUrl} alt=""/> : <Plus size={22}/>}</div>
     {state.previewUrl && <button type="button" className="remove-asset" onClick={(e) => { e.preventDefault(); onClear() }}><X size={11}/></button>}
-    <span>{label}</span><input hidden type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => onPick(e.target.files?.[0])}/>
+    <span>{label}</span>
+    <input
+      hidden
+      type="file"
+      accept="image/jpeg,image/png,image/webp"
+      onChange={(e) => {
+        const file = e.target.files?.[0]
+        e.currentTarget.value = ''
+        onPick(file)
+      }}
+    />
   </label>
 }
 
