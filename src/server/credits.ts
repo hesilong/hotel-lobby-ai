@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { PLANS } from '@/config/products'
 
 type AdminClient = SupabaseClient<any, any, any>
 
@@ -234,6 +235,38 @@ export async function grantSubscriptionCredits(params: {
   if (error) throw new Error(error.message)
   if (existing) return { duplicate: true }
 
+  // Subscription credits reset each billing month instead of accumulating forever.
+  const { data: previousGrants, error: previousError } = await params.admin
+    .from('credit_grants')
+    .select('id,credits_remaining')
+    .eq('user_id', params.userId)
+    .eq('source', 'subscription')
+    .eq('status', 'active')
+    .gt('credits_remaining', 0)
+  if (previousError) throw new Error(previousError.message)
+
+  const unused = (previousGrants || []).reduce((sum, grant) => sum + Number(grant.credits_remaining || 0), 0)
+  if (unused > 0) {
+    const currentBalance = await getCreditBalance(params.admin, params.userId)
+    const removable = Math.min(currentBalance, unused)
+    if (removable > 0) {
+      await adjustCredits({
+        admin: params.admin,
+        userId: params.userId,
+        delta: -removable,
+        reason: 'subscription_reset',
+        meta: { replaced_by_event_id: params.eventId },
+      })
+    }
+    for (const grant of previousGrants || []) {
+      await params.admin.from('credit_grants').update({
+        status: 'expired',
+        credits_remaining: 0,
+        updated_at: new Date().toISOString(),
+      }).eq('id', grant.id)
+    }
+  }
+
   const { error: grantError } = await params.admin.from('credit_grants').insert({
     user_id: params.userId,
     source: 'subscription',
@@ -264,6 +297,61 @@ export async function grantSubscriptionCredits(params: {
     },
   })
   return { duplicate: false, credits: params.credits }
+}
+
+const addMonth = (value: Date) => {
+  const next = new Date(value)
+  next.setUTCMonth(next.getUTCMonth() + 1)
+  return next
+}
+
+export async function reconcileYearlySubscriptionCredits(admin: AdminClient, userId: string) {
+  const { data: subscription, error } = await admin.from('subscriptions')
+    .select('id,plan_code,billing_cycle,plan_id,status,current_period_end,next_credit_reset_at')
+    .eq('user_id', userId)
+    .in('status', ['active','trialing','scheduled_cancel'])
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) throw new Error(error.message)
+  if (!subscription || subscription.billing_cycle !== 'yearly') return
+
+  const planCode = subscription.plan_code === 'ultimate' ? 'ultimate' : 'pro'
+  const plan = PLANS[planCode]
+  const now = new Date()
+  const periodEnd = subscription.current_period_end ? new Date(subscription.current_period_end) : null
+  if (periodEnd && periodEnd <= now) return
+
+  const resetAt = subscription.next_credit_reset_at
+    ? new Date(subscription.next_credit_reset_at)
+    : addMonth(now)
+  if (resetAt > now) {
+    if (!subscription.next_credit_reset_at) {
+      await admin.from('subscriptions').update({
+        next_credit_reset_at: resetAt.toISOString(),
+        updated_at: new Date().toISOString(),
+      }).eq('id', subscription.id)
+    }
+    return
+  }
+
+  const periodKey = resetAt.toISOString().slice(0, 7)
+  await grantSubscriptionCredits({
+    admin,
+    userId,
+    productId: subscription.plan_id,
+    planCode,
+    credits: plan.monthlyCredits,
+    eventId: `yearly-reset:${subscription.id}:${periodKey}`,
+    periodEnd: addMonth(resetAt).toISOString(),
+  })
+
+  let nextReset = addMonth(resetAt)
+  while (nextReset <= now) nextReset = addMonth(nextReset)
+  await admin.from('subscriptions').update({
+    next_credit_reset_at: nextReset.toISOString(),
+    updated_at: new Date().toISOString(),
+  }).eq('id', subscription.id)
 }
 
 export async function revokeUnusedCreditPack(params: {
