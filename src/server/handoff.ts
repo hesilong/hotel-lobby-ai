@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { HOTEL_LOBBY_TEMPLATES } from '@/config/hotel-lobby'
 import { verifyPreparedAssetsForHandoff } from '@/server/storage'
+import { assertPromptAllowed } from '@/server/moderation'
 
 export type GenerationHandoffInput = {
   imageAAssetId: string
@@ -78,6 +79,8 @@ export const createGenerationHandoff = createServerFn({ method: 'POST' })
         throw new Error('REFERENCE_VIDEO_NOT_READY')
       }
     }
+
+    await assertPromptAllowed({ prompt: data.prompt, userId: 'handoff' })
 
     await verifyPreparedAssetsForHandoff({
       imageAAssetId: data.imageAAssetId,
