@@ -29,7 +29,15 @@ export function ResultsGallery({
           {task.status === 'completed' && task.result_url ? <>
             <div className="result-status result-status-complete"><CheckCircle2 size={13}/> Completed</div>
             <video src={task.result_url} controls playsInline preload="metadata"/>
-            <a className="result-download" href={task.result_url} download target="_blank" rel="noreferrer"><Download size={15}/></a>
+            <a
+              className="result-download"
+              href={`/api/download/${task.id}`}
+              download
+              aria-label="Download video"
+              title="Download video"
+            >
+              <Download size={17}/>
+            </a>
           </> : task.status === 'failed' ? <>
             <div className="result-status result-status-failed"><AlertCircle size={13}/> Failed</div>
             <div className="result-state">
