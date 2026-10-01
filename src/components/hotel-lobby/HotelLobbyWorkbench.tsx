@@ -46,7 +46,7 @@ export function HotelLobbyWorkbench() {
   const [pricingOpen, setPricingOpen] = useState(false)
   const [authed, setAuthed] = useState(false)
   const [pendingGenerate, setPendingGenerate] = useState(false)
-  const [handoffEnabled, setHandoffEnabled] = useState(true)
+  const [handoffEnabled, setHandoffEnabled] = useState<boolean | null>(null)
   const [submitStage, setSubmitStage] = useState<'idle'|'moderating'|'starting'|'syncing'|'redirecting'>('idle')
   const [error, setError] = useState('')
   const [assetError, setAssetError] = useState('')
@@ -64,7 +64,7 @@ export function HotelLobbyWorkbench() {
   const isSubmitting = submitStage !== 'idle'
   const imagesReady = personA.status === 'approved' && personB.status === 'approved'
   const referenceReady = Boolean(template || referenceVideo.status === 'ready')
-  const canGenerate = Boolean(imagesReady && referenceReady && prompt.trim() && !isSubmitting)
+  const canGenerate = Boolean(imagesReady && referenceReady && prompt.trim() && !isSubmitting && handoffEnabled !== null)
 
   const publishCredits = (value: number | null) => {
     setCredits(value)
