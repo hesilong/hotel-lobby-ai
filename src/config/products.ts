@@ -29,8 +29,8 @@ export const PLANS: Record<'pro' | 'ultimate', PlanDefinition> = {
     monthlyPriceUsd: 9.9,
     yearlyPriceUsd: 94.8,
     monthlyCredits: 1000,
-    monthlyProductId: env('CREEM_PRO_MONTHLY_PRODUCT_ID', 'prod_7fhEuZqAGeHtU8sZ3EofaN'),
-    yearlyProductId: env('CREEM_PRO_YEARLY_PRODUCT_ID', 'prod_2h9ubf4AmaZQs4UJ7B302d'),
+    monthlyProductId: env('CREEM_PRO_MONTHLY_PRODUCT_ID'),
+    yearlyProductId: env('CREEM_PRO_YEARLY_PRODUCT_ID'),
   },
   ultimate: {
     code: 'ultimate',
@@ -38,8 +38,8 @@ export const PLANS: Record<'pro' | 'ultimate', PlanDefinition> = {
     monthlyPriceUsd: 49.9,
     yearlyPriceUsd: 478.8,
     monthlyCredits: 5000,
-    monthlyProductId: env('CREEM_ULTIMATE_MONTHLY_PRODUCT_ID', 'prod_2KSj7jUQMrOVrbyYnGgEUt'),
-    yearlyProductId: env('CREEM_ULTIMATE_YEARLY_PRODUCT_ID', 'prod_5p2LNt25mnnL5iocu0IGpF'),
+    monthlyProductId: env('CREEM_ULTIMATE_MONTHLY_PRODUCT_ID'),
+    yearlyProductId: env('CREEM_ULTIMATE_YEARLY_PRODUCT_ID'),
   },
 }
 
@@ -49,21 +49,21 @@ export const CREDIT_PACKS: Record<CreditPackKey, CreditPackDefinition> = {
     name: 'Starter Pack',
     credits: 250,
     priceUsd: 4.99,
-    productId: env('CREEM_CREDIT_PACK_STARTER_PRODUCT_ID', 'prod_2bGStwUIcPgN4D2NLuZjQe'),
+    productId: env('CREEM_CREDIT_PACK_STARTER_PRODUCT_ID'),
   },
   creator: {
     key: 'creator',
     name: 'Creator Pack',
     credits: 1500,
     priceUsd: 19.99,
-    productId: env('CREEM_CREDIT_PACK_CREATOR_PRODUCT_ID', 'prod_7k1RnNYx7P0TmClnY013Lw'),
+    productId: env('CREEM_CREDIT_PACK_CREATOR_PRODUCT_ID'),
   },
   studio: {
     key: 'studio',
     name: 'Studio Pack',
     credits: 4000,
     priceUsd: 49.99,
-    productId: env('CREEM_CREDIT_PACK_STUDIO_PRODUCT_ID', 'prod_61Qt9gHJukOU9n5NrrQQ8f'),
+    productId: env('CREEM_CREDIT_PACK_STUDIO_PRODUCT_ID'),
   },
 }
 
