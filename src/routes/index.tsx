@@ -283,26 +283,22 @@ function HomePage() {
         </div>
       </section>
 
-      <section className="section support-strip">
-        <div className="support-card">
-          <div>
-            <span className="section-kicker">Support</span>
-            <h2>Need help with Hotel Lobby AI?</h2>
-            <p>For account, billing, generation, or privacy questions, contact our support team.</p>
-          </div>
-          <a className="support-email" href="mailto:support@hotel-lobby-ai.pro">support@hotel-lobby-ai.pro</a>
-        </div>
-      </section>
-
       <section className="band" id="faq">
         <div className="section">
-          <div className="section-heading">
+          <div className="section-heading faq-heading">
             <span>FAQ</span>
             <h2>Hotel Lobby AI questions</h2>
+            <p>
+              Have more questions? Contact us at{' '}
+              <a href="mailto:support@hotel-lobby-ai.pro">support@hotel-lobby-ai.pro</a>
+            </p>
           </div>
           <div className="faq-list">
-            {faqItems.map(item => <details key={item.q}>
-              <summary>{item.q}</summary>
+            {faqItems.map((item, index) => <details key={item.q}>
+              <summary>
+                <span className="faq-number">{index + 1}</span>
+                <span>{item.q}</span>
+              </summary>
               <p>{item.a}</p>
             </details>)}
           </div>
