@@ -24,7 +24,7 @@ function TermsPage() {
       <section className="legal-hero">
         <span className="eyebrow">Legal</span>
         <h1>Terms of Service</h1>
-        <p>Effective date: September 30, 2026</p>
+        <p>Effective date: October 1, 2026</p>
       </section>
 
       <article className="legal-page">
