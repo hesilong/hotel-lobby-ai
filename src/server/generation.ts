@@ -2,7 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { assertPromptAllowed, assertReferenceImagesAllowed } from '@/server/moderation'
-import { deductCredits, refundCredits } from '@/server/credits'
+import { deductCredits, refundCredits, reconcileYearlySubscriptionCredits } from '@/server/credits'
 import { calculateGenerationCredits } from '@/config/generation-cost'
 import { getKieTask, submitKieReferenceVideo } from '@/server/kie'
 import { persistGeneratedVideo } from '@/server/storage'
@@ -90,6 +90,7 @@ async function submitGenerationForUser(userId: string, data: CreateGenerationInp
   const credits = calculateGenerationCredits(data.duration, data.resolution)
   const isMock = mockEnabled()
   const admin = getSupabaseAdminClient()
+  await reconcileYearlySubscriptionCredits(admin, userId)
 
   const { data: task, error } = await admin.from('generation_tasks').insert({
     user_id: userId,
