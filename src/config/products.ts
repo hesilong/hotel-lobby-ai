@@ -92,6 +92,8 @@ export const publicPricingCatalog = () => ({
       yearlyPriceUsd: PLANS.pro.yearlyPriceUsd,
       yearlyMonthlyEquivalentUsd: PLANS.pro.yearlyPriceUsd / 12,
       monthlyCredits: PLANS.pro.monthlyCredits,
+      monthlyConfigured: Boolean(PLANS.pro.monthlyProductId),
+      yearlyConfigured: Boolean(PLANS.pro.yearlyProductId),
     },
     ultimate: {
       name: PLANS.ultimate.name,
@@ -99,6 +101,8 @@ export const publicPricingCatalog = () => ({
       yearlyPriceUsd: PLANS.ultimate.yearlyPriceUsd,
       yearlyMonthlyEquivalentUsd: PLANS.ultimate.yearlyPriceUsd / 12,
       monthlyCredits: PLANS.ultimate.monthlyCredits,
+      monthlyConfigured: Boolean(PLANS.ultimate.monthlyProductId),
+      yearlyConfigured: Boolean(PLANS.ultimate.yearlyProductId),
     },
   },
   creditPacks: Object.fromEntries(
@@ -106,6 +110,7 @@ export const publicPricingCatalog = () => ({
       name: pack.name,
       credits: pack.credits,
       priceUsd: pack.priceUsd,
+      configured: Boolean(pack.productId),
     }]),
   ),
 })
