@@ -1,13 +1,17 @@
 import { createServerFn } from '@tanstack/react-start'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
-import { assertPromptAllowed, assertReferenceImagesAllowed } from '@/server/moderation'
+import { assertPromptAllowed } from '@/server/moderation'
 import { deductCredits, refundCredits, reconcileYearlySubscriptionCredits } from '@/server/credits'
 import { calculateGenerationCredits } from '@/config/generation-cost'
 import { getKieTask, submitKieReferenceVideo } from '@/server/kie'
-import { persistGeneratedVideo } from '@/server/storage'
+import { persistGeneratedVideo, verifyPreparedAssets } from '@/server/storage'
+import { HOTEL_LOBBY_TEMPLATES } from '@/config/hotel-lobby'
 
 export type CreateGenerationInput = {
+  imageAAssetId?: string | null
+  imageBAssetId?: string | null
+  referenceVideoAssetId?: string | null
   imageAUrl: string
   imageBUrl: string
   referenceTemplateId?: string | null
@@ -83,9 +87,9 @@ async function refundTaskIfNeeded(taskId: string, userId: string, reason: string
 async function submitGenerationForUser(userId: string, data: CreateGenerationInput) {
   validateInput(data)
 
-  // CREEM requires prompt moderation before billing or model invocation.
+  // Media was uploaded and image-moderated when selected. Generation only
+  // performs prompt moderation before billing/model invocation.
   await assertPromptAllowed({ prompt: data.prompt, userId })
-  await assertReferenceImagesAllowed([data.imageAUrl, data.imageBUrl], userId)
 
   const credits = calculateGenerationCredits(data.duration, data.resolution)
   const isMock = mockEnabled()
@@ -97,8 +101,11 @@ async function submitGenerationForUser(userId: string, data: CreateGenerationInp
     status: 'pending',
     image_a_url: data.imageAUrl,
     image_b_url: data.imageBUrl,
+    image_a_asset_id: data.imageAAssetId ?? null,
+    image_b_asset_id: data.imageBAssetId ?? null,
     reference_template_id: data.referenceTemplateId ?? null,
     reference_video_url: data.referenceVideoUrl,
+    reference_video_asset_id: data.referenceVideoAssetId ?? null,
     prompt: data.prompt.trim(),
     duration_seconds: data.duration,
     resolution: data.resolution,
@@ -168,6 +175,27 @@ export const createGeneration = createServerFn({ method: 'POST' })
   .inputValidator((input: CreateGenerationInput) => input)
   .handler(async ({ data }) => {
     const user = await authUser()
+    if (!data.imageAAssetId || !data.imageBAssetId) throw new Error('REFERENCE_IMAGES_NOT_READY')
+
+    if (data.referenceTemplateId) {
+      const template = HOTEL_LOBBY_TEMPLATES.find(item => item.id === data.referenceTemplateId)
+      if (!template || template.sourceVideoUrl !== data.referenceVideoUrl) {
+        throw new Error('REFERENCE_VIDEO_NOT_READY')
+      }
+    } else if (!data.referenceVideoAssetId) {
+      throw new Error('REFERENCE_VIDEO_NOT_READY')
+    }
+
+    await verifyPreparedAssets({
+      userId: user.id,
+      imageAAssetId: data.imageAAssetId,
+      imageAUrl: data.imageAUrl,
+      imageBAssetId: data.imageBAssetId,
+      imageBUrl: data.imageBUrl,
+      referenceVideoAssetId: data.referenceTemplateId ? null : data.referenceVideoAssetId,
+      referenceVideoUrl: data.referenceVideoUrl,
+    })
+
     return submitGenerationForUser(user.id, data)
   })
 
@@ -177,7 +205,7 @@ export const retryGenerationTask = createServerFn({ method: 'POST' })
     const user = await authUser()
     const admin = getSupabaseAdminClient()
     const { data: previous, error } = await admin.from('generation_tasks')
-      .select('id,user_id,status,image_a_url,image_b_url,reference_template_id,reference_video_url,prompt,duration_seconds,resolution,aspect_ratio')
+      .select('id,user_id,status,image_a_url,image_b_url,image_a_asset_id,image_b_asset_id,reference_template_id,reference_video_url,reference_video_asset_id,prompt,duration_seconds,resolution,aspect_ratio')
       .eq('id', data.taskId)
       .eq('user_id', user.id)
       .maybeSingle()
@@ -186,6 +214,9 @@ export const retryGenerationTask = createServerFn({ method: 'POST' })
     if (previous.status !== 'failed') throw new Error('TASK_NOT_RETRYABLE')
 
     return submitGenerationForUser(user.id, {
+      imageAAssetId: previous.image_a_asset_id,
+      imageBAssetId: previous.image_b_asset_id,
+      referenceVideoAssetId: previous.reference_video_asset_id,
       imageAUrl: previous.image_a_url,
       imageBUrl: previous.image_b_url,
       referenceTemplateId: previous.reference_template_id,
