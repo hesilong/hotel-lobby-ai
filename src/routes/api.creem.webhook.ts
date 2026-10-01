@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { findCreditPackByProductId, findPlanByProductId } from '@/config/products'
-import { grantPurchasedCredits, grantSubscriptionCredits, revokeUnusedCreditPack } from '@/server/credits'
+import { grantPurchasedCredits, grantSubscriptionCredits, revokeSubscriptionCredits, revokeUnusedCreditPack } from '@/server/credits'
 
 const hex = (buffer: ArrayBuffer) => Array.from(new Uint8Array(buffer), b => b.toString(16).padStart(2, '0')).join('')
 
@@ -191,14 +191,36 @@ export const Route = createFileRoute('/api/creem/webhook')({
           } else if (['subscription.active','subscription.trialing','subscription.update'].includes(eventType)) {
             if (userId) await syncSubscription(admin, { userId, payload, status: eventType === 'subscription.trialing' ? 'trialing' : 'active' })
           } else if (eventType === 'subscription.canceled') {
-            if (userId) await syncSubscription(admin, { userId, payload, status: 'canceled' })
+            if (userId) {
+              await syncSubscription(admin, { userId, payload, status: 'canceled' })
+              await revokeSubscriptionCredits({ admin, userId, reason: 'subscription_canceled' })
+            }
           } else if (eventType === 'subscription.paused') {
             if (userId) await syncSubscription(admin, { userId, payload, status: 'paused' })
           } else if (eventType === 'subscription.expired') {
-            if (userId) await syncSubscription(admin, { userId, payload, status: 'unpaid' })
+            if (userId) {
+              await syncSubscription(admin, { userId, payload, status: 'unpaid' })
+              await revokeSubscriptionCredits({ admin, userId, reason: 'subscription_expired' })
+            }
           } else if (eventType === 'refund.created' || eventType === 'dispute.created') {
             const checkoutId = stringValue(payload?.checkout_id, payload?.checkout?.id, payload?.order?.checkout_id)
-            await revokeUnusedCreditPack({ admin, checkoutId, productId })
+            const pack = findCreditPackByProductId(productId)
+            if (pack) {
+              await revokeUnusedCreditPack({ admin, checkoutId, productId })
+            } else {
+              const plan = findPlanByProductId(productId)
+              if (plan && userId) {
+                await revokeSubscriptionCredits({
+                  admin,
+                  userId,
+                  reason: eventType === 'dispute.created' ? 'subscription_disputed' : 'subscription_refunded',
+                })
+                await admin.from('subscriptions').update({
+                  status: 'unpaid',
+                  updated_at: new Date().toISOString(),
+                }).eq('user_id', userId).in('status', ['active','trialing','scheduled_cancel'])
+              }
+            }
           }
 
           await admin.from('creem_webhook_events').update({
