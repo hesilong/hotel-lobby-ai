@@ -79,6 +79,7 @@ function TermsPage() {
           <li>creates, requests, uploads, or distributes NSFW, pornographic, nude, sexually suggestive, or sexually explicit content;</li>
           <li>creates or distributes non-consensual intimate imagery or any sexual content involving minors;</li>
           <li>facilitates fraud, impersonation, scams, identity theft, or misleading representations of real people;</li>
+          <li>creates deceptive deepfakes, impersonates a real person, or falsely represents that a real person participated in, endorsed, said, or performed something they did not;</li>
           <li>infringes copyright, trademark, privacy, publicity, or other intellectual-property rights;</li>
           <li>contains malware, attempts unauthorized access, or interferes with the Service or its infrastructure; or</li>
           <li>attempts to bypass safety systems, usage limits, access controls, or technical restrictions.</li>
