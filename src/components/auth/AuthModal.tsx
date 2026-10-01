@@ -41,10 +41,6 @@ export function AuthModal({ open, onClose, onAuthed }: { open: boolean; onClose:
       provider: 'google',
       options: {
         redirectTo,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
-        },
       },
     })
     if (oauthError) {
