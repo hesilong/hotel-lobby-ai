@@ -283,6 +283,17 @@ function HomePage() {
         </div>
       </section>
 
+      <section className="section support-strip">
+        <div className="support-card">
+          <div>
+            <span className="section-kicker">Support</span>
+            <h2>Need help with Hotel Lobby AI?</h2>
+            <p>For account, billing, generation, or privacy questions, contact our support team.</p>
+          </div>
+          <a className="support-email" href="mailto:support@hotel-lobby-ai.pro">support@hotel-lobby-ai.pro</a>
+        </div>
+      </section>
+
       <section className="band" id="faq">
         <div className="section">
           <div className="section-heading">
