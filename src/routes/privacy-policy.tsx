@@ -42,6 +42,15 @@ function PrivacyPolicyPage() {
           the authentication provider may send us information necessary to identify and authenticate your account.
         </p>
 
+        <h3>Google Sign-In and Google user data</h3>
+        <p>
+          If you choose Google Sign-In, we use Google OAuth only to authenticate your account and receive basic account
+          information needed for sign-in, such as your email address and profile identifier. We do not use Google APIs
+          or Google user data to generate, modify, analyze, or distribute uploaded images, videos, prompts, or
+          AI-generated content. Google account information is used only for authentication, account operation, security,
+          and support as described in this Privacy Policy.
+        </p>
+
         <h3>Content you provide</h3>
         <p>
           The Service may process images, reference videos, prompts, generation settings, and other files or text
