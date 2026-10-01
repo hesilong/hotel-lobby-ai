@@ -64,9 +64,18 @@ type ImageModerationPayload = {
   }
 }
 
+const IMAGE_POLICY = 'seeapi-nsfw-v1-offset001-specialtrue'
+
 const imageVerdict = (payload: ImageModerationPayload): 'approved' | 'rejected' | null => {
   const data = payload.result?.data
-  if (payload.status !== 'succeeded' || payload.error != null || payload.result?.type !== 'json' || typeof data?.flagged !== 'boolean') {
+  if (
+    payload.status !== 'succeeded' ||
+    payload.error != null ||
+    payload.result?.type !== 'json' ||
+    typeof data?.flagged !== 'boolean' ||
+    !Array.isArray(data.categories?.nsfw) ||
+    !Array.isArray(data.categories?.special_care)
+  ) {
     return null
   }
   return data.flagged ? 'rejected' : 'approved'
@@ -74,73 +83,87 @@ const imageVerdict = (payload: ImageModerationPayload): 'approved' | 'rejected' 
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
-export async function assertReferenceImagesAllowed(urls: string[], userId?: string) {
-  if (process.env.ENABLE_IMAGE_MODERATION !== 'true') return
+export async function moderateReferenceImage(params: {
+  imageUrl: string
+  ownerKey: string
+}): Promise<{ status: 'approved'; providerTaskId?: string | null }> {
+  if (process.env.ENABLE_IMAGE_MODERATION !== 'true') {
+    return { status: 'approved', providerTaskId: null }
+  }
+
   const apiKey = process.env.SEEAPI_API_KEY
   if (!apiKey) throw new Error('IMAGE_MODERATION_NOT_CONFIGURED')
 
   const { getSupabaseAdminClient } = await import('@/lib/supabase/admin')
   const admin = getSupabaseAdminClient()
-  const unique = [...new Set(urls.filter(Boolean))]
 
-  for (const imageUrl of unique) {
-    const ownerKey = userId ? `user:${userId}` : 'server'
-    const { data: cached } = await admin
-      .from('image_moderation')
-      .select('id,status,expires_at')
-      .eq('owner_key', ownerKey)
-      .eq('image_url', imageUrl)
-      .gt('expires_at', new Date().toISOString())
-      .maybeSingle()
+  const { data: cached, error: cacheError } = await admin
+    .from('image_moderation')
+    .select('id,status,expires_at,provider_task_id')
+    .eq('owner_key', params.ownerKey)
+    .eq('policy', IMAGE_POLICY)
+    .eq('image_url', params.imageUrl)
+    .gt('expires_at', new Date().toISOString())
+    .maybeSingle()
 
-    if (cached?.status === 'approved') continue
-    if (cached?.status === 'rejected') throw new Error('IMAGE_REJECTED')
-
-    const createResponse = await fetch('https://api.seeapi.com/v1/inferences', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'nsfw-filter',
-        endpoint: 'image-moderation',
-        provider: 'seeapi',
-        input: {
-          image_url: imageUrl,
-          threshold_offset: 0.01,
-          strict_special_care: true,
-        },
-      }),
-    })
-    if (!createResponse.ok) throw new Error('IMAGE_MODERATION_UNAVAILABLE')
-    const created = await createResponse.json() as { id?: string }
-    if (!created.id) throw new Error('IMAGE_MODERATION_UNAVAILABLE')
-
-    let verdict: 'approved' | 'rejected' | null = null
-    for (let attempt = 0; attempt < 12; attempt += 1) {
-      if (attempt) await sleep(1500)
-      const response = await fetch(`https://api.seeapi.com/v1/inferences/${encodeURIComponent(created.id)}`, {
-        headers: { Authorization: `Bearer ${apiKey}` },
-      })
-      if (!response.ok) throw new Error('IMAGE_MODERATION_UNAVAILABLE')
-      const payload = await response.json() as ImageModerationPayload
-      if (payload.status === 'queued' || payload.status === 'processing') continue
-      verdict = imageVerdict(payload)
-      break
-    }
-    if (!verdict) throw new Error('IMAGE_MODERATION_UNAVAILABLE')
-
-    await admin.from('image_moderation').upsert({
-      owner_key: ownerKey,
-      image_url: imageUrl,
-      status: verdict,
-      provider_task_id: created.id,
-      policy: 'seeapi-nsfw-v1-offset001-specialtrue',
-      expires_at: new Date(Date.now() + 7 * 86400_000).toISOString(),
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'owner_key,image_url,policy' })
-
-    if (verdict === 'rejected') throw new Error('IMAGE_REJECTED')
+  if (cacheError) throw new Error('IMAGE_MODERATION_UNAVAILABLE')
+  if (cached?.status === 'approved') {
+    return { status: 'approved', providerTaskId: cached.provider_task_id || null }
   }
+  if (cached?.status === 'rejected') throw new Error('IMAGE_REJECTED')
+
+  const createResponse = await fetch('https://api.seeapi.com/v1/inferences', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'nsfw-filter',
+      endpoint: 'image-moderation',
+      provider: 'seeapi',
+      input: {
+        image_url: params.imageUrl,
+        threshold_offset: 0.01,
+        strict_special_care: true,
+      },
+    }),
+    signal: AbortSignal.timeout(12000),
+  })
+
+  if (!createResponse.ok) throw new Error('IMAGE_MODERATION_UNAVAILABLE')
+  const created = await createResponse.json() as { id?: string }
+  if (!created.id) throw new Error('IMAGE_MODERATION_UNAVAILABLE')
+
+  let verdict: 'approved' | 'rejected' | null = null
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    if (attempt) await sleep(1500)
+    const response = await fetch(
+      `https://api.seeapi.com/v1/inferences/${encodeURIComponent(created.id)}`,
+      {
+        headers: { Authorization: `Bearer ${apiKey}` },
+        signal: AbortSignal.timeout(12000),
+      },
+    )
+    if (!response.ok) throw new Error('IMAGE_MODERATION_UNAVAILABLE')
+    const payload = await response.json() as ImageModerationPayload
+    if (payload.status === 'queued' || payload.status === 'processing') continue
+    verdict = imageVerdict(payload)
+    break
+  }
+
+  if (!verdict) throw new Error('IMAGE_MODERATION_UNAVAILABLE')
+
+  await admin.from('image_moderation').upsert({
+    owner_key: params.ownerKey,
+    image_url: params.imageUrl,
+    status: verdict,
+    provider_task_id: created.id,
+    policy: IMAGE_POLICY,
+    expires_at: new Date(Date.now() + 7 * 86400_000).toISOString(),
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'owner_key,image_url,policy' })
+
+  if (verdict === 'rejected') throw new Error('IMAGE_REJECTED')
+  return { status: 'approved', providerTaskId: created.id }
 }
