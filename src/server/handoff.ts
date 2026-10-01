@@ -37,6 +37,10 @@ export type GenerationHandoffPayload = {
 
 const handoffEnabled = () => process.env.GENERATION_HANDOFF_TO_CLOTHMOTION !== 'false'
 
+const clothMotionHandoffUrl = () =>
+  process.env.CLOTHMOTION_HANDOFF_URL?.trim() ||
+  'https://www.clothmotion.app/hotel-lobby-ai'
+
 const validHttpUrl = (value: string) => {
   try {
     const url = new URL(value)
@@ -123,7 +127,7 @@ export const createGenerationHandoff = createServerFn({ method: 'POST' })
     })
     if (error) throw new Error(error.message)
 
-    const redirect = new URL('https://www.clothmotion.app/hotel-lobby-ai')
+    const redirect = new URL(clothMotionHandoffUrl())
     redirect.searchParams.set('handoff', token)
     redirect.searchParams.set('utm_source', 'hotel-lobby-ai.pro')
     redirect.searchParams.set('utm_medium', 'referral')
