@@ -14,6 +14,7 @@ create table if not exists public.subscriptions (
   status text not null default 'active',
   current_period_start timestamptz,
   current_period_end timestamptz,
+  next_credit_reset_at timestamptz,
   cancel_at timestamptz,
   meta jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
