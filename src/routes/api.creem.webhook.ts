@@ -60,15 +60,37 @@ async function syncSubscription(admin: ReturnType<typeof getSupabaseAdminClient>
   const cancelAt = stringValue(params.payload?.canceled_at, params.payload?.cancel_at)
 
   const { data: existing } = subscriptionId
-    ? await admin.from('subscriptions').select('id,plan_id,pending_plan_id').eq('creem_subscription_id', subscriptionId).maybeSingle()
-    : await admin.from('subscriptions').select('id,plan_id,pending_plan_id').eq('user_id', params.userId).order('updated_at', { ascending: false }).limit(1).maybeSingle()
+    ? await admin.from('subscriptions').select('id,plan_code,billing_cycle,plan_id,pending_plan_id,current_period_end,status').eq('creem_subscription_id', subscriptionId).maybeSingle()
+    : await admin.from('subscriptions').select('id,plan_code,billing_cycle,plan_id,pending_plan_id,current_period_end,status').eq('user_id', params.userId).order('updated_at', { ascending: false }).limit(1).maybeSingle()
+
+  let effectivePlan = plan
+  let effectiveProductId = productId
+  let pendingPlanId: string | null = null
+
+  if (existing?.pending_plan_id) {
+    const incomingIsPending = existing.pending_plan_id === productId
+    const incomingIsCurrent = existing.plan_id === productId
+    const rollover =
+      incomingIsPending &&
+      Boolean(periodStart && existing.current_period_end) &&
+      Date.parse(periodStart!) >= Date.parse(existing.current_period_end!)
+
+    if (!rollover && (incomingIsPending || incomingIsCurrent)) {
+      const currentPlan = findPlanByProductId(existing.plan_id)
+      if (currentPlan) {
+        effectivePlan = currentPlan
+        effectiveProductId = existing.plan_id
+      }
+      pendingPlanId = existing.pending_plan_id
+    }
+  }
 
   const body = {
     user_id: params.userId,
-    plan_code: plan.plan,
-    billing_cycle: plan.cycle,
-    plan_id: productId,
-    pending_plan_id: null,
+    plan_code: effectivePlan.plan,
+    billing_cycle: effectivePlan.cycle,
+    plan_id: effectiveProductId,
+    pending_plan_id: pendingPlanId,
     creem_subscription_id: subscriptionId || null,
     creem_customer_id: customerId || null,
     status: params.status,
