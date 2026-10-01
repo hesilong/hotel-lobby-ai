@@ -49,15 +49,19 @@ export function SiteHeader() {
   return (
     <>
       <header className="site-header">
-        <a className="brand" href="/">Hotel Lobby AI</a>
-        <div className="header-right">
-          <nav>
-            <a href="/#templates">Templates</a>
-            <a href="/#how-it-works">How it works</a>
-            <a href="/migos-ai-video">Migos AI</a>
-            <a href="/pricing">Pricing</a>
-          </nav>
+        <a className="brand" href="/">
+          <img className="brand-icon" src="/favicon.svg" alt="" aria-hidden="true" />
+          <span>Hotel Lobby AI</span>
+        </a>
 
+        <nav className="header-nav">
+          <a href="/#templates">Templates</a>
+          <a href="/#how-it-works">How it works</a>
+          <a href="/migos-ai-video">Migos AI</a>
+          <a href="/pricing">Pricing</a>
+        </nav>
+
+        <div className="header-right">
           {authed ? (<>
             <a className="header-credits" href="/pricing" title="Credits">⚡ {credits ?? '—'}</a>
             <button className="header-account" onClick={() => void signOut()} title={email || 'Signed in'}>
