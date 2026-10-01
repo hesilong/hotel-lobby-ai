@@ -294,6 +294,75 @@ export async function verifyPreparedAssets(params: {
   }
 }
 
+export async function verifyPreparedAssetsForHandoff(params: {
+  imageAAssetId: string
+  imageAAssetToken: string
+  imageAUrl: string
+  imageBAssetId: string
+  imageBAssetToken: string
+  imageBUrl: string
+  referenceVideoAssetId?: string | null
+  referenceVideoAssetToken?: string | null
+  referenceVideoUrl?: string | null
+}) {
+  const capabilities = await Promise.all([
+    readAssetToken(params.imageAAssetToken),
+    readAssetToken(params.imageBAssetToken),
+    params.referenceVideoAssetId && params.referenceVideoAssetToken
+      ? readAssetToken(params.referenceVideoAssetToken)
+      : Promise.resolve(null),
+  ])
+
+  const [imageACap, imageBCap, videoCap] = capabilities
+  if (!imageACap || imageACap.assetId !== params.imageAAssetId) throw new Error('IMAGE_A_NOT_READY')
+  if (!imageBCap || imageBCap.assetId !== params.imageBAssetId) throw new Error('IMAGE_B_NOT_READY')
+  if (params.referenceVideoAssetId && (!videoCap || videoCap.assetId !== params.referenceVideoAssetId)) {
+    throw new Error('REFERENCE_VIDEO_NOT_READY')
+  }
+
+  const ids = [params.imageAAssetId, params.imageBAssetId, params.referenceVideoAssetId].filter(Boolean) as string[]
+  const admin = getSupabaseAdminClient()
+  const { data: assets, error } = await admin.from('uploaded_assets')
+    .select('id,owner_key,kind,public_url,status')
+    .in('id', ids)
+
+  if (error) throw new Error(error.message)
+  const byId = new Map((assets || []).map(asset => [asset.id as string, asset]))
+
+  const imageA = byId.get(params.imageAAssetId)
+  const imageB = byId.get(params.imageBAssetId)
+
+  if (
+    !imageA ||
+    imageA.owner_key !== imageACap.ownerKey ||
+    imageA.kind !== 'image' ||
+    imageA.status !== 'approved' ||
+    imageA.public_url !== params.imageAUrl
+  ) throw new Error('IMAGE_A_NOT_READY')
+
+  if (
+    !imageB ||
+    imageB.owner_key !== imageBCap.ownerKey ||
+    imageB.kind !== 'image' ||
+    imageB.status !== 'approved' ||
+    imageB.public_url !== params.imageBUrl
+  ) throw new Error('IMAGE_B_NOT_READY')
+
+  if (params.referenceVideoAssetId) {
+    const video = byId.get(params.referenceVideoAssetId)
+    if (
+      !video ||
+      !videoCap ||
+      video.owner_key !== videoCap.ownerKey ||
+      video.kind !== 'video' ||
+      video.status !== 'ready' ||
+      video.public_url !== params.referenceVideoUrl
+    ) throw new Error('REFERENCE_VIDEO_NOT_READY')
+  }
+
+  return true
+}
+
 export async function persistGeneratedVideo(params: {
   taskId: string
   sourceUrl: string
