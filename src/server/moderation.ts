@@ -92,7 +92,10 @@ export async function moderateReferenceImage(params: {
   }
 
   const apiKey = process.env.SEEAPI_API_KEY
-  if (!apiKey) throw new Error('IMAGE_MODERATION_NOT_CONFIGURED')
+  if (!apiKey) {
+    console.error('[ImageModeration] missing SEEAPI_API_KEY')
+    throw new Error('IMAGE_MODERATION_NOT_CONFIGURED')
+  }
 
   const { getSupabaseAdminClient } = await import('@/lib/supabase/admin')
   const admin = getSupabaseAdminClient()
@@ -106,7 +109,13 @@ export async function moderateReferenceImage(params: {
     .gt('expires_at', new Date().toISOString())
     .maybeSingle()
 
-  if (cacheError) throw new Error('IMAGE_MODERATION_UNAVAILABLE')
+  if (cacheError) {
+    console.error('[ImageModeration] cache lookup failed', {
+      message: cacheError.message,
+      code: cacheError.code,
+    })
+    throw new Error('IMAGE_MODERATION_UNAVAILABLE')
+  }
   if (cached?.status === 'approved') {
     return { status: 'approved', providerTaskId: cached.provider_task_id || null }
   }
@@ -131,9 +140,28 @@ export async function moderateReferenceImage(params: {
     signal: AbortSignal.timeout(12000),
   })
 
-  if (!createResponse.ok) throw new Error('IMAGE_MODERATION_UNAVAILABLE')
-  const created = await createResponse.json() as { id?: string }
-  if (!created.id) throw new Error('IMAGE_MODERATION_UNAVAILABLE')
+  if (!createResponse.ok) {
+    const detail = await createResponse.text().catch(() => '')
+    console.error('[ImageModeration] create failed', {
+      status: createResponse.status,
+      statusText: createResponse.statusText,
+      detail: detail.slice(0, 1000),
+    })
+    throw new Error('IMAGE_MODERATION_UNAVAILABLE')
+  }
+
+  const created = await createResponse.json() as { id?: string; status?: string; error?: unknown }
+  if (!created.id) {
+    console.error('[ImageModeration] create response missing id', {
+      status: created.status,
+      error: created.error,
+    })
+    throw new Error('IMAGE_MODERATION_UNAVAILABLE')
+  }
+
+  console.info('[ImageModeration] task created', {
+    providerTaskId: created.id,
+  })
 
   let verdict: 'approved' | 'rejected' | null = null
   for (let attempt = 0; attempt < 12; attempt += 1) {
@@ -145,14 +173,49 @@ export async function moderateReferenceImage(params: {
         signal: AbortSignal.timeout(12000),
       },
     )
-    if (!response.ok) throw new Error('IMAGE_MODERATION_UNAVAILABLE')
+    if (!response.ok) {
+      const detail = await response.text().catch(() => '')
+      console.error('[ImageModeration] poll failed', {
+        providerTaskId: created.id,
+        attempt: attempt + 1,
+        status: response.status,
+        statusText: response.statusText,
+        detail: detail.slice(0, 1000),
+      })
+      throw new Error('IMAGE_MODERATION_UNAVAILABLE')
+    }
+
     const payload = await response.json() as ImageModerationPayload
+    console.info('[ImageModeration] poll', {
+      providerTaskId: created.id,
+      attempt: attempt + 1,
+      status: payload.status,
+      hasError: payload.error != null,
+    })
+
     if (payload.status === 'queued' || payload.status === 'processing') continue
+
     verdict = imageVerdict(payload)
+    if (!verdict) {
+      console.error('[ImageModeration] unexpected terminal payload', {
+        providerTaskId: created.id,
+        status: payload.status,
+        error: payload.error,
+        resultType: payload.result?.type,
+        flaggedType: typeof payload.result?.data?.flagged,
+        nsfwIsArray: Array.isArray(payload.result?.data?.categories?.nsfw),
+        specialCareIsArray: Array.isArray(payload.result?.data?.categories?.special_care),
+      })
+    }
     break
   }
 
-  if (!verdict) throw new Error('IMAGE_MODERATION_UNAVAILABLE')
+  if (!verdict) {
+    console.error('[ImageModeration] no verdict', {
+      providerTaskId: created.id,
+    })
+    throw new Error('IMAGE_MODERATION_UNAVAILABLE')
+  }
 
   await admin.from('image_moderation').upsert({
     owner_key: params.ownerKey,
