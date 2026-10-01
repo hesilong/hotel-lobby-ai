@@ -543,7 +543,14 @@ function ImageUpload({
   onClear: () => void
 }) {
   return <label className="image-slot">
-    <div className="asset-tile">{state.previewUrl ? <img src={state.previewUrl} alt=""/> : <Plus size={22}/>}</div>
+    <div className="asset-tile">
+      {state.previewUrl ? <img src={state.previewUrl} alt=""/> : <Plus size={22}/>}
+      {state.status === 'uploading' && (
+        <span className="asset-uploading" aria-label="Uploading">
+          <Loader2 size={18} className="spin" />
+        </span>
+      )}
+    </div>
     {state.previewUrl && <button type="button" className="remove-asset" onClick={(e) => { e.preventDefault(); onClear() }}><X size={11}/></button>}
     <span>{label}</span>
     <input
