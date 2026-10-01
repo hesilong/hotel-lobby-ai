@@ -33,6 +33,12 @@ const faqItems = [
   },
 ]
 
+const HOME_MOTION_TEMPLATES = [
+  HOTEL_LOBBY_TEMPLATES[2],
+  HOTEL_LOBBY_TEMPLATES[0],
+  HOTEL_LOBBY_TEMPLATES[1],
+]
+
 const promptIdeas = [
   'Keep both outfits unchanged',
   'Preserve face identity closely',
@@ -148,7 +154,7 @@ function HomePage() {
           </div>
           <a className="text-link" href="#generator">Use a motion →</a>
         </div>
-        <MotionGallery templates={HOTEL_LOBBY_TEMPLATES} />
+        <MotionGallery templates={HOME_MOTION_TEMPLATES} />
       </section>
 
       <section className="band" id="how-it-works">
@@ -242,7 +248,7 @@ function HomePage() {
               <p>In both cases, the motion clip provides the choreography while your uploaded photos provide the identities. This division makes a reference-driven Hotel Lobby video generator more predictable for this kind of trend than asking a model to invent all movement from text alone.</p>
             </div>
             <figure className="story-media story-video">
-              <video src={HOTEL_LOBBY_TEMPLATES[0].previewVideoUrl} muted loop autoPlay playsInline />
+              <video src={HOME_MOTION_TEMPLATES[0].previewVideoUrl} muted loop autoPlay playsInline />
             </figure>
           </article>
 
