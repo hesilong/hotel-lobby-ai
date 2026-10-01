@@ -196,3 +196,11 @@ body{background:#f7f8fb;color:#17191f}
 @media(max-width:760px){.header-credits{min-width:auto;padding:8px}.pricing-page{padding:58px 18px 80px}.pricing-modal-shell{padding:20px 14px;border-radius:20px}.pricing-grid,.pricing-grid-paid{grid-template-columns:1fr}.pricing-card{min-height:0;padding:22px}.subscription-manage{align-items:flex-start;flex-direction:column}.pricing-switcher{width:100%;margin-bottom:34px}.pricing-switcher button{flex:1;padding:10px 8px;font-size:12px}.pricing-switcher button span{display:block;margin:2px 0 0}}
 .asset-uploading{position:absolute;inset:0;display:grid;place-items:center;background:rgba(255,255,255,.42);backdrop-filter:blur(1px);pointer-events:none}
 .asset-uploading svg{filter:drop-shadow(0 1px 2px rgba(0,0,0,.12))}
+
+.support-strip{padding-top:72px;padding-bottom:42px}
+.support-card{display:flex;align-items:center;justify-content:space-between;gap:28px;padding:28px 30px;border:1px solid #e1e4ea;background:#fff;border-radius:22px;box-shadow:0 10px 30px rgba(28,33,45,.05)}
+.support-card h2{margin:8px 0 8px;font-size:30px;letter-spacing:-.035em}
+.support-card p{margin:0;color:#6f7480;line-height:1.7}
+.support-email{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 16px;border:1px solid #dfe2e8;background:#f8f9fb;color:#5d46c8;border-radius:12px;font-weight:800;white-space:nowrap}
+.support-email:hover{background:#f1efff;border-color:#d6cff7}
+@media(max-width:760px){.support-strip{padding-top:54px;padding-bottom:28px}.support-card{align-items:flex-start;flex-direction:column;padding:22px}.support-card h2{font-size:26px}.support-email{width:100%;white-space:normal;text-align:center}}
