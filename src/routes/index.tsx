@@ -104,7 +104,7 @@ export const Route = createFileRoute('/')({
 function HomePage() {
   return (
     <main>
-      <SiteHeader />
+      <SiteHeader overlay />
 
       <section className="hero hero-home">
         <div className="hero-background" aria-hidden="true">
