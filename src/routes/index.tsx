@@ -185,9 +185,10 @@ function HomePage() {
           <span className="section-kicker">Account & safety</span>
           <h2>Google Sign-In is for account access only</h2>
           <p>
-            Hotel Lobby AI uses Google Sign-In only to authenticate your account and receive basic profile information,
-            such as your email address. Google APIs and Google user data are not used to generate, edit, analyze, or
-            distribute uploaded images, videos, or AI-generated content.
+            Hotel Lobby AI uses Google OAuth only for account sign-in and basic profile information such as your email
+            address. The app does not use Google Generative AI APIs (including Gemini or Imagen), Google Photos, Google
+            Drive, or other Google APIs to create, edit, analyze, or process uploaded images, videos, or AI-generated
+            media.
           </p>
           <p>
             Non-consensual intimate imagery (NCII), sexual content involving minors, deceptive impersonation, and
