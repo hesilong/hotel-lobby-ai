@@ -126,6 +126,7 @@ export async function moderateReferenceImage(params: {
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
+      'Idempotency-Key': `image-moderation:${crypto.randomUUID()}`,
     },
     body: JSON.stringify({
       model: 'nsfw-filter',
