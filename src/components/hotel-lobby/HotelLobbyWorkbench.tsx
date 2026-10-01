@@ -9,6 +9,7 @@ import { ResultsGallery } from '@/components/hotel-lobby/ResultsGallery'
 import { createUploadUrl, finalizeUploadedAsset } from '@/server/storage'
 import { getBillingState } from '@/server/billing'
 import { createGeneration, listGenerationTasks, refreshGenerationTask, retryGenerationTask, type CreateGenerationInput, type GenerationTask } from '@/server/generation'
+import { createGenerationHandoff, getGenerationHandoffMode } from '@/server/handoff'
 
 type ImageAssetState = {
   previewUrl: string | null
@@ -45,7 +46,8 @@ export function HotelLobbyWorkbench() {
   const [pricingOpen, setPricingOpen] = useState(false)
   const [authed, setAuthed] = useState(false)
   const [pendingGenerate, setPendingGenerate] = useState(false)
-  const [submitStage, setSubmitStage] = useState<'idle'|'moderating'|'starting'|'syncing'>('idle')
+  const [handoffEnabled, setHandoffEnabled] = useState(true)
+  const [submitStage, setSubmitStage] = useState<'idle'|'moderating'|'starting'|'syncing'|'redirecting'>('idle')
   const [error, setError] = useState('')
   const [assetError, setAssetError] = useState('')
   const [tasks, setTasks] = useState<GenerationTask[]>([])
@@ -91,6 +93,12 @@ export function HotelLobbyWorkbench() {
   const loadTasks = async () => {
     try { setTasks(await listGenerationTasks()) } catch { setTasks([]) }
   }
+
+  useEffect(() => {
+    void getGenerationHandoffMode()
+      .then(result => setHandoffEnabled(result.enabled))
+      .catch(() => setHandoffEnabled(true))
+  }, [])
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient()
@@ -386,8 +394,53 @@ export function HotelLobbyWorkbench() {
     })
   }
 
+  const handoffToClothMotion = async () => {
+    if (
+      personA.status !== 'approved' ||
+      personB.status !== 'approved' ||
+      !personA.publicUrl ||
+      !personB.publicUrl ||
+      !personA.assetId ||
+      !personB.assetId ||
+      !personA.assetToken ||
+      !personB.assetToken ||
+      (!template && (referenceVideo.status !== 'ready' || !referenceVideo.publicUrl || !referenceVideo.assetId || !referenceVideo.assetToken))
+    ) return
+
+    setError('')
+    setSubmitStage('redirecting')
+    try {
+      const result = await createGenerationHandoff({
+        data: {
+          imageAAssetId: personA.assetId,
+          imageAAssetToken: personA.assetToken,
+          imageAUrl: personA.publicUrl,
+          imageBAssetId: personB.assetId,
+          imageBAssetToken: personB.assetToken,
+          imageBUrl: personB.publicUrl,
+          referenceTemplateId: template?.id || null,
+          referenceVideoAssetId: template ? null : referenceVideo.assetId,
+          referenceVideoAssetToken: template ? null : referenceVideo.assetToken,
+          referenceVideoUrl: template?.sourceVideoUrl || referenceVideo.publicUrl || '',
+          prompt,
+          duration,
+          resolution,
+          aspectRatio,
+        },
+      })
+      window.location.href = result.redirectUrl
+    } catch (e) {
+      setError(friendlyError(e instanceof Error ? e.message : 'Unable to continue to ClothMotion.'))
+      setSubmitStage('idle')
+    }
+  }
+
   const onGenerate = async () => {
     if (!canGenerate) return
+    if (handoffEnabled) {
+      await handoffToClothMotion()
+      return
+    }
     if (!authed) {
       setPendingGenerate(true)
       setAuthOpen(true)
@@ -498,10 +551,11 @@ export function HotelLobbyWorkbench() {
         </select>
         <button disabled={!canGenerate} className="generate" onClick={() => void onGenerate()}>
           {isSubmitting ? <Loader2 size={16} className="spin"/> : <Zap size={16} fill="currentColor"/>}
-          {submitStage === 'moderating' ? 'Checking…' :
+          {submitStage === 'redirecting' ? 'Opening ClothMotion…' :
+           submitStage === 'moderating' ? 'Checking…' :
            submitStage === 'starting' ? 'Starting…' :
            submitStage === 'syncing' ? 'Syncing credits…' :
-           <>{cost} Generate</>}
+           handoffEnabled ? <>Generate</> : <>{cost} Generate</>}
         </button>
       </div>
     </div>
