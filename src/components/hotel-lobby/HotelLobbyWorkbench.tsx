@@ -14,6 +14,7 @@ type ImageAssetState = {
   previewUrl: string | null
   publicUrl: string | null
   assetId: string | null
+  assetToken: string | null
   status: 'empty' | 'uploading' | 'moderating' | 'approved'
 }
 
@@ -21,11 +22,12 @@ type VideoAssetState = {
   previewUrl: string | null
   publicUrl: string | null
   assetId: string | null
+  assetToken: string | null
   status: 'empty' | 'uploading' | 'ready'
 }
 
-const emptyImage: ImageAssetState = { previewUrl: null, publicUrl: null, assetId: null, status: 'empty' }
-const emptyVideo: VideoAssetState = { previewUrl: null, publicUrl: null, assetId: null, status: 'empty' }
+const emptyImage: ImageAssetState = { previewUrl: null, publicUrl: null, assetId: null, assetToken: null, status: 'empty' }
+const emptyVideo: VideoAssetState = { previewUrl: null, publicUrl: null, assetId: null, assetToken: null, status: 'empty' }
 const RECOVERY_KEY = 'hotel_lobby_generation_recovery_v1'
 
 export function HotelLobbyWorkbench() {
@@ -221,20 +223,21 @@ export function HotelLobbyWorkbench() {
     const previewUrl = URL.createObjectURL(file)
     setter(current => {
       if (current.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(current.previewUrl)
-      return { previewUrl, publicUrl: null, assetId: null, status: 'uploading' }
+      return { previewUrl, publicUrl: null, assetId: null, assetToken: null, status: 'uploading' }
     })
 
     try {
       const signed = await uploadFile(file, 'image')
       if (requestRef.current !== requestId) return
-      setter(current => ({ ...current, publicUrl: signed.publicUrl, assetId: signed.assetId, status: 'moderating' }))
+      setter(current => ({ ...current, publicUrl: signed.publicUrl, assetId: signed.assetId, assetToken: signed.assetToken, status: 'moderating' }))
 
-      const finalized = await finalizeUploadedAsset({ data: { assetId: signed.assetId } })
+      const finalized = await finalizeUploadedAsset({ data: { assetId: signed.assetId, assetToken: signed.assetToken } })
       if (requestRef.current !== requestId) return
       setter(current => ({
         ...current,
         publicUrl: finalized.publicUrl,
         assetId: finalized.assetId,
+        assetToken: finalized.assetToken,
         status: 'approved',
       }))
     } catch (e) {
@@ -276,18 +279,19 @@ export function HotelLobbyWorkbench() {
     const previewUrl = URL.createObjectURL(file)
     setReferenceVideo(current => {
       if (current.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(current.previewUrl)
-      return { previewUrl, publicUrl: null, assetId: null, status: 'uploading' }
+      return { previewUrl, publicUrl: null, assetId: null, assetToken: null, status: 'uploading' }
     })
 
     try {
       const signed = await uploadFile(file, 'video')
       if (videoRequest.current !== requestId) return
-      const finalized = await finalizeUploadedAsset({ data: { assetId: signed.assetId } })
+      const finalized = await finalizeUploadedAsset({ data: { assetId: signed.assetId, assetToken: signed.assetToken } })
       if (videoRequest.current !== requestId) return
       setReferenceVideo(current => ({
         ...current,
         publicUrl: finalized.publicUrl,
         assetId: finalized.assetId,
+        assetToken: finalized.assetToken,
         status: 'ready',
       }))
     } catch (e) {
@@ -356,7 +360,9 @@ export function HotelLobbyWorkbench() {
       !personB.publicUrl ||
       !personA.assetId ||
       !personB.assetId ||
-      (!template && (referenceVideo.status !== 'ready' || !referenceVideo.publicUrl || !referenceVideo.assetId)) ||
+      !personA.assetToken ||
+      !personB.assetToken ||
+      (!template && (referenceVideo.status !== 'ready' || !referenceVideo.publicUrl || !referenceVideo.assetId || !referenceVideo.assetToken)) ||
       isSubmitting
     ) return
 
@@ -364,8 +370,11 @@ export function HotelLobbyWorkbench() {
     setSubmitStage('starting')
     await runGeneration({
       imageAAssetId: personA.assetId,
+      imageAAssetToken: personA.assetToken,
       imageBAssetId: personB.assetId,
+      imageBAssetToken: personB.assetToken,
       referenceVideoAssetId: template ? null : referenceVideo.assetId,
+      referenceVideoAssetToken: template ? null : referenceVideo.assetToken,
       imageAUrl: personA.publicUrl,
       imageBUrl: personB.publicUrl,
       referenceTemplateId: template?.id || null,
