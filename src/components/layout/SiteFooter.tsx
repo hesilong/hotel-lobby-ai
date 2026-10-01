@@ -8,6 +8,7 @@ export function SiteFooter() {
       <div className="footer-links">
         <a href="/">Hotel Lobby AI</a>
         <a href="/migos-ai-video">Migos AI Video</a>
+        <a href="/pricing">Pricing</a>
         <a href="/privacy-policy">Privacy</a>
         <a href="/terms-of-service">Terms</a>
       </div>

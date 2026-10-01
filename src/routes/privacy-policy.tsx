@@ -49,6 +49,13 @@ function PrivacyPolicyPage() {
           information, and error details so the Service can display your results and operate reliably.
         </p>
 
+        <h3>Payment and billing information</h3>
+        <p>
+          If you purchase a plan or credit pack, our payment provider may provide transaction identifiers, product or
+          subscription status, billing-period information, and limited customer details needed to match the purchase to
+          your account. We do not receive or store your full payment-card number.
+        </p>
+
         <h3>Technical and usage information</h3>
         <p>
           We may collect limited technical information needed to operate, secure, and troubleshoot the Service,
@@ -72,7 +79,9 @@ function PrivacyPolicyPage() {
           To generate videos, information you submit may be transmitted to third-party AI generation providers
           that process the input on our behalf or as part of providing the requested generation service. We also
           use infrastructure and authentication providers for database services, object storage, hosting, security,
-          and sign-in functionality. These providers may process data according to their own terms and privacy policies.
+          sign-in functionality, content moderation, and payment processing. CREEM may process checkout, subscription,
+          tax, fraud-prevention, and payment information when you make a purchase. These providers may process data
+          according to their own terms and privacy policies.
         </p>
 
         <h2>4. Uploaded media and generated content</h2>
