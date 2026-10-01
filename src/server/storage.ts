@@ -1,5 +1,4 @@
 import { createServerFn } from '@tanstack/react-start'
-import { getCookies, setCookie } from '@tanstack/react-start/server'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { moderateReferenceImage } from '@/server/moderation'
@@ -13,9 +12,14 @@ type PresignInput = {
 
 type FinalizeInput = {
   assetId: string
+  assetToken: string
 }
 
-const GUEST_COOKIE = 'hla_guest_id'
+type AssetTokenPayload = {
+  assetId: string
+  ownerKey: string
+  exp: number
+}
 
 const safeExt = (name: string) => {
   const match = name.toLowerCase().match(/\.([a-z0-9]{1,8})$/)
@@ -24,6 +28,7 @@ const safeExt = (name: string) => {
 
 const allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp'])
 const allowedVideoTypes = new Set(['video/mp4', 'video/quicktime', 'video/webm'])
+const encoder = new TextEncoder()
 
 function r2Config() {
   const accountId = process.env.R2_ACCOUNT_ID
@@ -51,37 +56,56 @@ async function createSignedPutUrl(key: string, expiresInSeconds = 600) {
   })
 }
 
-async function uploadOwner() {
-  const supabase = getSupabaseServerClient()
-  const { data: auth } = await supabase.auth.getUser()
-  const cookies = getCookies()
-  let guestId = cookies[GUEST_COOKIE]
+const base64UrlEncode = (value: string) =>
+  btoa(value).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
 
-  if (!guestId) {
-    guestId = crypto.randomUUID()
-    setCookie(GUEST_COOKIE, guestId, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 30,
-    })
-  }
-
-  return {
-    userId: auth.user?.id || null,
-    guestId,
-    ownerKey: auth.user ? `user:${auth.user.id}` : `guest:${guestId}`,
-  }
+const base64UrlDecode = (value: string) => {
+  const normalized = value.replace(/-/g, '+').replace(/_/g, '/')
+  const padding = '='.repeat((4 - normalized.length % 4) % 4)
+  return atob(normalized + padding)
 }
 
-async function allowedOwnerKeys(userId?: string | null) {
-  const cookies = getCookies()
-  const keys = new Set<string>()
-  if (userId) keys.add(`user:${userId}`)
-  const guestId = cookies[GUEST_COOKIE]
-  if (guestId) keys.add(`guest:${guestId}`)
-  return [...keys]
+const toHex = (buffer: ArrayBuffer) =>
+  Array.from(new Uint8Array(buffer), byte => byte.toString(16).padStart(2, '0')).join('')
+
+async function assetTokenSecret() {
+  const secret = process.env.ASSET_TOKEN_SECRET || process.env.R2_SECRET_ACCESS_KEY
+  if (!secret) throw new Error('ASSET_TOKEN_NOT_CONFIGURED')
+  return crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  )
+}
+
+async function signAssetToken(payload: AssetTokenPayload) {
+  const encoded = base64UrlEncode(JSON.stringify(payload))
+  const key = await assetTokenSecret()
+  const signature = toHex(await crypto.subtle.sign('HMAC', key, encoder.encode(encoded)))
+  return `${encoded}.${signature}`
+}
+
+async function readAssetToken(token: string): Promise<AssetTokenPayload | null> {
+  try {
+    const [encoded, signature] = token.split('.')
+    if (!encoded || !signature) return null
+    const key = await assetTokenSecret()
+    const expected = toHex(await crypto.subtle.sign('HMAC', key, encoder.encode(encoded)))
+    if (expected.length !== signature.length) return null
+    let diff = 0
+    for (let index = 0; index < expected.length; index += 1) {
+      diff |= expected.charCodeAt(index) ^ signature.charCodeAt(index)
+    }
+    if (diff !== 0) return null
+
+    const payload = JSON.parse(base64UrlDecode(encoded)) as AssetTokenPayload
+    if (!payload?.assetId || !payload?.ownerKey || !payload.exp || payload.exp < Date.now()) return null
+    return payload
+  } catch {
+    return null
+  }
 }
 
 export const createUploadUrl = createServerFn({ method: 'POST' })
@@ -90,9 +114,12 @@ export const createUploadUrl = createServerFn({ method: 'POST' })
     const allowed = data.kind === 'image' ? allowedImageTypes : allowedVideoTypes
     if (!allowed.has(data.mimeType)) throw new Error('UNSUPPORTED_FILE_TYPE')
 
-    const owner = await uploadOwner()
+    const supabase = getSupabaseServerClient()
+    const { data: auth } = await supabase.auth.getUser()
+    const ownerKey = auth.user ? `user:${auth.user.id}` : `guest:${crypto.randomUUID()}`
+
     const { publicBase } = r2Config()
-    const ownerPath = owner.userId ? `user-${owner.userId}` : `guest-${owner.guestId}`
+    const ownerPath = auth.user ? `user-${auth.user.id}` : `guest-${crypto.randomUUID()}`
     const key =
       `uploads/${ownerPath}/${data.kind}/${Date.now()}-${crypto.randomUUID()}.${safeExt(data.fileName)}`
     const publicUrl = `${publicBase}/${key}`
@@ -100,8 +127,8 @@ export const createUploadUrl = createServerFn({ method: 'POST' })
 
     const admin = getSupabaseAdminClient()
     const { data: asset, error } = await admin.from('uploaded_assets').insert({
-      owner_key: owner.ownerKey,
-      user_id: owner.userId,
+      owner_key: ownerKey,
+      user_id: auth.user?.id || null,
       kind: data.kind,
       object_key: key,
       public_url: publicUrl,
@@ -111,8 +138,15 @@ export const createUploadUrl = createServerFn({ method: 'POST' })
 
     if (error || !asset) throw new Error(error?.message || 'UPLOAD_ASSET_CREATE_FAILED')
 
+    const assetToken = await signAssetToken({
+      assetId: asset.id,
+      ownerKey,
+      exp: Date.now() + 24 * 60 * 60 * 1000,
+    })
+
     return {
       assetId: asset.id as string,
+      assetToken,
       uploadUrl,
       publicUrl,
       key,
@@ -122,16 +156,14 @@ export const createUploadUrl = createServerFn({ method: 'POST' })
 export const finalizeUploadedAsset = createServerFn({ method: 'POST' })
   .inputValidator((input: FinalizeInput) => input)
   .handler(async ({ data }) => {
-    const supabase = getSupabaseServerClient()
-    const { data: auth } = await supabase.auth.getUser()
-    const owners = await allowedOwnerKeys(auth.user?.id || null)
-    if (!owners.length) throw new Error('UPLOAD_ASSET_FORBIDDEN')
+    const capability = await readAssetToken(data.assetToken)
+    if (!capability || capability.assetId !== data.assetId) throw new Error('UPLOAD_ASSET_FORBIDDEN')
 
     const admin = getSupabaseAdminClient()
     const { data: asset, error } = await admin.from('uploaded_assets')
       .select('id,owner_key,user_id,kind,public_url,status')
       .eq('id', data.assetId)
-      .in('owner_key', owners)
+      .eq('owner_key', capability.ownerKey)
       .maybeSingle()
 
     if (error || !asset) throw new Error('UPLOAD_ASSET_NOT_FOUND')
@@ -142,7 +174,12 @@ export const finalizeUploadedAsset = createServerFn({ method: 'POST' })
         updated_at: new Date().toISOString(),
       }).eq('id', asset.id)
       if (updateError) throw new Error(updateError.message)
-      return { assetId: asset.id as string, publicUrl: asset.public_url as string, status: 'ready' as const }
+      return {
+        assetId: asset.id as string,
+        assetToken: data.assetToken,
+        publicUrl: asset.public_url as string,
+        status: 'ready' as const,
+      }
     }
 
     await admin.from('uploaded_assets').update({
@@ -163,7 +200,12 @@ export const finalizeUploadedAsset = createServerFn({ method: 'POST' })
         updated_at: new Date().toISOString(),
       }).eq('id', asset.id)
       if (updateError) throw new Error(updateError.message)
-      return { assetId: asset.id as string, publicUrl: asset.public_url as string, status: 'approved' as const }
+      return {
+        assetId: asset.id as string,
+        assetToken: data.assetToken,
+        publicUrl: asset.public_url as string,
+        status: 'approved' as const,
+      }
     } catch (error) {
       const code = error instanceof Error ? error.message : 'IMAGE_MODERATION_UNAVAILABLE'
       const status = code === 'IMAGE_REJECTED' ? 'rejected' : 'error'
@@ -179,39 +221,67 @@ export const finalizeUploadedAsset = createServerFn({ method: 'POST' })
 export async function verifyPreparedAssets(params: {
   userId: string
   imageAAssetId: string
+  imageAAssetToken: string
   imageAUrl: string
   imageBAssetId: string
+  imageBAssetToken: string
   imageBUrl: string
   referenceVideoAssetId?: string | null
+  referenceVideoAssetToken?: string | null
   referenceVideoUrl: string
 }) {
-  const owners = await allowedOwnerKeys(params.userId)
-  if (!owners.length) throw new Error('ASSET_OWNERSHIP_INVALID')
+  const capabilities = await Promise.all([
+    readAssetToken(params.imageAAssetToken),
+    readAssetToken(params.imageBAssetToken),
+    params.referenceVideoAssetId && params.referenceVideoAssetToken
+      ? readAssetToken(params.referenceVideoAssetToken)
+      : Promise.resolve(null),
+  ])
 
-  const admin = getSupabaseAdminClient()
+  const [imageACap, imageBCap, videoCap] = capabilities
+  if (!imageACap || imageACap.assetId !== params.imageAAssetId) throw new Error('IMAGE_A_NOT_READY')
+  if (!imageBCap || imageBCap.assetId !== params.imageBAssetId) throw new Error('IMAGE_B_NOT_READY')
+  if (params.referenceVideoAssetId && (!videoCap || videoCap.assetId !== params.referenceVideoAssetId)) {
+    throw new Error('REFERENCE_VIDEO_NOT_READY')
+  }
+
   const ids = [params.imageAAssetId, params.imageBAssetId, params.referenceVideoAssetId].filter(Boolean) as string[]
+  const admin = getSupabaseAdminClient()
   const { data: assets, error } = await admin.from('uploaded_assets')
     .select('id,owner_key,user_id,kind,public_url,status')
     .in('id', ids)
-    .in('owner_key', owners)
 
   if (error) throw new Error(error.message)
   const byId = new Map((assets || []).map(asset => [asset.id as string, asset]))
 
   const imageA = byId.get(params.imageAAssetId)
   const imageB = byId.get(params.imageBAssetId)
-  if (!imageA || imageA.kind !== 'image' || imageA.status !== 'approved' || imageA.public_url !== params.imageAUrl) {
-    throw new Error('IMAGE_A_NOT_READY')
-  }
-  if (!imageB || imageB.kind !== 'image' || imageB.status !== 'approved' || imageB.public_url !== params.imageBUrl) {
-    throw new Error('IMAGE_B_NOT_READY')
-  }
+  if (
+    !imageA ||
+    imageA.owner_key !== imageACap.ownerKey ||
+    imageA.kind !== 'image' ||
+    imageA.status !== 'approved' ||
+    imageA.public_url !== params.imageAUrl
+  ) throw new Error('IMAGE_A_NOT_READY')
+
+  if (
+    !imageB ||
+    imageB.owner_key !== imageBCap.ownerKey ||
+    imageB.kind !== 'image' ||
+    imageB.status !== 'approved' ||
+    imageB.public_url !== params.imageBUrl
+  ) throw new Error('IMAGE_B_NOT_READY')
 
   if (params.referenceVideoAssetId) {
     const video = byId.get(params.referenceVideoAssetId)
-    if (!video || video.kind !== 'video' || video.status !== 'ready' || video.public_url !== params.referenceVideoUrl) {
-      throw new Error('REFERENCE_VIDEO_NOT_READY')
-    }
+    if (
+      !video ||
+      !videoCap ||
+      video.owner_key !== videoCap.ownerKey ||
+      video.kind !== 'video' ||
+      video.status !== 'ready' ||
+      video.public_url !== params.referenceVideoUrl
+    ) throw new Error('REFERENCE_VIDEO_NOT_READY')
   }
 
   const guestAssets = (assets || []).filter(asset => asset.owner_key.startsWith('guest:'))
