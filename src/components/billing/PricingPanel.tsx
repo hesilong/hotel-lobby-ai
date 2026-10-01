@@ -150,7 +150,7 @@ export function PricingPanel({
     return <div className="pricing-loading"><Loader2 className="spin" size={22}/> Loading pricing…</div>
   }
 
-  const packs = catalog.creditPacks as Record<CreditPackKey, { name: string; credits: number; priceUsd: number }>
+  const packs = catalog.creditPacks as Record<CreditPackKey, { name: string; credits: number; priceUsd: number; configured: boolean }>
   const current = billing?.subscription
   const balance = billing?.credits ?? 0
   const shortfall = requiredCredits ? Math.max(0, requiredCredits - balance) : 0
@@ -182,6 +182,7 @@ export function PricingPanel({
             const plan = catalog.plans[planId]
             const monthlyDisplay = cycle === 'monthly' ? plan.monthlyPriceUsd : plan.yearlyMonthlyEquivalentUsd
             const isCurrent = current?.plan_code === planId && current?.billing_cycle === cycle && current?.status !== 'scheduled_cancel'
+            const configured = cycle === 'monthly' ? plan.monthlyConfigured : plan.yearlyConfigured
             return <article key={planId} className={planId === 'ultimate' ? 'pricing-card featured' : 'pricing-card'}>
               {planId === 'ultimate' && <span className="pricing-badge">Most popular</span>}
               <h3>{plan.name}</h3>
@@ -197,11 +198,11 @@ export function PricingPanel({
               <button
                 type="button"
                 className="pricing-buy"
-                disabled={Boolean(busy) || isCurrent}
+                disabled={Boolean(busy) || isCurrent || !configured}
                 onClick={() => void selectPlan(planId)}
               >
                 {busy === `plan-${planId}-${cycle}` ? <Loader2 className="spin" size={16}/> : <CreditCard size={16}/>}
-                {isCurrent ? 'Current plan' : current ? 'Switch plan' : `Choose ${plan.name}`}
+                {isCurrent ? 'Current plan' : !configured ? 'Coming soon' : current ? 'Switch plan' : `Choose ${plan.name}`}
               </button>
             </article>
           })}
@@ -221,9 +222,9 @@ export function PricingPanel({
               <li><Check size={15}/> No subscription required</li>
               <li><Check size={15}/> Use for any Hotel Lobby AI generation</li>
             </ul>
-            <button type="button" className="pricing-buy" disabled={Boolean(busy)} onClick={() => void checkout({ type: 'credit_pack', key })}>
+            <button type="button" className="pricing-buy" disabled={Boolean(busy) || !pack.configured} onClick={() => void checkout({ type: 'credit_pack', key })}>
               {busy === `pack-${key}` ? <Loader2 className="spin" size={16}/> : <Zap size={16}/>}
-              Buy {pack.name}
+              {pack.configured ? `Buy ${pack.name}` : 'Coming soon'}
             </button>
           </article>
         })}
