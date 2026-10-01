@@ -558,6 +558,10 @@ export function HotelLobbyWorkbench() {
            handoffEnabled ? <>Generate</> : <>{cost} Generate</>}
         </button>
       </div>
+      <p className="generator-safety-note">
+        Only upload images you have permission to use. NSFW, deceptive impersonation, minors, and unauthorized likeness use are prohibited.{' '}
+        <a href="/terms-of-service#acceptable-use">Learn more</a>
+      </p>
     </div>
 
     <ResultsGallery tasks={tasks} onRetry={(taskId) => void handleRetry(taskId)} retryingTaskId={retryingTaskId}/>
