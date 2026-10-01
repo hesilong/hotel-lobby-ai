@@ -67,7 +67,7 @@ async function syncSubscription(admin: ReturnType<typeof getSupabaseAdminClient>
 
   const { data: existing } = subscriptionId
     ? await admin.from('subscriptions').select('id,plan_code,billing_cycle,plan_id,pending_plan_id,current_period_end,next_credit_reset_at,status').eq('creem_subscription_id', subscriptionId).maybeSingle()
-    : await admin.from('subscriptions').select('id,plan_code,billing_cycle,plan_id,pending_plan_id,current_period_end,status').eq('user_id', params.userId).order('updated_at', { ascending: false }).limit(1).maybeSingle()
+    : await admin.from('subscriptions').select('id,plan_code,billing_cycle,plan_id,pending_plan_id,current_period_end,next_credit_reset_at,status').eq('user_id', params.userId).order('updated_at', { ascending: false }).limit(1).maybeSingle()
 
   let effectivePlan = plan
   let effectiveProductId = productId
