@@ -11,9 +11,13 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MigosAiVideoRouteImport } from './routes/migos-ai-video'
+import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as TermsOfServiceRouteImport } from './routes/terms-of-service'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
+import { Route as ApiCreemWebhookRouteImport } from './routes/api.creem.webhook'
+import { Route as ApiDownloadTaskIdRouteImport } from './routes/api.download.$taskId'
+import { Route as ApiHandoffTokenRouteImport } from './routes/api.handoff.$token'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -23,6 +27,11 @@ const IndexRoute = IndexRouteImport.update({
 const MigosAiVideoRoute = MigosAiVideoRouteImport.update({
   id: '/migos-ai-video',
   path: '/migos-ai-video',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
@@ -40,59 +49,102 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
   path: '/auth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCreemWebhookRoute = ApiCreemWebhookRouteImport.update({
+  id: '/api/creem/webhook',
+  path: '/api/creem/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiDownloadTaskIdRoute = ApiDownloadTaskIdRouteImport.update({
+  id: '/api/download/$taskId',
+  path: '/api/download/$taskId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiHandoffTokenRoute = ApiHandoffTokenRouteImport.update({
+  id: '/api/handoff/$token',
+  path: '/api/handoff/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/migos-ai-video': typeof MigosAiVideoRoute
+  '/pricing': typeof PricingRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/terms-of-service': typeof TermsOfServiceRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/api/creem/webhook': typeof ApiCreemWebhookRoute
+  '/api/download/$taskId': typeof ApiDownloadTaskIdRoute
+  '/api/handoff/$token': typeof ApiHandoffTokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/migos-ai-video': typeof MigosAiVideoRoute
+  '/pricing': typeof PricingRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/terms-of-service': typeof TermsOfServiceRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/api/creem/webhook': typeof ApiCreemWebhookRoute
+  '/api/download/$taskId': typeof ApiDownloadTaskIdRoute
+  '/api/handoff/$token': typeof ApiHandoffTokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/migos-ai-video': typeof MigosAiVideoRoute
+  '/pricing': typeof PricingRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/terms-of-service': typeof TermsOfServiceRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/api/creem/webhook': typeof ApiCreemWebhookRoute
+  '/api/download/$taskId': typeof ApiDownloadTaskIdRoute
+  '/api/handoff/$token': typeof ApiHandoffTokenRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/migos-ai-video'
+    | '/pricing'
     | '/privacy-policy'
     | '/terms-of-service'
     | '/auth/callback'
+    | '/api/creem/webhook'
+    | '/api/download/$taskId'
+    | '/api/handoff/$token'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/migos-ai-video'
+    | '/pricing'
     | '/privacy-policy'
     | '/terms-of-service'
     | '/auth/callback'
+    | '/api/creem/webhook'
+    | '/api/download/$taskId'
+    | '/api/handoff/$token'
   id:
     | '__root__'
     | '/'
     | '/migos-ai-video'
+    | '/pricing'
     | '/privacy-policy'
     | '/terms-of-service'
     | '/auth/callback'
+    | '/api/creem/webhook'
+    | '/api/download/$taskId'
+    | '/api/handoff/$token'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   MigosAiVideoRoute: typeof MigosAiVideoRoute
+  PricingRoute: typeof PricingRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   TermsOfServiceRoute: typeof TermsOfServiceRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
+  ApiCreemWebhookRoute: typeof ApiCreemWebhookRoute
+  ApiDownloadTaskIdRoute: typeof ApiDownloadTaskIdRoute
+  ApiHandoffTokenRoute: typeof ApiHandoffTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -109,6 +161,13 @@ declare module '@tanstack/react-router' {
       path: '/migos-ai-video'
       fullPath: '/migos-ai-video'
       preLoaderRoute: typeof MigosAiVideoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy-policy': {
@@ -132,15 +191,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/creem/webhook': {
+      id: '/api/creem/webhook'
+      path: '/api/creem/webhook'
+      fullPath: '/api/creem/webhook'
+      preLoaderRoute: typeof ApiCreemWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/download/$taskId': {
+      id: '/api/download/$taskId'
+      path: '/api/download/$taskId'
+      fullPath: '/api/download/$taskId'
+      preLoaderRoute: typeof ApiDownloadTaskIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/handoff/$token': {
+      id: '/api/handoff/$token'
+      path: '/api/handoff/$token'
+      fullPath: '/api/handoff/$token'
+      preLoaderRoute: typeof ApiHandoffTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   MigosAiVideoRoute: MigosAiVideoRoute,
+  PricingRoute: PricingRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
   TermsOfServiceRoute: TermsOfServiceRoute,
   AuthCallbackRoute: AuthCallbackRoute,
+  ApiCreemWebhookRoute: ApiCreemWebhookRoute,
+  ApiDownloadTaskIdRoute: ApiDownloadTaskIdRoute,
+  ApiHandoffTokenRoute: ApiHandoffTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

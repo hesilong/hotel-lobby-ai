@@ -5,6 +5,11 @@ import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
+  server: {
+    allowedHosts: [
+      'transmundane-nonvisibly-albert.ngrok-free.dev',
+    ],
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

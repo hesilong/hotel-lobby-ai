@@ -15,3 +15,12 @@ page view and one page view per navigation, including browser back/forward.
 The integration has not yet been verified against live GA4 collection.
 
 Reference: https://developers.google.com/analytics/devguides/collection/ga4/single-page-applications
+
+## Microsoft Clarity
+
+The root route mounts `src/components/analytics/Clarity.tsx` with project ID
+`yqmsv0u4fd`. Override it at build time with `VITE_CLARITY_PROJECT_ID`.
+The component uses the supplied Clarity queue snippet, loads asynchronously
+only in production builds, and prevents duplicate script insertion on remount.
+After deployment, check that `https://www.clarity.ms/tag/yqmsv0u4fd` loads and
+verify visits in the Clarity dashboard. Live collection has not yet been verified.

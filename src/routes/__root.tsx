@@ -1,6 +1,7 @@
 import { HeadContent, Outlet, Scripts, createRootRoute } from '@tanstack/react-router'
 import appCss from '@/styles/app.css?url'
 import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics'
+import { Clarity } from '@/components/analytics/Clarity'
 
 export const Route = createRootRoute({
   head: () => ({
@@ -29,6 +30,7 @@ function RootDocument() {
       <body>
         <Outlet />
         <GoogleAnalytics measurementId={import.meta.env.VITE_GA4_MEASUREMENT_ID || 'G-QRGEK14KFY'} />
+        <Clarity projectId={import.meta.env.VITE_CLARITY_PROJECT_ID || 'yqmsv0u4fd'} />
         <Scripts />
       </body>
     </html>
