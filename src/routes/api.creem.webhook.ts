@@ -20,6 +20,12 @@ const safeEqual = (a: string, b: string) => {
 
 const stringValue = (...values: unknown[]) => values.find(v => typeof v === 'string' && v.trim()) as string | undefined
 
+const addMonth = (value: Date) => {
+  const next = new Date(value)
+  next.setUTCMonth(next.getUTCMonth() + 1)
+  return next
+}
+
 function productIdOf(payload: any) {
   if (typeof payload?.product === 'string') return payload.product
   return stringValue(payload?.product?.id, payload?.order?.product, payload?.product_id, payload?.plan_id)
@@ -60,7 +66,7 @@ async function syncSubscription(admin: ReturnType<typeof getSupabaseAdminClient>
   const cancelAt = stringValue(params.payload?.canceled_at, params.payload?.cancel_at)
 
   const { data: existing } = subscriptionId
-    ? await admin.from('subscriptions').select('id,plan_code,billing_cycle,plan_id,pending_plan_id,current_period_end,status').eq('creem_subscription_id', subscriptionId).maybeSingle()
+    ? await admin.from('subscriptions').select('id,plan_code,billing_cycle,plan_id,pending_plan_id,current_period_end,next_credit_reset_at,status').eq('creem_subscription_id', subscriptionId).maybeSingle()
     : await admin.from('subscriptions').select('id,plan_code,billing_cycle,plan_id,pending_plan_id,current_period_end,status').eq('user_id', params.userId).order('updated_at', { ascending: false }).limit(1).maybeSingle()
 
   let effectivePlan = plan
@@ -96,6 +102,9 @@ async function syncSubscription(admin: ReturnType<typeof getSupabaseAdminClient>
     status: params.status,
     current_period_start: periodStart || null,
     current_period_end: periodEnd || null,
+    next_credit_reset_at: effectivePlan.cycle === 'yearly'
+      ? (existing?.next_credit_reset_at || addMonth(periodStart ? new Date(periodStart) : new Date()).toISOString())
+      : null,
     cancel_at: cancelAt || null,
     meta: params.payload || {},
     updated_at: new Date().toISOString(),
@@ -164,6 +173,11 @@ export const Route = createFileRoute('/api/creem/webhook')({
             const plan = findPlanByProductId(productId)
             if (plan) {
               await syncSubscription(admin, { userId, payload, status: 'active' })
+              const periodStart = stringValue(payload?.current_period_start_date, payload?.current_period_start)
+              const subscriptionPeriodEnd = stringValue(payload?.current_period_end_date, payload?.current_period_end) || null
+              const creditPeriodEnd = plan.cycle === 'yearly'
+                ? addMonth(periodStart ? new Date(periodStart) : new Date()).toISOString()
+                : subscriptionPeriodEnd
               await grantSubscriptionCredits({
                 admin,
                 userId,
@@ -171,7 +185,7 @@ export const Route = createFileRoute('/api/creem/webhook')({
                 planCode: plan.plan,
                 credits: plan.definition.monthlyCredits,
                 eventId,
-                periodEnd: stringValue(payload?.current_period_end_date, payload?.current_period_end) || null,
+                periodEnd: creditPeriodEnd,
               })
             }
           } else if (['subscription.active','subscription.trialing','subscription.update'].includes(eventType)) {
