@@ -55,11 +55,56 @@ export async function deductCredits(params: {
   taskId?: string | null
   meta?: Record<string, unknown>
 }) {
-  return adjustCredits({
-    ...params,
-    delta: -Math.abs(params.amount),
+  const amount = Math.abs(Math.round(params.amount))
+  const balance = await getCreditBalance(params.admin, params.userId)
+  if (balance < amount) throw new InsufficientCreditsError()
+
+  const { data: grants, error: grantsError } = await params.admin
+    .from('credit_grants')
+    .select('id,credits_remaining,expires_at')
+    .eq('user_id', params.userId)
+    .eq('status', 'active')
+    .gt('credits_remaining', 0)
+    .order('expires_at', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: true })
+  if (grantsError) throw new Error(grantsError.message)
+
+  let remaining = amount
+  const grantDebits: Array<{ grant_id: string; amount: number }> = []
+  for (const grant of grants || []) {
+    if (remaining <= 0) break
+    const current = Number(grant.credits_remaining || 0)
+    if (current <= 0) continue
+    const used = Math.min(current, remaining)
+    grantDebits.push({ grant_id: grant.id, amount: used })
+    remaining -= used
+  }
+
+  const debit = await adjustCredits({
+    admin: params.admin,
+    userId: params.userId,
+    delta: -amount,
     reason: 'generation',
+    taskId: params.taskId,
+    meta: { ...(params.meta || {}), grant_debits: grantDebits },
   })
+
+  try {
+    for (const grantDebit of grantDebits) {
+      const grant = (grants || []).find(item => item.id === grantDebit.grant_id)
+      const current = Number(grant?.credits_remaining || 0)
+      const { error } = await params.admin.from('credit_grants').update({
+        credits_remaining: Math.max(0, current - grantDebit.amount),
+        updated_at: new Date().toISOString(),
+      }).eq('id', grantDebit.grant_id).eq('user_id', params.userId)
+      if (error) throw new Error(error.message)
+    }
+  } catch (error) {
+    // Keep monetary balance correct even if grant attribution fails; ledger records the intended debits.
+    console.error('[credits] failed to update grant attribution', error)
+  }
+
+  return debit
 }
 
 export async function refundCredits(params: {
@@ -79,6 +124,17 @@ export async function refundCredits(params: {
   if (error) throw new Error(error.message)
   if (existing) return { duplicate: true, balance: await getCreditBalance(params.admin, params.userId) }
 
+  const { data: original, error: originalError } = await params.admin
+    .from('credit_ledger')
+    .select('meta')
+    .eq('user_id', params.userId)
+    .eq('task_id', params.taskId)
+    .eq('reason', 'generation')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (originalError) throw new Error(originalError.message)
+
   const result = await adjustCredits({
     admin: params.admin,
     userId: params.userId,
@@ -87,6 +143,26 @@ export async function refundCredits(params: {
     taskId: params.taskId,
     meta: params.meta,
   })
+
+  const rawDebits = Array.isArray((original?.meta as any)?.grant_debits)
+    ? (original!.meta as any).grant_debits as Array<{ grant_id?: unknown; amount?: unknown }>
+    : []
+  for (const debit of rawDebits) {
+    if (typeof debit.grant_id !== 'string') continue
+    const amount = Number(debit.amount || 0)
+    if (amount <= 0) continue
+    const { data: grant } = await params.admin.from('credit_grants')
+      .select('credits_remaining,credits_total,status')
+      .eq('id', debit.grant_id)
+      .eq('user_id', params.userId)
+      .maybeSingle()
+    if (!grant || grant.status !== 'active') continue
+    await params.admin.from('credit_grants').update({
+      credits_remaining: Math.min(Number(grant.credits_total || 0), Number(grant.credits_remaining || 0) + amount),
+      updated_at: new Date().toISOString(),
+    }).eq('id', debit.grant_id).eq('user_id', params.userId)
+  }
+
   return { duplicate: false, ...result }
 }
 
