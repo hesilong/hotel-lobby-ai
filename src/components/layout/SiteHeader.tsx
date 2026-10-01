@@ -18,6 +18,12 @@ export function SiteHeader() {
       setEmail(data.session?.user.email ?? null)
       if (yes) void getBillingState().then(state => setCredits(state.credits)).catch(() => setCredits(null))
     })
+    const onCreditsChanged = (event: Event) => {
+      const value = (event as CustomEvent<number>).detail
+      if (Number.isFinite(value)) setCredits(value)
+    }
+    window.addEventListener('hla:credits-changed', onCreditsChanged)
+
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       const yes = Boolean(session)
       setAuthed(yes)
@@ -29,7 +35,10 @@ export function SiteHeader() {
         setCredits(null)
       }
     })
-    return () => listener.subscription.unsubscribe()
+    return () => {
+      window.removeEventListener('hla:credits-changed', onCreditsChanged)
+      listener.subscription.unsubscribe()
+    }
   }, [])
 
   const signOut = async () => {
