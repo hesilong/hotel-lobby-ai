@@ -17,7 +17,7 @@ export type HotelLobbyScene = {
 const SOURCE = 'https://cdn.clothmotion.app/templates/hotel-lobby-ai'
 const PREVIEW = `${SOURCE}/preview`
 
-const basePrompt = 'Create a non-sexual entertainment video featuring TWO authorized adult portrait references as Person A and Person B. Preserve each person\'s face, hairstyle, outfit, and identity. Keep Person A on the LEFT and Person B on the RIGHT. Follow the fixed choreography, timing, framing, gestures, and body movement closely. Do not blend faces, swap sides, add extra people, text, logos, or watermarks.'
+const basePrompt = 'Create a coordinated entertainment video using TWO separate reference performers. Use @Image1 as the Left Performer and @Image2 as the Right Performer; each reference may depict an adult person or a pet. Preserve each performer\'s recognizable appearance, facial or head features, hair or fur, markings, clothing if present, colors, and overall visual characteristics. Keep the Left Performer on the LEFT and the Right Performer on the RIGHT. Follow @Video1 for choreography, timing, framing, gestures, body movement, and camera behavior. Do not blend the performers, swap sides, add extra performers, text, logos, or watermarks.'
 
 export const HOTEL_LOBBY_TEMPLATES: MotionTemplate[] = [
   { id: 'hotel-lobby-1', name: 'Hotel Lobby 1', previewVideoUrl: `${PREVIEW}/hotel-lobby-ai-1.mp4`, sourceVideoUrl: `${SOURCE}/hotel-lobby-ai-1.mp4`, defaultPrompt: basePrompt, defaultRatio: '16:9' },
