@@ -28,6 +28,7 @@ export function HotelLobbyWorkbench() {
   const [duration, setDuration] = useState(10)
   const [resolution, setResolution] = useState<'480p'|'720p'|'1080p'>('720p')
   const [aspectRatio, setAspectRatio] = useState<'16:9'|'9:16'|'1:1'>('16:9')
+  const [generateAudio, setGenerateAudio] = useState(true)
   const [authOpen, setAuthOpen] = useState(false)
   const [pricingOpen, setPricingOpen] = useState(false)
   const [authed, setAuthed] = useState(false)
@@ -313,6 +314,7 @@ export function HotelLobbyWorkbench() {
       duration,
       resolution,
       aspectRatio,
+      generateAudio,
     }
   }
 
@@ -393,8 +395,19 @@ export function HotelLobbyWorkbench() {
 
         <div className="scene-picker">
           <div className="scene-picker-head">
-            <span>Choose a scene</span>
-            <small>The performance motion is preset automatically.</small>
+            <div>
+              <span>Choose a scene</span>
+              <small>The performance motion is preset automatically.</small>
+            </div>
+            <label className="soundtrack-toggle">
+              <span>Soundtrack</span>
+              <input
+                type="checkbox"
+                checked={generateAudio}
+                onChange={e => setGenerateAudio(e.target.checked)}
+              />
+              <i aria-hidden="true"/>
+            </label>
           </div>
           <div className="scene-grid">
             {HOTEL_LOBBY_SCENES.map(scene => (
