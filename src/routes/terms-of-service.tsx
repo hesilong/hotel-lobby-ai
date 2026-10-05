@@ -24,7 +24,7 @@ function TermsPage() {
       <section className="legal-hero">
         <span className="eyebrow">Legal</span>
         <h1>Terms of Service</h1>
-        <p>Effective date: October 1, 2026</p>
+        <p>Effective date: October 5, 2026</p>
       </section>
 
       <article className="legal-page">
@@ -46,6 +46,12 @@ function TermsPage() {
           images, preset scenes, and a fixed controlled performance. The Service does not accept user-uploaded motion
           videos for this generator. Features, models, limits, availability, processing times, and supported formats may
           change over time.
+        </p>
+        <p>
+          Direct video generation on Hotel Lobby AI uses Kling 3.0 Omni (reference-to-video), accessed through the KIE
+          API. When the generation interface indicates that you will continue on ClothMotion, generation is completed
+          on that separate service; consult its generation interface for the model used there. This direct-generation
+          model disclosure does not identify or guarantee the model used by ClothMotion.
         </p>
 
         <h2>3. Your content</h2>
@@ -76,20 +82,44 @@ function TermsPage() {
         <h2 id="acceptable-use">5. Acceptable use</h2>
         <p>You may not use the Service to create, upload, request, distribute, or facilitate content that:</p>
         <ul>
+          <li><strong>Pornography and NSFW:</strong> pornographic, nude, sexually suggestive, sexually explicit, or non-consensual intimate content.</li>
+          <li><strong>Violence and gore:</strong> violent content, graphic injuries, bloodshed, gore, torture, or content promoting or threatening violence.</li>
+          <li><strong>Hate speech:</strong> content promoting hatred, discrimination, dehumanization, or violence against people based on race, ethnicity, nationality, religion, sex, gender identity, sexual orientation, disability, or another protected characteristic.</li>
+          <li><strong>Child safety:</strong> child sexual abuse material (CSAM), sexualized depictions of minors, grooming, exploitation, abuse, or other content that endangers children. Synthetic or AI-generated depictions are also prohibited.</li>
+          <li><strong>Deepfakes and impersonation:</strong> deceptive deepfakes, impersonation of another person, unauthorized likeness use, or false claims that a real person participated in, endorsed, said, or performed something.</li>
+          <li><strong>Copyright and trademarks:</strong> content infringing copyright, trademarks, or other intellectual-property rights, including unauthorized use of protected reference media or branding.</li>
           <li>violates applicable law or another person's rights;</li>
           <li>uses a person's likeness without required permission or in a deceptive, defamatory, harassing, or exploitative way;</li>
-          <li>creates, requests, uploads, or distributes NSFW, pornographic, nude, sexually suggestive, or sexually explicit content;</li>
-          <li>creates or distributes non-consensual intimate imagery or any sexual content involving minors;</li>
           <li>facilitates fraud, impersonation, scams, identity theft, or misleading representations of real people;</li>
-          <li>creates deceptive deepfakes, impersonates a real person, or falsely represents that a real person participated in, endorsed, said, or performed something they did not;</li>
-          <li>infringes copyright, trademark, privacy, publicity, or other intellectual-property rights;</li>
+          <li>infringes privacy, publicity, or other personal rights;</li>
           <li>contains malware, attempts unauthorized access, or interferes with the Service or its infrastructure; or</li>
           <li>attempts to bypass safety systems, usage limits, access controls, or technical restrictions.</li>
         </ul>
+        <h3 id="reporting">Reporting prohibited content</h3>
+        <p>
+          Report suspected violations, unsafe content, impersonation, or intellectual-property concerns to{' '}
+          <a href="mailto:support@hotel-lobby-ai.pro?subject=Content%20report">support@hotel-lobby-ai.pro</a>.
+          Include the relevant page or result URL, task ID if available, the reason for your report, and information
+          needed to identify the issue. Do not attach or redistribute suspected CSAM; provide identifiers or a URL instead.
+          You may also use this address to request a review of a moderation decision.
+        </p>
+        <h3 id="content-moderation">Content moderation and enforcement</h3>
+        <p>
+          Our generation submission flow includes automated prompt safety checks that can reject flagged or prohibited
+          requests. When reference-image moderation is enabled, uploaded reference images are also checked for NSFW
+          content before use. These checks have limitations and do not guarantee detection of every violation or review
+          of every generated video. Users remain responsible for complying with these content standards.
+        </p>
+        <p>
+          Reports can be reviewed by the platform operator using the reported content and relevant service records.
+          Depending on the findings, we may reject requests, remove or restrict access to content hosted by us, or suspend
+          or terminate accounts. Serious child-safety concerns or other unlawful activity may be referred to the appropriate
+          authorities as required by law. Content hosted on an external service may also need to be reported to that service.
+        </p>
 
         <h2>6. Payments, subscriptions, credits, and refunds</h2>
         <p>
-          Paid plans and credit packs may be processed by CREEM or another payment provider identified at checkout.
+          Paid plans and credit packs may be processed by CREEM or Waffo, as identified at checkout.
           Prices, billing periods, included credits, and renewal terms are shown before purchase. Subscription plans renew
           automatically until canceled. You may schedule cancellation through the Service, and access normally continues
           through the paid billing period unless applicable law requires otherwise.
@@ -151,8 +181,8 @@ function TermsPage() {
 
         <h2>14. Contact</h2>
         <p>
-          Questions about these Terms may be sent through the contact information or support channel published on the
-          Hotel Lobby AI website.
+          For customer support, questions about these Terms, or content reports, email{' '}
+          <a href="mailto:support@hotel-lobby-ai.pro">support@hotel-lobby-ai.pro</a>.
         </p>
       </article>
       <SiteFooter />

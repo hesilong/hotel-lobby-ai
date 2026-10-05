@@ -4,6 +4,8 @@ export function SiteFooter() {
       <div>
         <a className="brand" href="/">Hotel Lobby AI</a>
         <p>Independent AI video tool for creating hotel-lobby-style motion videos.</p>
+        <p>Customer support: <a href="mailto:support@hotel-lobby-ai.pro">support@hotel-lobby-ai.pro</a></p>
+        <p><a href="/terms-of-service#reporting">Report content</a></p>
       </div>
       <div className="footer-links">
         <a href="/">Hotel Lobby AI</a>

@@ -307,7 +307,7 @@ const addMonth = (value: Date) => {
 
 export async function reconcileYearlySubscriptionCredits(admin: AdminClient, userId: string) {
   const { data: subscription, error } = await admin.from('subscriptions')
-    .select('id,plan_code,billing_cycle,plan_id,status,current_period_end,next_credit_reset_at')
+    .select('id,plan_code,billing_cycle,plan_id,status,current_period_end,next_credit_reset_at,payment_provider,waffo_order_id,waffo_environment')
     .eq('user_id', userId)
     .in('status', ['active','trialing','scheduled_cancel'])
     .order('updated_at', { ascending: false })
@@ -336,6 +336,19 @@ export async function reconcileYearlySubscriptionCredits(admin: AdminClient, use
   }
 
   const periodKey = resetAt.toISOString().slice(0, 7)
+  if (subscription.payment_provider === 'waffo') {
+    let nextReset = addMonth(resetAt)
+    while (nextReset <= now) nextReset = addMonth(nextReset)
+    const { error: resetError } = await admin.rpc('apply_waffo_event', { p_event: {
+      user_id: userId, environment: subscription.waffo_environment, order_id: subscription.waffo_order_id,
+      event_type: 'yearly.reset', business_id: `${subscription.id}:${periodKey}`, event_at: now.toISOString(),
+      product_id: subscription.plan_id, plan_code: planCode, billing_cycle: 'yearly',
+      credits: plan.monthlyCredits, period_start: resetAt.toISOString(), period_end: nextReset.toISOString(),
+      grant_key: `waffo:yearly-reset:${subscription.id}:${periodKey}`,
+    } })
+    if (resetError) throw new Error(resetError.message)
+    return
+  }
   await grantSubscriptionCredits({
     admin,
     userId,
@@ -426,6 +439,7 @@ export async function revokeSubscriptionCredits(params: {
     .select('id,credits_remaining')
     .eq('user_id', params.userId)
     .eq('source', 'subscription')
+    .not('checkout_id', 'like', 'waffo:%')
     .eq('status', 'active')
     .gt('credits_remaining', 0)
   if (error) throw new Error(error.message)

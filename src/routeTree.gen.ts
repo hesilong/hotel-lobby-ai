@@ -18,6 +18,7 @@ import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as ApiCreemWebhookRouteImport } from './routes/api.creem.webhook'
 import { Route as ApiDownloadTaskIdRouteImport } from './routes/api.download.$taskId'
 import { Route as ApiHandoffTokenRouteImport } from './routes/api.handoff.$token'
+import { Route as ApiWaffoWebhookRouteImport } from './routes/api.waffo.webhook'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -64,6 +65,11 @@ const ApiHandoffTokenRoute = ApiHandoffTokenRouteImport.update({
   path: '/api/handoff/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWaffoWebhookRoute = ApiWaffoWebhookRouteImport.update({
+  id: '/api/waffo/webhook',
+  path: '/api/waffo/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -75,6 +81,7 @@ export interface FileRoutesByFullPath {
   '/api/creem/webhook': typeof ApiCreemWebhookRoute
   '/api/download/$taskId': typeof ApiDownloadTaskIdRoute
   '/api/handoff/$token': typeof ApiHandoffTokenRoute
+  '/api/waffo/webhook': typeof ApiWaffoWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -86,6 +93,7 @@ export interface FileRoutesByTo {
   '/api/creem/webhook': typeof ApiCreemWebhookRoute
   '/api/download/$taskId': typeof ApiDownloadTaskIdRoute
   '/api/handoff/$token': typeof ApiHandoffTokenRoute
+  '/api/waffo/webhook': typeof ApiWaffoWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -98,6 +106,7 @@ export interface FileRoutesById {
   '/api/creem/webhook': typeof ApiCreemWebhookRoute
   '/api/download/$taskId': typeof ApiDownloadTaskIdRoute
   '/api/handoff/$token': typeof ApiHandoffTokenRoute
+  '/api/waffo/webhook': typeof ApiWaffoWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -111,6 +120,7 @@ export interface FileRouteTypes {
     | '/api/creem/webhook'
     | '/api/download/$taskId'
     | '/api/handoff/$token'
+    | '/api/waffo/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -122,6 +132,7 @@ export interface FileRouteTypes {
     | '/api/creem/webhook'
     | '/api/download/$taskId'
     | '/api/handoff/$token'
+    | '/api/waffo/webhook'
   id:
     | '__root__'
     | '/'
@@ -133,6 +144,7 @@ export interface FileRouteTypes {
     | '/api/creem/webhook'
     | '/api/download/$taskId'
     | '/api/handoff/$token'
+    | '/api/waffo/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -145,6 +157,7 @@ export interface RootRouteChildren {
   ApiCreemWebhookRoute: typeof ApiCreemWebhookRoute
   ApiDownloadTaskIdRoute: typeof ApiDownloadTaskIdRoute
   ApiHandoffTokenRoute: typeof ApiHandoffTokenRoute
+  ApiWaffoWebhookRoute: typeof ApiWaffoWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -212,6 +225,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiHandoffTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/waffo/webhook': {
+      id: '/api/waffo/webhook'
+      path: '/api/waffo/webhook'
+      fullPath: '/api/waffo/webhook'
+      preLoaderRoute: typeof ApiWaffoWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -225,6 +245,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCreemWebhookRoute: ApiCreemWebhookRoute,
   ApiDownloadTaskIdRoute: ApiDownloadTaskIdRoute,
   ApiHandoffTokenRoute: ApiHandoffTokenRoute,
+  ApiWaffoWebhookRoute: ApiWaffoWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

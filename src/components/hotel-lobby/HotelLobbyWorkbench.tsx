@@ -9,7 +9,7 @@ import { ResultsGallery } from '@/components/hotel-lobby/ResultsGallery'
 import { createUploadUrl, finalizeUploadedAsset } from '@/server/storage'
 import { getBillingState } from '@/server/billing'
 import { createGeneration, listGenerationTasks, refreshGenerationTask, retryGenerationTask, type CreateGenerationInput, type GenerationTask } from '@/server/generation'
-import { createGenerationHandoff, getGenerationHandoffMode } from '@/server/handoff'
+import { createGenerationHandoff, getGenerationHandoffMode, type GenerationHandoffInput } from '@/server/handoff'
 
 type ImageAssetState = {
   previewUrl: string | null
@@ -294,7 +294,7 @@ export function HotelLobbyWorkbench() {
     }
   }
 
-  const buildGenerationInput = (): CreateGenerationInput | null => {
+  const buildGenerationInput = (): GenerationHandoffInput | null => {
     if (
       personA.status !== 'approved' ||
       personB.status !== 'approved' ||
@@ -456,8 +456,10 @@ export function HotelLobbyWorkbench() {
         </button>
       </div>
       <p className="generator-safety-note">
-        Only upload images you have permission to use. NSFW, deceptive impersonation, minors, and unauthorized likeness use are prohibited.{' '}
-        <a href="/terms-of-service#acceptable-use">Learn more</a>
+        {handoffEnabled === false && <>Video model: Kling 3.0 Omni, via KIE API. </>}
+        Only use authorized reference media. NSFW, violence or gore, hate speech, child exploitation, deceptive deepfakes or impersonation, and copyright or trademark infringement are prohibited.{' '}
+        <a href="/terms-of-service#acceptable-use">Content policy</a>{' · '}
+        <a href="/terms-of-service#reporting">Report content</a>
       </p>
     </div>
 

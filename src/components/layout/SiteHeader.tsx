@@ -75,7 +75,7 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
     <>
       <header className={overlay ? 'site-header site-header-overlay' : 'site-header'}>
         <a className="brand" href="/">
-          <img className="brand-icon" src="/hotel-lobby-icon-v2.webp" alt="" aria-hidden="true" />
+          <img className="brand-icon" src="/favicon.svg" alt="" aria-hidden="true"/>
           <span>Hotel Lobby AI</span>
         </a>
 

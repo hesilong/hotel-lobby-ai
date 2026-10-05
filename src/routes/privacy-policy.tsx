@@ -89,7 +89,8 @@ function PrivacyPolicyPage() {
           To generate videos, information you submit may be transmitted to third-party AI generation providers
           that process the input on our behalf or as part of providing the requested generation service. We also
           use infrastructure and authentication providers for database services, object storage, hosting, security,
-          sign-in functionality, content moderation, and payment processing. CREEM may process checkout, subscription,
+          sign-in functionality, content moderation, and payment processing. CREEM or Waffo, as identified at checkout,
+          may process checkout, subscription,
           tax, fraud-prevention, and payment information when you make a purchase. These providers may process data
           according to their own terms and privacy policies.
         </p>

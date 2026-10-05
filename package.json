@@ -4,6 +4,7 @@
   "version": "0.2.2",
   "type": "module",
   "scripts": {
+    "test:payments": "node --test tests/waffo-payments.test.mjs",
     "dev": "vite dev",
     "build": "vite build && tsc --noEmit",
     "preview": "vite preview",
@@ -16,12 +17,15 @@
     "@tanstack/react-query": "latest",
     "@tanstack/react-router": "latest",
     "@tanstack/react-start": "latest",
+    "@waffo/pancake-ts": "^0.25.0",
     "lucide-react": "latest",
     "react": "latest",
     "react-dom": "latest"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "latest",
+    "@cloudflare/workers-types": "^5.20261002.1",
+    "@electric-sql/pglite": "^0.5.8",
     "@tanstack/router-plugin": "latest",
     "@types/node": "latest",
     "@types/react": "latest",

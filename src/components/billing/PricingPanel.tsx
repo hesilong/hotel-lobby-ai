@@ -5,7 +5,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import {
   cancelSubscription,
   changeSubscription,
-  createCreemCheckout,
+  createCheckout,
   getBillingState,
   getPricingCatalog,
   resumeSubscription,
@@ -80,6 +80,13 @@ export function PricingPanel({
     return () => { cancelled = true }
   }, [authed])
 
+  useEffect(() => {
+    if (!authed) return
+    const onFocus = () => { void refresh() }
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  }, [authed])
+
   const requireAuth = () => {
     if (authed) return true
     setAuthOpen(true)
@@ -94,10 +101,20 @@ export function PricingPanel({
     const key = input.type === 'credit_pack' ? `pack-${input.key}` : `plan-${input.plan}-${input.cycle}`
     setBusy(key)
     setError('')
+    const paymentTab = catalog?.provider === 'waffo' ? window.open('about:blank', '_blank') : null
+    if (catalog?.provider === 'waffo' && !paymentTab) {
+      setError('Please allow popups to open the secure checkout.')
+      setBusy('')
+      return
+    }
+    if (paymentTab) paymentTab.opener = null
     try {
-      const result = await createCreemCheckout({ data: { ...input, returnPath } } as any)
-      window.location.href = result.checkoutUrl
+      const result = await createCheckout({ data: { ...input, returnPath } })
+      if (paymentTab) paymentTab.location.replace(result.checkoutUrl)
+      else window.location.assign(result.checkoutUrl)
+      setBusy('')
     } catch (e) {
+      paymentTab?.close()
       setError(e instanceof Error ? e.message : 'Unable to start checkout')
       setBusy('')
     }
@@ -113,10 +130,20 @@ export function PricingPanel({
 
     setBusy(`plan-${plan}-${cycle}`)
     setError('')
+    const paymentTab = current.payment_provider === 'waffo' ? window.open('about:blank', '_blank') : null
+    if (current.payment_provider === 'waffo' && !paymentTab) {
+      setError('Please allow popups to confirm your plan change.')
+      setBusy('')
+      return
+    }
+    if (paymentTab) paymentTab.opener = null
     try {
-      await changeSubscription({ data: { plan, cycle } })
+      const result = await changeSubscription({ data: { plan, cycle } })
+      if (result.checkoutUrl && paymentTab) paymentTab.location.replace(result.checkoutUrl)
+      else paymentTab?.close()
       await refresh()
     } catch (e) {
+      paymentTab?.close()
       setError(e instanceof Error ? e.message : 'Unable to change plan')
     } finally {
       setBusy('')
@@ -260,7 +287,9 @@ export function PricingPanel({
           <strong>{current.plan_code === 'ultimate' ? 'Ultimate' : 'Pro'} · {current.billing_cycle}</strong>
           <span>{current.status === 'scheduled_cancel' ? `Cancels ${current.cancel_at ? new Date(current.cancel_at).toLocaleDateString() : 'at period end'}` : `Status: ${current.status}`}</span>
         </div>
-        {current.status === 'scheduled_cancel'
+        {current.status === 'scheduled_cancel' && current.payment_provider === 'waffo'
+          ? <span>Renewal canceled. Manage changes through Waffo or contact support.</span>
+          : current.status === 'scheduled_cancel'
           ? <button disabled={Boolean(busy)} onClick={() => void resume()}>{busy === 'resume' ? 'Resuming…' : 'Resume subscription'}</button>
           : <button disabled={Boolean(busy)} onClick={() => void cancel()}>{busy === 'cancel' ? 'Canceling…' : 'Cancel renewal'}</button>}
       </div>}

@@ -281,3 +281,12 @@ body{background:#f7f8fb;color:#17191f}
 .trust-links a{color:#5f46c8;font-size:13px;font-weight:800}
 .trust-links a:hover{text-decoration:underline}
 @media(max-width:760px){.account-trust{padding-top:32px;padding-bottom:32px}.trust-card{padding:22px}.trust-card h2{font-size:24px}.trust-links{flex-wrap:wrap}}
+.motion-preview{position:relative;display:block;width:100%;padding:0;border:0;background:#11141c;color:#fff;cursor:pointer;overflow:hidden;aspect-ratio:16/9}
+.motion-preview video{display:block;width:100%;height:100%;object-fit:cover;pointer-events:none}
+.motion-preview-control{display:none;pointer-events:none}
+.motion-preview:focus-visible{outline:3px solid #7b5cff;outline-offset:-3px}
+@media(hover:none),(pointer:coarse){
+  .motion-preview-control{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:56px;height:56px;display:grid;place-items:center;border-radius:50%;background:rgba(0,0,0,.48);border:1px solid rgba(255,255,255,.45)}
+  .motion-preview-text{display:none}
+}
+@media(hover:hover) and (pointer:fine){.motion-preview-icon{display:none}}
