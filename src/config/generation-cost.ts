@@ -2,9 +2,9 @@ export type GenerationResolution = '480p' | '720p' | '1080p'
 
 export const GENERATION_BASE_CREDITS_PER_5S = 50
 export const GENERATION_RESOLUTION_MULTIPLIER: Record<GenerationResolution, number> = {
-  '480p': 0.5,
+  '480p': 0.75,
   '720p': 1,
-  '1080p': 2.5,
+  '1080p': 1.5,
 }
 
 export function calculateGenerationCredits(duration: number, resolution: GenerationResolution) {
