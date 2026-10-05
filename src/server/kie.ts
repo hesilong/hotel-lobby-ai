@@ -1,17 +1,17 @@
 const KIE_BASE = process.env.KIE_API_BASE_URL || 'https://api.kie.ai'
-const MODEL_ID = 'kling-3.0-omni/reference-to-video'
+export const KIE_VIDEO_MODEL = 'bytedance/seedance-2-5'
 
 type JsonObject = Record<string, unknown>
 const obj = (v: unknown): JsonObject => (v && typeof v === 'object' && !Array.isArray(v) ? v as JsonObject : {})
 const str = (v: unknown) => typeof v === 'string' && v.trim() ? v.trim() : undefined
 
-export async function submitKieReferenceVideo(input: {
+export async function submitKieSeedanceVideo(input: {
   imageUrls: string[]
   videoUrl: string
   prompt: string
   duration: number
-  resolution: string
-  aspectRatio: string
+  resolution: '480p' | '720p' | '1080p'
+  aspectRatio: '16:9' | '9:16' | '1:1'
 }) {
   const apiKey = process.env.KIE_API_KEY
   if (!apiKey) throw new Error('KIE_API_KEY_MISSING')
@@ -24,17 +24,19 @@ export async function submitKieReferenceVideo(input: {
       Accept: 'application/json',
     },
     body: JSON.stringify({
-      model: MODEL_ID,
+      model: KIE_VIDEO_MODEL,
       input: {
-        video_urls: [input.videoUrl],
-        image_urls: input.imageUrls,
-        customize_multi_shots: false,
         prompt: input.prompt,
-        duration: input.duration,
+        reference_image_urls: input.imageUrls,
+        reference_video_urls: [input.videoUrl],
+        generate_audio: false,
+        return_last_frame: false,
         resolution: input.resolution,
         aspect_ratio: input.aspectRatio,
-        audio: false,
-        kling_elements: [],
+        duration: input.duration,
+        output_format: 'mp4',
+        web_search: false,
+        nsfw_checker: true,
       },
     }),
   })
