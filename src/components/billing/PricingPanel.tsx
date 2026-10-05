@@ -263,10 +263,10 @@ export function PricingPanel({
               {cycle === 'yearly' && <p className="pricing-billed">Billed ${plan.yearlyPriceUsd.toFixed(2)} yearly</p>}
               <div className="pricing-feature-title">Supported features</div>
               <ul>
-                <li><Check size={15}/> Reference-to-video generation</li>
-                <li><Check size={15}/> Custom motion uploads</li>
+                <li><Check size={15}/> Two-performer AI video generation</li>
+                <li><Check size={15}/> People and pet photo inputs</li>
+                <li><Check size={15}/> Preset scenes and guided performances</li>
                 <li><Check size={15}/> No watermark on generated results</li>
-                <li><Check size={15}/> Commercial use</li>
               </ul>
               <button
                 type="button"
