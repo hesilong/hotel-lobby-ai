@@ -57,7 +57,7 @@ const jsonLd = {
       url: 'https://hotel-lobby-ai.pro/',
       applicationCategory: 'MultimediaApplication',
       operatingSystem: 'Web',
-      description: 'Create Hotel Lobby AI videos from two photos and a reference motion video.',
+      description: 'Create Hotel Lobby AI videos from two performer photos and a preset scene.'
     },
     {
       '@type': 'FAQPage',
@@ -79,12 +79,12 @@ export const Route = createFileRoute('/')({
       { title: 'Hotel Lobby AI Generator – Create Viral Hotel Lobby Videos' },
       {
         name: 'description',
-        content: 'Create Hotel Lobby AI videos from two authorized adult photos and a preset scene. Upload your images, choose a setting, and generate your video online.',
+        content: 'Create Hotel Lobby AI videos from two performer photos. Upload people or pets, choose a preset scene, and generate your video online.',
       },
       { property: 'og:title', content: 'Hotel Lobby AI Generator – Create Viral Hotel Lobby Videos' },
       {
         property: 'og:description',
-        content: 'Create Hotel Lobby AI videos from two photos and a preset scene. Choose a setting and generate a coordinated performance online.',
+        content: 'Create Hotel Lobby AI videos from two photos of people or pets, choose a preset scene, and generate a coordinated performance online.',
       },
       { property: 'og:type', content: 'website' },
       { property: 'og:url', content: 'https://hotel-lobby-ai.pro/' },
@@ -93,7 +93,7 @@ export const Route = createFileRoute('/')({
       { name: 'twitter:title', content: 'Hotel Lobby AI Generator' },
       {
         name: 'twitter:description',
-        content: 'Turn two photos into a Hotel Lobby AI video with a preset scene and controlled performance.',
+        content: 'Turn two performer photos into a Hotel Lobby AI video with a preset scene and guided performance.',
       },
       { name: 'robots', content: 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1' },
     ],
@@ -114,11 +114,11 @@ function HomePage() {
         <div className="hero-copy">
           <span className="eyebrow">Viral AI Video</span>
           <h1>Hotel Lobby <span>AI Video Generator</span></h1>
-          <p>Turn two authorized adult photos into a coordinated Hotel Lobby AI performance. Choose a preset scene and generate a controlled entertainment video.</p>
+          <p>Upload two photos of people or pets, choose a scene, and create your Hotel Lobby AI video in minutes.</p>
           <div className="hero-chips">
-            <span>2 identity images</span>
+            <span>2 performer photos</span>
             <span>Preset scenes</span>
-            <span>Controlled performance</span>
+            <span>People & pets</span>
           </div>
         </div>
         <div id="generator"><HotelLobbyWorkbench /></div>
@@ -127,8 +127,8 @@ function HomePage() {
       <section className="section section-centered">
         <div className="section-heading centered">
           <span>What you can create</span>
-          <h2>One performance, multiple preset settings</h2>
-          <p>Upload two authorized adult portraits, choose a preset scene, and create a coordinated Hotel Lobby AI entertainment video.</p>
+          <h2>Two performers, multiple preset scenes</h2>
+          <p>Upload a left performer and a right performer, choose a scene, and create a coordinated Hotel Lobby AI video.</p>
         </div>
         <div className="showcase-grid">
           <article>
@@ -141,7 +141,7 @@ function HomePage() {
           </article>
           <article>
             <img src={HOTEL_LOBBY_STREETWEAR_WEBP} alt="Streetwear duo in a Hotel Lobby AI style scene" loading="lazy" />
-            <div className="showcase-body"><div className="showcase-mark">03</div><h3>Fashion variations</h3><p>Compare outfits, visual identities, and scene energy while reusing a motion reference you already like.</p></div>
+            <div className="showcase-body"><div className="showcase-mark">03</div><h3>Fashion variations</h3><p>Compare outfits, performer looks, and scene energy while keeping the guided performance consistent.</p></div>
           </article>
         </div>
       </section>
@@ -151,7 +151,7 @@ function HomePage() {
           <div>
             <span>Example videos</span>
             <h2>See the format in action</h2>
-            <p>These examples show the visual style of the Hotel Lobby AI format. Your generator uses a fixed controlled performance with preset scenes.</p>
+            <p>These examples show the Hotel Lobby AI format in action. Your generator uses two performer photos, a preset scene, and a guided performance.</p>
           </div>
           <a className="text-link" href="#generator">Create yours →</a>
         </div>
@@ -163,12 +163,12 @@ function HomePage() {
           <div className="section-heading centered">
             <span>How it works</span>
             <h2>From two photos to one performance</h2>
-            <p>Your two authorized adult photos provide the people. You choose a preset scene, and the generator applies a fixed controlled performance.</p>
+            <p>Your two photos define the left and right performers. Choose a preset scene, then the generator applies the guided performance automatically.</p>
           </div>
           <div className="steps steps-large">
-            <article><b>01</b><h3>Upload Person A and Person B</h3><p>Use one main person per image and keep faces visible. Separate source images make the role assignment clearer.</p></article>
-            <article><b>02</b><h3>Choose a preset scene</h3><p>Select the setting you want. The choreography and motion source stay fixed and controlled by the service.</p></article>
-            <article><b>03</b><h3>Start the task</h3><p>Adjust the prompt only when needed, submit the task, and keep working while generation continues in the results area.</p></article>
+            <article><b>01</b><h3>Upload your performers</h3><p>Add one clear person or pet for the left position and one for the right. Keep the face or muzzle visible.</p></article>
+            <article><b>02</b><h3>Choose a preset scene</h3><p>Select the setting you want. The performance setup is handled automatically behind the scenes.</p></article>
+            <article><b>03</b><h3>Generate your video</h3><p>Choose duration, resolution, and orientation, then generate. Your result updates automatically on the right.</p></article>
           </div>
         </div>
       </section>
@@ -196,13 +196,13 @@ function HomePage() {
 
       <section className="section feature-split">
         <div className="feature-intro">
-          <span className="section-kicker">Built for two identities</span>
-          <h2>More control than a one-click filter</h2>
-          <p>The Hotel Lobby AI Generator separates identity, motion, and prompt instructions so you can change one part of the setup without rebuilding everything from scratch.</p>
+          <span className="section-kicker">Simple by design</span>
+          <h2>Two performers, one focused workflow</h2>
+          <p>Upload the left and right performers, choose a scene, and let the generator handle the performance setup automatically.</p>
         </div>
         <div className="feature-grid">
-          <article><h3>Separate identity slots</h3><p>Person A and Person B stay in distinct inputs, which gives the model a clearer signal about who should appear on each side.</p></article>
-          <article><h3>Controlled choreography</h3><p>The service uses a fixed motion source so users cannot upload arbitrary videos or direct unrestricted performances.</p></article>
+          <article><h3>Left and right performer slots</h3><p>Each performer has a dedicated photo input, making the intended screen position clear before generation starts.</p></article>
+          <article><h3>Guided performance</h3><p>The performance setup is preset by the service, so there is no reference-video upload step for the user.</p></article>
           <article><h3>Preset scenes</h3><p>Change the visual setting without changing the controlled motion. This keeps the workflow simple and predictable.</p></article>
           <article><h3>Simple task workflow</h3><p>Once the server accepts a task, the Generate button becomes available again and progress moves into the result card.</p></article>
         </div>
@@ -213,7 +213,7 @@ function HomePage() {
           <div>
             <span className="section-kicker">Preset scenes</span>
             <h2>Choose the setting, keep the performance controlled</h2>
-            <p>The generator does not accept custom video uploads or free-form motion instructions. Select a preset scene and the service applies the fixed performance automatically.</p>
+            <p>The generator does not require custom video uploads or motion prompts. Select a preset scene and the service applies the performance automatically.</p>
           </div>
           <div className="tips-panel">
             <h3>Better source images = steadier identities</h3>
@@ -238,8 +238,8 @@ function HomePage() {
             <div className="story-copy">
               <span className="story-number">01</span>
               <h2>What is Hotel Lobby AI?</h2>
-              <p>Hotel Lobby AI is a two-person AI video format that turns separate portrait images into a coordinated performance guided by a reference motion. Instead of describing every movement in a long prompt, a Hotel Lobby AI Video Generator uses the selected reference to shape rhythm, camera framing, gestures, body movement, and pacing.</p>
-              <p>That makes the workflow useful for creators who want the recognizable Hotel Lobby AI trend without manually directing every second of animation. The basic structure is simple: one image for Person A, one image for Person B, and one motion reference that defines how the pair should move on screen.</p>
+              <p>Hotel Lobby AI is a two-performer AI video format that turns separate photos into a coordinated performance. The left and right performer can be people or pets, while the selected scene controls the setting and the generator handles the performance setup automatically.</p>
+              <p>The workflow is intentionally simple: one image for the Left Performer, one for the Right Performer, a preset scene, and your output settings. No custom reference-video upload is required.</p>
             </div>
             <figure className="story-media">
               <img src={HOTEL_LOBBY_FRIENDS_WEBP} alt="Two friends demonstrating the Hotel Lobby AI two-person video format" loading="lazy" />
@@ -250,8 +250,8 @@ function HomePage() {
             <div className="story-copy">
               <span className="story-number">02</span>
               <h2>How to create a Hotel Lobby AI video</h2>
-              <p>Start with two clear images that show each person separately. Person A is treated as the left-side identity and Person B as the right-side identity, which helps reduce accidental swaps during generation.</p>
-              <p>Then choose one of the preset scenes. The Hotel Lobby AI Generator combines those portrait references with a fixed motion source so the resulting video follows a controlled performance while preserving recognizable facial and outfit details. Clear faces, balanced lighting, and enough body detail generally make the task easier for the model.</p>
+              <p>Start with two clear images. The first becomes the Left Performer and the second becomes the Right Performer. Each image can feature one person or pet.</p>
+              <p>Then choose a preset scene and your output settings. The generator uses the two performer photos to create the guided performance while preserving recognizable appearance, clothing or fur, and other visible details. Clear, well-lit source images generally work best.</p>
               <a className="text-link inline" href="#generator">Try the generator ↑</a>
             </div>
             <figure className="story-media">
@@ -262,9 +262,9 @@ function HomePage() {
           <article className="story-row">
             <div className="story-copy">
               <span className="story-number">03</span>
-              <h2>Why the performance stays fixed</h2>
-              <p>The generator uses one controlled motion source instead of accepting arbitrary user-uploaded videos. Your photos provide the two authorized adult subjects, while the service keeps the choreography, pacing, and motion structure consistent.</p>
-              <p>This constrained workflow is designed for non-sexual entertainment videos and makes the output more predictable than an unrestricted motion or deepfake creation tool.</p>
+              <h2>Why the workflow stays simple</h2>
+              <p>The generator keeps the performance setup behind the scenes instead of asking users to upload a motion video. Your photos define the two performers while the service handles choreography, pacing, and framing.</p>
+              <p>This focused workflow keeps creation simple and predictable while still letting you change performers, scenes, duration, resolution, and orientation.</p>
             </div>
             <figure className="story-media story-video">
               <video src={HOME_MOTION_TEMPLATES[0].previewVideoUrl} muted loop autoPlay playsInline />
@@ -287,8 +287,8 @@ function HomePage() {
             <div className="story-copy">
               <span className="story-number">05</span>
               <h2>Ways to use the Hotel Lobby video generator</h2>
-              <p>You can use the Hotel Lobby video generator for short-form social content, meme-style edits, duo performances, character experiments, fashion variations, and creator collaborations. The point is not limited to reproducing one exact viral clip.</p>
-              <p>The same Hotel Lobby AI Generator can combine different people, outfits, visual styles, and motion references while keeping the basic two-person format. If you are testing creative directions, you can start several tasks and compare which source images and motion references produce the most stable or interesting result.</p>
+              <p>You can use the Hotel Lobby video generator for short-form social content, meme-style edits, duo performances, pet videos, fashion variations, and creator collaborations. The format is not limited to one exact viral clip.</p>
+              <p>The same Hotel Lobby AI Generator can combine different people, pets, outfits, and preset scenes while keeping the basic two-performer format. Try different source photos and settings to see which combination produces the strongest result.</p>
             </div>
             <figure className="story-media">
               <img src={HOTEL_LOBBY_PETS_WEBP} alt="Creative pet example made with the Hotel Lobby video generator format" loading="lazy" />
@@ -336,7 +336,7 @@ function HomePage() {
         <div>
           <span className="eyebrow">Ready to create?</span>
           <h2>Make your own Hotel Lobby AI video</h2>
-          <p>Upload two people, choose a motion, and start a new task from the generator above.</p>
+          <p>Upload two performers, choose a scene, and start a new video from the generator above.</p>
         </div>
         <a className="seo-cta" href="#generator">Open generator ↑</a>
       </section>
