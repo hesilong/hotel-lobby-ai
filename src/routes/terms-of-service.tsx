@@ -42,16 +42,14 @@ function TermsPage() {
 
         <h2>2. The Service</h2>
         <p>
-          Hotel Lobby AI provides a constrained entertainment-video workflow using two user-provided adult portrait
-          images, preset scenes, and a fixed controlled performance. The Service does not accept user-uploaded motion
-          videos for this generator. Features, models, limits, availability, processing times, and supported formats may
-          change over time.
+          Hotel Lobby AI provides a constrained entertainment-video workflow using two user-provided performer photos,
+          preset scenes, and a guided performance. Performer photos may depict adults or pets. The Service does not accept
+          user-uploaded motion videos for this generator. Features, models, limits, availability, processing times, and
+          supported formats may change over time.
         </p>
         <p>
-          Direct video generation on Hotel Lobby AI uses Kling 3.0 Omni (reference-to-video), accessed through the KIE
-          API. When the generation interface indicates that you will continue on ClothMotion, generation is completed
-          on that separate service; consult its generation interface for the model used there. This direct-generation
-          model disclosure does not identify or guarantee the model used by ClothMotion.
+          Direct video generation on Hotel Lobby AI currently uses ByteDance Seedance 2.5 through the KIE API.
+          We may change providers or models as the Service evolves, subject to these Terms and our Privacy Policy.
         </p>
 
         <h2>3. Your content</h2>
@@ -63,14 +61,14 @@ function TermsPage() {
         </p>
         <p>
           You represent that you have all rights, permissions, and consents necessary to upload and use the content you
-          submit, including rights relating to copyright, trademarks, privacy, publicity, and a person's likeness. The
-          identity-reference workflow is intended only for authorized adult subjects.
+          submit, including rights relating to copyright, trademarks, privacy, publicity, and a person's likeness.
+          Human performers must be adults whose likeness you have permission to use; pet images are also supported.
         </p>
 
         <h2>4. AI-generated output</h2>
         <p>
           AI-generated content may be inaccurate, inconsistent, unexpected, or similar to content generated for other
-          users. We do not guarantee that output will preserve identity, clothing, motion, composition, or other details
+          users. We do not guarantee that output will preserve appearance, clothing or fur, motion, composition, or other details
           exactly as requested. You are responsible for reviewing generated output before publishing or relying on it.
         </p>
         <p>
