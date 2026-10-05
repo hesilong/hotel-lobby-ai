@@ -53,8 +53,9 @@ function PrivacyPolicyPage() {
 
         <h3>Content you provide</h3>
         <p>
-          The Service may process portrait images, preset-scene selections, generation settings, and related information
-          that you choose to submit. The current generator does not accept user-uploaded motion videos. We may also store
+          The Service may process performer photos, including photos of adults or pets, preset-scene selections,
+          generation settings, and related information that you choose to submit. The current generator does not accept
+          user-uploaded motion videos. We may also store
           generated videos, generation task records, status information, and error details so the Service can display your
           results and operate reliably.
         </p>
@@ -97,7 +98,7 @@ function PrivacyPolicyPage() {
 
         <h2>4. Uploaded media and generated content</h2>
         <p>
-          Uploaded portrait images and generated results may be stored in cloud object storage so they can be used for
+          Uploaded performer images and generated results may be stored in cloud object storage so they can be used for
           generation, displayed in your account, or downloaded by you. Do not upload content unless you have the
           rights, permissions, and consents necessary to use it. In particular, you should not upload another person's
           image or likeness in a way that violates their privacy, publicity, intellectual-property, or other rights.
