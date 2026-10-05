@@ -9,7 +9,6 @@ import { ResultsGallery } from '@/components/hotel-lobby/ResultsGallery'
 import { createUploadUrl, finalizeUploadedAsset } from '@/server/storage'
 import { getBillingState } from '@/server/billing'
 import { createGeneration, listGenerationTasks, refreshGenerationTask, retryGenerationTask, type CreateGenerationInput, type GenerationTask } from '@/server/generation'
-import { createGenerationHandoff, getGenerationHandoffMode, type GenerationHandoffInput } from '@/server/handoff'
 
 type ImageAssetState = {
   previewUrl: string | null
@@ -27,13 +26,12 @@ export function HotelLobbyWorkbench() {
   const [personB, setPersonB] = useState<ImageAssetState>(emptyImage)
   const [selectedSceneId, setSelectedSceneId] = useState(HOTEL_LOBBY_SCENES[0].id)
   const [duration, setDuration] = useState(10)
-  const [resolution, setResolution] = useState<'720p'|'1080p'|'4k'>('720p')
+  const [resolution, setResolution] = useState<'480p'|'720p'|'1080p'>('720p')
   const [aspectRatio, setAspectRatio] = useState<'16:9'|'9:16'|'1:1'>('16:9')
   const [authOpen, setAuthOpen] = useState(false)
   const [pricingOpen, setPricingOpen] = useState(false)
   const [authed, setAuthed] = useState(false)
   const [pendingGenerate, setPendingGenerate] = useState(false)
-  const [handoffEnabled, setHandoffEnabled] = useState<boolean | null>(null)
   const [submitStage, setSubmitStage] = useState<'idle'|'moderating'|'starting'|'syncing'|'redirecting'>('idle')
   const [error, setError] = useState('')
   const [assetError, setAssetError] = useState('')
@@ -49,7 +47,7 @@ export function HotelLobbyWorkbench() {
   const cost = calculateGenerationCredits(duration, resolution)
   const isSubmitting = submitStage !== 'idle'
   const imagesReady = personA.status === 'approved' && personB.status === 'approved'
-  const canGenerate = Boolean(imagesReady && selectedScene && !isSubmitting && handoffEnabled !== null)
+  const canGenerate = Boolean(imagesReady && selectedScene && !isSubmitting)
 
   const publishCredits = (value: number | null) => {
     setCredits(value)
@@ -78,12 +76,6 @@ export function HotelLobbyWorkbench() {
   const loadTasks = async () => {
     try { setTasks(await listGenerationTasks()) } catch { setTasks([]) }
   }
-
-  useEffect(() => {
-    void getGenerationHandoffMode()
-      .then(result => setHandoffEnabled(result.enabled))
-      .catch(() => setHandoffEnabled(true))
-  }, [])
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient()
@@ -294,7 +286,7 @@ export function HotelLobbyWorkbench() {
     }
   }
 
-  const buildGenerationInput = (): GenerationHandoffInput | null => {
+  const buildGenerationInput = (): CreateGenerationInput | null => {
     if (
       personA.status !== 'approved' ||
       personB.status !== 'approved' ||
@@ -334,27 +326,8 @@ export function HotelLobbyWorkbench() {
     await runGeneration(data)
   }
 
-  const handoffToClothMotion = async () => {
-    const data = buildGenerationInput()
-    if (!data) return
-
-    setError('')
-    setSubmitStage('redirecting')
-    try {
-      const result = await createGenerationHandoff({ data })
-      window.location.href = result.redirectUrl
-    } catch (e) {
-      setError(friendlyError(e instanceof Error ? e.message : 'Unable to continue to ClothMotion.'))
-      setSubmitStage('idle')
-    }
-  }
-
   const onGenerate = async () => {
     if (!canGenerate) return
-    if (handoffEnabled) {
-      await handoffToClothMotion()
-      return
-    }
     if (!authed) {
       setPendingGenerate(true)
       setAuthOpen(true)
@@ -398,72 +371,104 @@ export function HotelLobbyWorkbench() {
   }
 
   return <div className="workbench-shell">
-    <div className="workbench">
-      <div className="asset-row">
-        <ImageUpload
-          label="Person A"
-          state={personA}
-          onPick={(file) => void prepareImage(file, 'A')}
-          onClear={() => clearImage('A')}
-        />
-        <ImageUpload
-          label="Person B"
-          state={personB}
-          onPick={(file) => void prepareImage(file, 'B')}
-          onClear={() => clearImage('B')}
-        />
-      </div>
-
-      {assetError && <div className="asset-error" role="alert">{assetError}</div>}
-
-      <div className="scene-picker">
-        <div className="scene-picker-head">
-          <span>Choose a scene</span>
-          <small>One fixed performance, three preset settings.</small>
+    <div className="generator-layout">
+      <div className="workbench generator-workbench">
+        <div className="asset-row">
+          <ImageUpload
+            label="Left Performer"
+            state={personA}
+            onPick={(file) => void prepareImage(file, 'A')}
+            onClear={() => clearImage('A')}
+          />
+          <ImageUpload
+            label="Right Performer"
+            state={personB}
+            onPick={(file) => void prepareImage(file, 'B')}
+            onClear={() => clearImage('B')}
+          />
         </div>
-        <div className="scene-grid">
-          {HOTEL_LOBBY_SCENES.map(scene => (
-            <button
-              key={scene.id}
-              type="button"
-              className={`scene-card ${scene.id === selectedScene.id ? 'active' : ''}`}
-              aria-pressed={scene.id === selectedScene.id}
-              onClick={() => setSelectedSceneId(scene.id)}
-            >
-              <strong>{scene.name}</strong>
-              <span>{scene.description}</span>
-            </button>
-          ))}
-        </div>
-      </div>
+        <p className="performer-help">One clear person or pet per photo. Keep the face or muzzle visible and use an original, well-lit image.</p>
 
-      {error && <div className="generation-error">{error}</div>}
-      <div className="controls">
-        <select value={duration} onChange={e=>setDuration(Number(e.target.value))}><option value={5}>5s</option><option value={10}>10s</option><option value={15}>15s</option></select>
-        <select value={resolution} onChange={e=>setResolution(e.target.value as typeof resolution)}><option>720p</option><option>1080p</option><option>4k</option></select>
-        <select value={aspectRatio} onChange={e=>setAspectRatio(e.target.value as typeof aspectRatio)}>
-          <option value="16:9">16:9</option>
-          <option value="9:16">9:16</option>
-          <option value="1:1">1:1</option>
-        </select>
-        <button disabled={!canGenerate} className="generate" onClick={() => void onGenerate()}>
+        {assetError && <div className="asset-error" role="alert">{assetError}</div>}
+
+        <div className="scene-picker">
+          <div className="scene-picker-head">
+            <span>Choose a scene</span>
+            <small>The performance motion is preset automatically.</small>
+          </div>
+          <div className="scene-grid">
+            {HOTEL_LOBBY_SCENES.map(scene => (
+              <button
+                key={scene.id}
+                type="button"
+                className={`scene-card ${scene.id === selectedScene.id ? 'active' : ''}`}
+                aria-pressed={scene.id === selectedScene.id}
+                onClick={() => setSelectedSceneId(scene.id)}
+              >
+                <strong>{scene.name}</strong>
+                <span>{scene.description}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {error && <div className="generation-error">{error}</div>}
+
+        <div className="parameter-grid">
+          <label>
+            <span>Duration</span>
+            <select value={duration} onChange={e=>setDuration(Number(e.target.value))}>
+              <option value={5}>5 seconds</option>
+              <option value={10}>10 seconds</option>
+              <option value={15}>15 seconds</option>
+              <option value={20}>20 seconds</option>
+              <option value={25}>25 seconds</option>
+              <option value={30}>30 seconds</option>
+            </select>
+          </label>
+          <label>
+            <span>Resolution</span>
+            <select value={resolution} onChange={e=>setResolution(e.target.value as typeof resolution)}>
+              <option value="480p">480P</option>
+              <option value="720p">720P</option>
+              <option value="1080p">1080P</option>
+            </select>
+          </label>
+          <label>
+            <span>Orientation</span>
+            <select value={aspectRatio} onChange={e=>setAspectRatio(e.target.value as typeof aspectRatio)}>
+              <option value="16:9">Landscape · 16:9</option>
+              <option value="9:16">Portrait · 9:16</option>
+              <option value="1:1">Square · 1:1</option>
+            </select>
+          </label>
+        </div>
+
+        <button disabled={!canGenerate} className="generate generator-submit" onClick={() => void onGenerate()}>
           {isSubmitting ? <Loader2 size={16} className="spin"/> : <Zap size={16} fill="currentColor"/>}
-          {submitStage === 'redirecting' ? 'Opening ClothMotion…' :
-           submitStage === 'moderating' ? 'Checking…' :
+          {submitStage === 'moderating' ? 'Checking…' :
            submitStage === 'starting' ? 'Starting…' :
            submitStage === 'syncing' ? 'Syncing credits…' :
-           handoffEnabled ? <>Generate</> : <>{cost} Generate</>}
+           `Generate · ${cost} credits`}
         </button>
+
+        <p className="generator-safety-note">
+          For human performers, only upload images of adults whose likeness you have permission to use. Pets are supported. NSFW content, minors, deceptive impersonation, and unauthorized likeness use are prohibited.{' '}
+          <a href="/terms-of-service#acceptable-use">Content policy</a>{' · '}
+          <a href="/terms-of-service#reporting">Report content</a>
+        </p>
       </div>
-      <p className="generator-safety-note">
-        {handoffEnabled === false && <>Video model: Kling 3.0 Omni, via KIE API. </>}
-        Only use authorized reference media. NSFW, violence or gore, hate speech, child exploitation, deceptive deepfakes or impersonation, and copyright or trademark infringement are prohibited.{' '}
-        <a href="/terms-of-service#acceptable-use">Content policy</a>{' · '}
-        <a href="/terms-of-service#reporting">Report content</a>
-      </p>
+
+      <div className="generator-results">
+        <ResultsGallery
+          tasks={tasks}
+          latestOnly
+          onRetry={(taskId) => void handleRetry(taskId)}
+          retryingTaskId={retryingTaskId}
+        />
+      </div>
     </div>
 
-    <ResultsGallery tasks={tasks} onRetry={(taskId) => void handleRetry(taskId)} retryingTaskId={retryingTaskId}/>
     <AuthModal open={authOpen} onClose={() => { setAuthOpen(false); setPendingGenerate(false) }} onAuthed={handleAuthed}/>
 
     {pricingOpen && <div className="modal-backdrop" onMouseDown={e => { if (e.currentTarget === e.target) setPricingOpen(false) }}>
@@ -503,6 +508,7 @@ function ImageUpload({
   onClear: () => void
 }) {
   return <label className="image-slot">
+    <span className="image-slot-label">{label}</span>
     <div className="asset-tile">
       {state.previewUrl ? <img src={state.previewUrl} alt=""/> : <Plus size={22}/>}
       {state.status === 'uploading' && (
@@ -512,7 +518,6 @@ function ImageUpload({
       )}
     </div>
     {state.previewUrl && <button type="button" className="remove-asset" onClick={(e) => { e.preventDefault(); onClear() }}><X size={11}/></button>}
-    <span>{label}</span>
     <input
       hidden
       type="file"
