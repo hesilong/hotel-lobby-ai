@@ -42,9 +42,10 @@ function TermsPage() {
 
         <h2>2. The Service</h2>
         <p>
-          Hotel Lobby AI provides tools that use uploaded images, reference videos, prompts, and generation settings to
-          request AI-generated video outputs. Features, models, limits, availability, processing times, and supported
-          formats may change over time.
+          Hotel Lobby AI provides a constrained entertainment-video workflow using two user-provided adult portrait
+          images, preset scenes, and a fixed controlled performance. The Service does not accept user-uploaded motion
+          videos for this generator. Features, models, limits, availability, processing times, and supported formats may
+          change over time.
         </p>
 
         <h2>3. Your content</h2>
@@ -56,7 +57,8 @@ function TermsPage() {
         </p>
         <p>
           You represent that you have all rights, permissions, and consents necessary to upload and use the content you
-          submit, including rights relating to copyright, trademarks, privacy, publicity, and a person's likeness.
+          submit, including rights relating to copyright, trademarks, privacy, publicity, and a person's likeness. The
+          identity-reference workflow is intended only for authorized adult subjects.
         </p>
 
         <h2>4. AI-generated output</h2>
