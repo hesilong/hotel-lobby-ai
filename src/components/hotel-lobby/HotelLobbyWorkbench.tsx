@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { Loader2, Play, Plus, Upload, X, Zap } from 'lucide-react'
-import { HOTEL_LOBBY_DEFAULT_PROMPT, HOTEL_LOBBY_TEMPLATES, type MotionTemplate } from '@/config/hotel-lobby'
+import { Loader2, Plus, X, Zap } from 'lucide-react'
+import { HOTEL_LOBBY_GENERATION_TEMPLATE, HOTEL_LOBBY_SCENES } from '@/config/hotel-lobby'
 import { calculateGenerationCredits } from '@/config/generation-cost'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { AuthModal } from '@/components/auth/AuthModal'
@@ -19,29 +19,16 @@ type ImageAssetState = {
   status: 'empty' | 'uploading' | 'moderating' | 'approved'
 }
 
-type VideoAssetState = {
-  previewUrl: string | null
-  publicUrl: string | null
-  assetId: string | null
-  assetToken: string | null
-  status: 'empty' | 'uploading' | 'ready'
-}
-
 const emptyImage: ImageAssetState = { previewUrl: null, publicUrl: null, assetId: null, assetToken: null, status: 'empty' }
-const emptyVideo: VideoAssetState = { previewUrl: null, publicUrl: null, assetId: null, assetToken: null, status: 'empty' }
 const RECOVERY_KEY = 'hotel_lobby_generation_recovery_v1'
 
 export function HotelLobbyWorkbench() {
   const [personA, setPersonA] = useState<ImageAssetState>(emptyImage)
   const [personB, setPersonB] = useState<ImageAssetState>(emptyImage)
-  const [template, setTemplate] = useState<MotionTemplate | null>(null)
-  const [referenceVideo, setReferenceVideo] = useState<VideoAssetState>(emptyVideo)
-  const [prompt, setPrompt] = useState(HOTEL_LOBBY_DEFAULT_PROMPT)
+  const [selectedSceneId, setSelectedSceneId] = useState(HOTEL_LOBBY_SCENES[0].id)
   const [duration, setDuration] = useState(10)
   const [resolution, setResolution] = useState<'720p'|'1080p'|'4k'>('720p')
   const [aspectRatio, setAspectRatio] = useState<'16:9'|'9:16'|'1:1'>('16:9')
-  const [pickerOpen, setPickerOpen] = useState(false)
-  const [sourceOpen, setSourceOpen] = useState(false)
   const [authOpen, setAuthOpen] = useState(false)
   const [pricingOpen, setPricingOpen] = useState(false)
   const [authed, setAuthed] = useState(false)
@@ -53,18 +40,16 @@ export function HotelLobbyWorkbench() {
   const [tasks, setTasks] = useState<GenerationTask[]>([])
   const [credits, setCredits] = useState<number | null>(null)
   const [retryingTaskId, setRetryingTaskId] = useState<string | null>(null)
-  const videoInput = useRef<HTMLInputElement>(null)
   const personARequest = useRef<string | null>(null)
   const personBRequest = useRef<string | null>(null)
-  const videoRequest = useRef<string | null>(null)
   const assetErrorTimer = useRef<number | null>(null)
 
-  const selectedVideo = referenceVideo.previewUrl || template?.previewVideoUrl || null
+  const selectedScene = HOTEL_LOBBY_SCENES.find(scene => scene.id === selectedSceneId) || HOTEL_LOBBY_SCENES[0]
+  const fixedTemplate = HOTEL_LOBBY_GENERATION_TEMPLATE
   const cost = calculateGenerationCredits(duration, resolution)
   const isSubmitting = submitStage !== 'idle'
   const imagesReady = personA.status === 'approved' && personB.status === 'approved'
-  const referenceReady = Boolean(template || referenceVideo.status === 'ready')
-  const canGenerate = Boolean(imagesReady && referenceReady && prompt.trim() && !isSubmitting && handoffEnabled !== null)
+  const canGenerate = Boolean(imagesReady && selectedScene && !isSubmitting && handoffEnabled !== null)
 
   const publishCredits = (value: number | null) => {
     setCredits(value)
@@ -205,8 +190,8 @@ export function HotelLobbyWorkbench() {
     void loadBilling()
   }
 
-  const uploadFile = async (file: File, kind: 'image' | 'video') => {
-    const signed = await createUploadUrl({ data: { fileName: file.name, mimeType: file.type, kind } })
+  const uploadFile = async (file: File) => {
+    const signed = await createUploadUrl({ data: { fileName: file.name, mimeType: file.type, kind: 'image' } })
     const response = await fetch(signed.uploadUrl, {
       method: 'PUT',
       headers: { 'Content-Type': file.type },
@@ -235,7 +220,7 @@ export function HotelLobbyWorkbench() {
     })
 
     try {
-      const signed = await uploadFile(file, 'image')
+      const signed = await uploadFile(file)
       if (requestRef.current !== requestId) return
       setter(current => ({ ...current, publicUrl: signed.publicUrl, assetId: signed.assetId, assetToken: signed.assetToken, status: 'moderating' }))
 
@@ -276,57 +261,6 @@ export function HotelLobbyWorkbench() {
     })
   }
 
-  const prepareVideo = async (file: File | undefined) => {
-    if (!file) return
-    const requestId = crypto.randomUUID()
-    videoRequest.current = requestId
-    setTemplate(null)
-    setSourceOpen(false)
-    setAssetError('')
-
-    const previewUrl = URL.createObjectURL(file)
-    setReferenceVideo(current => {
-      if (current.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(current.previewUrl)
-      return { previewUrl, publicUrl: null, assetId: null, assetToken: null, status: 'uploading' }
-    })
-
-    try {
-      const signed = await uploadFile(file, 'video')
-      if (videoRequest.current !== requestId) return
-      const finalized = await finalizeUploadedAsset({ data: { assetId: signed.assetId, assetToken: signed.assetToken } })
-      if (videoRequest.current !== requestId) return
-      setReferenceVideo(current => ({
-        ...current,
-        publicUrl: finalized.publicUrl,
-        assetId: finalized.assetId,
-        assetToken: finalized.assetToken,
-        status: 'ready',
-      }))
-    } catch (e) {
-      if (videoRequest.current !== requestId) return
-      videoRequest.current = null
-      setReferenceVideo(current => {
-        if (current.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(current.previewUrl)
-        return emptyVideo
-      })
-      const message = e instanceof Error ? e.message : 'UPLOAD_FAILED'
-      showAssetError(
-        message.includes('UNSUPPORTED_FILE_TYPE')
-          ? 'Please choose an MP4, MOV, or WebM reference video.'
-          : 'We couldn’t upload this reference video. Please try again.',
-      )
-    }
-  }
-
-  const clearVideo = () => {
-    videoRequest.current = null
-    setReferenceVideo(current => {
-      if (current.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(current.previewUrl)
-      return emptyVideo
-    })
-    setTemplate(null)
-  }
-
   const runGeneration = async (data: CreateGenerationInput) => {
     setSubmitStage('moderating')
     window.sessionStorage.setItem(RECOVERY_KEY, JSON.stringify(data))
@@ -360,7 +294,7 @@ export function HotelLobbyWorkbench() {
     }
   }
 
-  const submitAfterAuth = async () => {
+  const buildGenerationInput = (): CreateGenerationInput | null => {
     if (
       personA.status !== 'approved' ||
       personB.status !== 'approved' ||
@@ -369,65 +303,45 @@ export function HotelLobbyWorkbench() {
       !personA.assetId ||
       !personB.assetId ||
       !personA.assetToken ||
-      !personB.assetToken ||
-      (!template && (referenceVideo.status !== 'ready' || !referenceVideo.publicUrl || !referenceVideo.assetId || !referenceVideo.assetToken)) ||
-      isSubmitting
-    ) return
+      !personB.assetToken
+    ) return null
 
-    setError('')
-    setSubmitStage('starting')
-    await runGeneration({
+    return {
       imageAAssetId: personA.assetId,
       imageAAssetToken: personA.assetToken,
       imageBAssetId: personB.assetId,
       imageBAssetToken: personB.assetToken,
-      referenceVideoAssetId: template ? null : referenceVideo.assetId,
-      referenceVideoAssetToken: template ? null : referenceVideo.assetToken,
+      referenceVideoAssetId: null,
+      referenceVideoAssetToken: null,
       imageAUrl: personA.publicUrl,
       imageBUrl: personB.publicUrl,
-      referenceTemplateId: template?.id || null,
-      referenceVideoUrl: template?.sourceVideoUrl || referenceVideo.publicUrl || '',
-      prompt,
+      referenceTemplateId: fixedTemplate.id,
+      referenceVideoUrl: fixedTemplate.sourceVideoUrl,
+      prompt: selectedScene.prompt,
       duration,
       resolution,
       aspectRatio,
-    })
+    }
+  }
+
+  const submitAfterAuth = async () => {
+    if (isSubmitting) return
+    const data = buildGenerationInput()
+    if (!data) return
+
+    setError('')
+    setSubmitStage('starting')
+    await runGeneration(data)
   }
 
   const handoffToClothMotion = async () => {
-    if (
-      personA.status !== 'approved' ||
-      personB.status !== 'approved' ||
-      !personA.publicUrl ||
-      !personB.publicUrl ||
-      !personA.assetId ||
-      !personB.assetId ||
-      !personA.assetToken ||
-      !personB.assetToken ||
-      (!template && (referenceVideo.status !== 'ready' || !referenceVideo.publicUrl || !referenceVideo.assetId || !referenceVideo.assetToken))
-    ) return
+    const data = buildGenerationInput()
+    if (!data) return
 
     setError('')
     setSubmitStage('redirecting')
     try {
-      const result = await createGenerationHandoff({
-        data: {
-          imageAAssetId: personA.assetId,
-          imageAAssetToken: personA.assetToken,
-          imageAUrl: personA.publicUrl,
-          imageBAssetId: personB.assetId,
-          imageBAssetToken: personB.assetToken,
-          imageBUrl: personB.publicUrl,
-          referenceTemplateId: template?.id || null,
-          referenceVideoAssetId: template ? null : referenceVideo.assetId,
-          referenceVideoAssetToken: template ? null : referenceVideo.assetToken,
-          referenceVideoUrl: template?.sourceVideoUrl || referenceVideo.publicUrl || '',
-          prompt,
-          duration,
-          resolution,
-          aspectRatio,
-        },
-      })
+      const result = await createGenerationHandoff({ data })
       window.location.href = result.redirectUrl
     } catch (e) {
       setError(friendlyError(e instanceof Error ? e.message : 'Unable to continue to ClothMotion.'))
@@ -483,18 +397,6 @@ export function HotelLobbyWorkbench() {
     if (pendingGenerate) window.setTimeout(() => void submitAfterAuth(), 150)
   }
 
-  const chooseTemplate = (selected: MotionTemplate) => {
-    videoRequest.current = null
-    setReferenceVideo(current => {
-      if (current.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(current.previewUrl)
-      return emptyVideo
-    })
-    setTemplate(selected)
-    setPrompt(selected.defaultPrompt)
-    setAspectRatio(selected.defaultRatio)
-    setPickerOpen(false)
-  }
-
   return <div className="workbench-shell">
     <div className="workbench">
       <div className="asset-row">
@@ -510,36 +412,31 @@ export function HotelLobbyWorkbench() {
           onPick={(file) => void prepareImage(file, 'B')}
           onClear={() => clearImage('B')}
         />
-        <div className="reference-slot">
-          <button className="asset-tile" onClick={() => setSourceOpen(v => !v)} type="button">
-            {selectedVideo ? <>
-              <video src={selectedVideo} muted loop playsInline />
-              <span className="asset-overlay"><Play size={15} fill="currentColor" /></span>
-            </> : <Plus size={22} />}
-          </button>
-          {selectedVideo && <button className="remove-asset" type="button" onClick={clearVideo}><X size={11}/></button>}
-          <span>Video Reference</span>
-          {sourceOpen && <div className="source-menu">
-            <button type="button" onClick={() => { setSourceOpen(false); videoInput.current?.click() }}><Upload size={15}/> Upload video</button>
-            <button type="button" onClick={() => { setSourceOpen(false); setPickerOpen(true) }}><Play size={15}/> Choose template</button>
-          </div>}
-          <input
-            hidden
-            ref={videoInput}
-            type="file"
-            accept="video/mp4,video/quicktime,video/webm"
-            onChange={(e) => {
-              const file = e.target.files?.[0]
-              e.currentTarget.value = ''
-              void prepareVideo(file)
-            }}
-          />
-        </div>
       </div>
 
       {assetError && <div className="asset-error" role="alert">{assetError}</div>}
 
-      <textarea className="prompt" value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={5} aria-label="Prompt" />
+      <div className="scene-picker">
+        <div className="scene-picker-head">
+          <span>Choose a scene</span>
+          <small>One fixed performance, three preset settings.</small>
+        </div>
+        <div className="scene-grid">
+          {HOTEL_LOBBY_SCENES.map(scene => (
+            <button
+              key={scene.id}
+              type="button"
+              className={`scene-card ${scene.id === selectedScene.id ? 'active' : ''}`}
+              aria-pressed={scene.id === selectedScene.id}
+              onClick={() => setSelectedSceneId(scene.id)}
+            >
+              <strong>{scene.name}</strong>
+              <span>{scene.description}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {error && <div className="generation-error">{error}</div>}
       <div className="controls">
         <select value={duration} onChange={e=>setDuration(Number(e.target.value))}><option value={5}>5s</option><option value={10}>10s</option><option value={15}>15s</option></select>
@@ -578,18 +475,16 @@ export function HotelLobbyWorkbench() {
         />
       </div>
     </div>}
-
-    {pickerOpen && <TemplatePicker onClose={() => setPickerOpen(false)} onSelect={chooseTemplate} />}
   </div>
 }
 
 function friendlyError(message: string) {
-  if (message.includes('PROMPT_REJECTED')) return 'This prompt cannot be used. Please revise it and try again.'
+  if (message.includes('PROMPT_REJECTED')) return 'This scene cannot be generated. Please choose another scene and try again.'
   if (message.includes('MODERATION_UNAVAILABLE')) return 'Safety check is temporarily unavailable. Please try again shortly.'
   if (message.includes('REFERENCE_IMAGES_NOT_READY') || message.includes('IMAGE_A_NOT_READY') || message.includes('IMAGE_B_NOT_READY')) {
     return 'Please choose your two reference images again.'
   }
-  if (message.includes('REFERENCE_VIDEO_NOT_READY')) return 'Please choose the reference video again.'
+  if (message.includes('REFERENCE_VIDEO_NOT_READY')) return 'The preset performance is temporarily unavailable. Please try again shortly.'
   if (message.includes('AUTH_REQUIRED')) return 'Please sign in and try again.'
   return message
 }
@@ -627,27 +522,4 @@ function ImageUpload({
       }}
     />
   </label>
-}
-
-function TemplatePicker({ onClose, onSelect }: { onClose: () => void; onSelect: (t: MotionTemplate) => void }) {
-  return <div className="modal-backdrop" onMouseDown={(e) => { if(e.currentTarget===e.target) onClose() }}>
-    <div className="modal"><div className="modal-head"><div><h3>Choose a reference video</h3></div><button onClick={onClose}><X/></button></div>
-      <div className="template-grid">{HOTEL_LOBBY_TEMPLATES.map(t => <button key={t.id} onClick={() => onSelect(t)}>
-        <video
-          src={t.previewVideoUrl}
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          disablePictureInPicture
-          controlsList="nodownload nofullscreen noremoteplayback"
-          onMouseEnter={(e) => void e.currentTarget.play().catch(() => undefined)}
-          onMouseLeave={(e) => {
-            e.currentTarget.pause()
-            e.currentTarget.currentTime = 0
-          }}
-        /><span>{t.name}</span>
-      </button>)}</div>
-    </div>
-  </div>
 }
