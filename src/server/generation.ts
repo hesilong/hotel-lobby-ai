@@ -4,7 +4,7 @@ import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { assertPromptAllowed } from '@/server/moderation'
 import { deductCredits, refundCredits, reconcileYearlySubscriptionCredits } from '@/server/credits'
 import { calculateGenerationCredits } from '@/config/generation-cost'
-import { getKieTask, submitKieReferenceVideo } from '@/server/kie'
+import { getKieTask, KIE_VIDEO_MODEL, submitKieSeedanceVideo } from '@/server/kie'
 import { persistGeneratedVideo, verifyPreparedAssets } from '@/server/storage'
 import { HOTEL_LOBBY_TEMPLATES } from '@/config/hotel-lobby'
 
@@ -21,7 +21,7 @@ export type CreateGenerationInput = {
   referenceVideoUrl: string
   prompt: string
   duration: number
-  resolution: '720p' | '1080p' | '4k'
+  resolution: '480p' | '720p' | '1080p'
   aspectRatio: '16:9' | '9:16' | '1:1'
 }
 
@@ -53,8 +53,8 @@ function validateInput(data: CreateGenerationInput) {
     throw new Error('INVALID_ASSET_URL')
   }
   if (!data.prompt.trim() || data.prompt.length > 3072) throw new Error('INVALID_PROMPT')
-  if (data.duration < 3 || data.duration > 15) throw new Error('INVALID_DURATION')
-  if (!['720p', '1080p', '4k'].includes(data.resolution)) throw new Error('INVALID_RESOLUTION')
+  if (![5, 10, 15, 20, 25, 30].includes(data.duration)) throw new Error('INVALID_DURATION')
+  if (!['480p', '720p', '1080p'].includes(data.resolution)) throw new Error('INVALID_RESOLUTION')
 }
 
 async function refundTaskIfNeeded(taskId: string, userId: string, reason: string) {
@@ -114,7 +114,7 @@ async function submitGenerationForUser(userId: string, data: CreateGenerationInp
     resolution: data.resolution,
     aspect_ratio: data.aspectRatio,
     provider: isMock ? 'mock' : 'kie',
-    model_id: isMock ? 'mock/reference-to-video' : 'kling-3.0-omni/reference-to-video',
+    model_id: isMock ? 'mock/reference-to-video' : KIE_VIDEO_MODEL,
     provider_task_id: null,
     credits_used: credits,
     credits_refunded: 0,
@@ -130,7 +130,7 @@ async function submitGenerationForUser(userId: string, data: CreateGenerationInp
       meta: {
         duration: data.duration,
         resolution: data.resolution,
-        model: isMock ? 'mock/reference-to-video' : 'kling-3.0-omni/reference-to-video',
+        model: isMock ? 'mock/reference-to-video' : KIE_VIDEO_MODEL,
       },
     })
 
@@ -143,7 +143,7 @@ async function submitGenerationForUser(userId: string, data: CreateGenerationInp
       return { id: task.id, status: 'processing' as const, creditsUsed: credits, balance: debit.balance }
     }
 
-    const upstream = await submitKieReferenceVideo({
+    const upstream = await submitKieSeedanceVideo({
       imageUrls: [data.imageAUrl, data.imageBUrl],
       videoUrl: data.referenceVideoUrl,
       prompt: data.prompt.trim(),
