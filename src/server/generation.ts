@@ -23,6 +23,7 @@ export type CreateGenerationInput = {
   duration: number
   resolution: '480p' | '720p' | '1080p'
   aspectRatio: '16:9' | '9:16' | '1:1'
+  generateAudio: boolean
 }
 
 export type GenerationTask = {
@@ -113,6 +114,7 @@ async function submitGenerationForUser(userId: string, data: CreateGenerationInp
     duration_seconds: data.duration,
     resolution: data.resolution,
     aspect_ratio: data.aspectRatio,
+    generate_audio: data.generateAudio,
     provider: isMock ? 'mock' : 'kie',
     model_id: isMock ? 'mock/reference-to-video' : KIE_VIDEO_MODEL,
     provider_task_id: null,
@@ -150,6 +152,7 @@ async function submitGenerationForUser(userId: string, data: CreateGenerationInp
       duration: data.duration,
       resolution: data.resolution,
       aspectRatio: data.aspectRatio,
+      generateAudio: data.generateAudio,
     })
     await admin.from('generation_tasks').update({
       status: 'processing',
@@ -213,7 +216,7 @@ export const retryGenerationTask = createServerFn({ method: 'POST' })
     const user = await authUser()
     const admin = getSupabaseAdminClient()
     const { data: previous, error } = await admin.from('generation_tasks')
-      .select('id,user_id,status,image_a_url,image_b_url,image_a_asset_id,image_b_asset_id,reference_template_id,reference_video_url,reference_video_asset_id,prompt,duration_seconds,resolution,aspect_ratio')
+      .select('id,user_id,status,image_a_url,image_b_url,image_a_asset_id,image_b_asset_id,reference_template_id,reference_video_url,reference_video_asset_id,prompt,duration_seconds,resolution,aspect_ratio,generate_audio')
       .eq('id', data.taskId)
       .eq('user_id', user.id)
       .maybeSingle()
@@ -233,6 +236,7 @@ export const retryGenerationTask = createServerFn({ method: 'POST' })
       duration: previous.duration_seconds,
       resolution: previous.resolution as CreateGenerationInput['resolution'],
       aspectRatio: previous.aspect_ratio as CreateGenerationInput['aspectRatio'],
+      generateAudio: Boolean(previous.generate_audio),
     })
   })
 
