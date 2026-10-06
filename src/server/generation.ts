@@ -40,7 +40,7 @@ export type GenerationTask = {
 const mockEnabled = () => process.env.MOCK_GENERATION === 'true'
 const mockResultUrl = () =>
   process.env.MOCK_RESULT_VIDEO_URL ||
-  'https://cdn.clothmotion.app/templates/hotel-lobby-ai/preview/hotel-lobby-ai-1.mp4'
+  'https://cdn.hotel-lobby-ai.pro/template/hotel-lobby_5.mp4'
 
 async function authUser() {
   const supabase = getSupabaseServerClient()
@@ -186,7 +186,9 @@ export const createGeneration = createServerFn({ method: 'POST' })
     }
 
     if (data.referenceTemplateId) {
-      const template = HOTEL_LOBBY_TEMPLATES.find(item => item.id === data.referenceTemplateId)
+      const template = HOTEL_LOBBY_TEMPLATES.find(
+        item => item.id === data.referenceTemplateId && item.duration === data.duration,
+      )
       if (!template || template.sourceVideoUrl !== data.referenceVideoUrl) {
         throw new Error('REFERENCE_VIDEO_NOT_READY')
       }
