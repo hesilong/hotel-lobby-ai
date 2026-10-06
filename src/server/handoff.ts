@@ -17,7 +17,7 @@ export type GenerationHandoffInput = {
   referenceVideoUrl: string
   prompt: string
   duration: number
-  resolution: '720p' | '1080p' | '4k'
+  resolution: '480p' | '720p' | '1080p'
   aspectRatio: '16:9' | '9:16' | '1:1'
 }
 
@@ -29,7 +29,7 @@ export type GenerationHandoffPayload = {
   referenceVideoUrl: string
   prompt: string
   duration: number
-  resolution: '720p' | '1080p' | '4k'
+  resolution: '480p' | '720p' | '1080p'
   aspectRatio: '16:9' | '9:16' | '1:1'
   createdAt: string
   expiresAt: string
@@ -58,8 +58,8 @@ const validate = (data: GenerationHandoffInput) => {
     throw new Error('INVALID_ASSET_URL')
   }
   if (!data.prompt.trim() || data.prompt.length > 3072) throw new Error('INVALID_PROMPT')
-  if (![5, 10, 15].includes(data.duration)) throw new Error('INVALID_DURATION')
-  if (!['720p', '1080p', '4k'].includes(data.resolution)) throw new Error('INVALID_RESOLUTION')
+  if (![5, 10, 15, 20, 25, 30].includes(data.duration)) throw new Error('INVALID_DURATION')
+  if (!['480p', '720p', '1080p'].includes(data.resolution)) throw new Error('INVALID_RESOLUTION')
   if (!['16:9', '9:16', '1:1'].includes(data.aspectRatio)) throw new Error('INVALID_ASPECT_RATIO')
 }
 
@@ -74,7 +74,9 @@ export const createGenerationHandoff = createServerFn({ method: 'POST' })
     validate(data)
 
     if (data.referenceTemplateId) {
-      const template = HOTEL_LOBBY_TEMPLATES.find(item => item.id === data.referenceTemplateId)
+      const template = HOTEL_LOBBY_TEMPLATES.find(
+        item => item.id === data.referenceTemplateId && item.duration === data.duration,
+      )
       if (!template || template.sourceVideoUrl !== data.referenceVideoUrl) {
         throw new Error('REFERENCE_VIDEO_NOT_READY')
       }
