@@ -39,6 +39,7 @@ export type GenerationTask = {
   resolution?: '480p' | '720p' | '1080p'
   aspect_ratio?: '16:9' | '9:16' | '1:1'
   generate_audio?: boolean
+  prompt?: string
 }
 
 const mockEnabled = () => process.env.MOCK_GENERATION === 'true'
@@ -268,7 +269,7 @@ export const listGenerationTasks = createServerFn({ method: 'GET' }).handler(asy
   const user = await authUser()
   const admin = getSupabaseAdminClient()
   const { data, error } = await admin.from('generation_tasks')
-    .select('id,status,result_url,failure_message,created_at,provider_task_id,provider,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio')
+    .select('id,status,result_url,failure_message,created_at,provider_task_id,provider,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio,prompt')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(20)
@@ -282,7 +283,7 @@ export const refreshGenerationTask = createServerFn({ method: 'POST' })
     const user = await authUser()
     const admin = getSupabaseAdminClient()
     const { data: task, error } = await admin.from('generation_tasks')
-      .select('id,user_id,status,provider,provider_task_id,result_url,failure_message,created_at,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio')
+      .select('id,user_id,status,provider,provider_task_id,result_url,failure_message,created_at,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio,prompt')
       .eq('id', data.taskId).eq('user_id', user.id).maybeSingle()
     if (error || !task) throw new Error('TASK_NOT_FOUND')
     if (task.status === 'completed' || task.status === 'failed') return task as GenerationTask
@@ -296,7 +297,7 @@ export const refreshGenerationTask = createServerFn({ method: 'POST' })
         result_url: mockResultUrl(),
         updated_at: new Date().toISOString(),
       }).eq('id', task.id)
-        .select('id,status,result_url,failure_message,created_at,provider_task_id,provider,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio')
+        .select('id,status,result_url,failure_message,created_at,provider_task_id,provider,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio,prompt')
         .single()
       if (updateError || !updated) throw new Error(updateError?.message || 'MOCK_TASK_UPDATE_FAILED')
       return updated as GenerationTask
@@ -313,7 +314,7 @@ export const refreshGenerationTask = createServerFn({ method: 'POST' })
           result_url: persistedUrl,
           updated_at: new Date().toISOString(),
         }).eq('id', task.id)
-          .select('id,status,result_url,failure_message,created_at,provider_task_id,provider,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio')
+          .select('id,status,result_url,failure_message,created_at,provider_task_id,provider,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio,prompt')
           .single()
         return updated as GenerationTask
       } catch (error) {
@@ -324,7 +325,7 @@ export const refreshGenerationTask = createServerFn({ method: 'POST' })
           failure_code: 'RESULT_PERSIST_FAILED',
           updated_at: new Date().toISOString(),
         }).eq('id', task.id)
-          .select('id,status,result_url,failure_message,created_at,provider_task_id,provider,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio')
+          .select('id,status,result_url,failure_message,created_at,provider_task_id,provider,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio,prompt')
           .single()
         await refundTaskIfNeeded(task.id, user.id, message)
         return updated as GenerationTask
@@ -339,7 +340,7 @@ export const refreshGenerationTask = createServerFn({ method: 'POST' })
         failure_message: message,
         updated_at: new Date().toISOString(),
       }).eq('id', task.id)
-        .select('id,status,result_url,failure_message,created_at,provider_task_id,provider,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio')
+        .select('id,status,result_url,failure_message,created_at,provider_task_id,provider,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio,prompt')
         .single()
       await refundTaskIfNeeded(task.id, user.id, message)
       return updated as GenerationTask
