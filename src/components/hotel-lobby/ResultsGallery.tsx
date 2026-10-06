@@ -190,6 +190,7 @@ export function ResultsGallery({
                     <div className="history-thumb history-thumb-state">
                       <AlertCircle size={24}/>
                       <strong>Generation failed</strong>
+                      {task.failure_message && <span>{task.failure_message}</span>}
                     </div>
                   ) : (
                     <div className="history-thumb history-thumb-state">
@@ -200,37 +201,31 @@ export function ResultsGallery({
                   <span className={`history-status history-status-${status.key}`}>{status.label}</span>
                 </div>
 
-                <div className="history-card-content">
-                  <div className="history-card-title">
-                    <div>
-                      <strong>{sceneLabel(task)}</strong>
-                      <span>{formatTaskDate(task.created_at)}</span>
-                    </div>
-                    <span className="history-credit">{task.credits_used ?? '—'} credits</span>
+                <div className="history-card-footer">
+                  <div className="history-card-summary">
+                    <strong>{sceneLabel(task)}</strong>
+                    <span>{formatTaskDate(task.created_at)}</span>
                   </div>
 
-                  <div className="history-params">
-                    <HistoryParam label="Duration" value={task.duration_seconds ? `${task.duration_seconds}s` : '—'} />
-                    <HistoryParam label="Resolution" value={task.resolution?.toUpperCase() || '—'} />
-                    <HistoryParam label="Orientation" value={task.aspect_ratio || '—'} />
-                    <HistoryParam label="Soundtrack" value={task.generate_audio ? 'On' : 'Off'} />
-                  </div>
+                  <div className="history-card-tools">
+                    <span className="history-chip">{task.resolution?.toUpperCase() || '—'}</span>
+                    <span className="history-chip">{task.duration_seconds ? `${task.duration_seconds}s` : '—'}</span>
 
-                  {task.status === 'failed' && task.failure_message && (
-                    <p className="history-error" title={task.failure_message}>{task.failure_message}</p>
-                  )}
+                    {completed && <a
+                      className="history-download"
+                      href={`/api/download/${task.id}`}
+                      download
+                    >
+                      <Download size={14}/> Download
+                    </a>}
 
-                  <div className="history-card-actions">
-                    {completed && <>
-                      <button type="button" onClick={() => setSelectedTaskId(task.id)}>
-                        <Play size={14} fill="currentColor"/> Play
-                      </button>
-                      <a href={`/api/download/${task.id}`} download>
-                        <Download size={14}/> Download
-                      </a>
-                    </>}
                     {task.status === 'failed' && onRetry && (
-                      <button type="button" disabled={retrying} onClick={() => onRetry(task.id)}>
+                      <button
+                        type="button"
+                        className="history-retry"
+                        disabled={retrying}
+                        onClick={() => onRetry(task.id)}
+                      >
                         {retrying ? <Loader2 className="spin" size={14}/> : <RotateCcw size={14}/>}
                         {retrying ? 'Retrying…' : 'Retry'}
                       </button>
