@@ -528,3 +528,22 @@ body{background:#f7f8fb;color:#17191f}
   object-fit:contain;
   object-position:center;
 }
+
+
+/* Demo sizing and simple conversion cue */
+@media(min-width:981px){
+  .results-demo-performers{
+    grid-template-columns:minmax(0,190px) 24px minmax(0,190px);
+    gap:12px;
+  }
+}
+.results-demo-image{aspect-ratio:4/3}
+.results-demo-arrow{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  height:28px;
+  margin:4px 0 6px;
+  color:#a2a7b0;
+}
+.results-demo-video{margin-top:0}
