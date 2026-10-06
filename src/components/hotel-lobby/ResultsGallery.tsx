@@ -1,6 +1,13 @@
 import { useMemo, useState } from 'react'
-import { AlertCircle, Clock3, Download, Loader2, Play, RotateCcw, Sparkles, X } from 'lucide-react'
+import { AlertCircle, ArrowDown, Clock3, Download, Loader2, Play, RotateCcw, X } from 'lucide-react'
 import type { GenerationTask } from '@/server/generation'
+
+const DEMO_BASE = 'https://cdn.hotel-lobby-ai.pro/demo/5'
+const DEMO = {
+  leftImage: `${DEMO_BASE}/hotel-lobby-ai-left.png`,
+  rightImage: `${DEMO_BASE}/hotel-lobby-ai-right.png`,
+  video: `${DEMO_BASE}/hotel-lobby-ai-480p-5.mp4`,
+}
 
 export function ResultsGallery({
   tasks,
@@ -42,10 +49,53 @@ export function ResultsGallery({
       </div>
 
       {!visibleTasks.length ? (
-        <div className="results-empty">
-          <Sparkles size={28}/>
-          <strong>Ready when you are</strong>
-          <span>Upload two performers, choose a scene, then generate.</span>
+        <div className="results-demo">
+          <div className="results-demo-intro">
+            <div>
+              <span className="results-demo-badge">Example</span>
+              <strong>Two performers in, one video out</strong>
+              <p>See the workflow before you create your first video.</p>
+            </div>
+            <div className="results-demo-meta">
+              <span>5s</span>
+              <span>480P</span>
+            </div>
+          </div>
+
+          <div className="results-demo-performers">
+            <figure>
+              <div className="results-demo-image">
+                <img src={DEMO.leftImage} alt="Example left performer"/>
+              </div>
+              <figcaption>Left Performer</figcaption>
+            </figure>
+            <span className="results-demo-plus" aria-hidden="true">+</span>
+            <figure>
+              <div className="results-demo-image">
+                <img src={DEMO.rightImage} alt="Example right performer"/>
+              </div>
+              <figcaption>Right Performer</figcaption>
+            </figure>
+          </div>
+
+          <div className="results-demo-flow">
+            <span>Generated result</span>
+            <ArrowDown size={15}/>
+          </div>
+
+          <div className="results-demo-video">
+            <video
+              src={DEMO.video}
+              controls
+              muted
+              loop
+              autoPlay
+              playsInline
+              preload="metadata"
+            />
+          </div>
+
+          <p className="results-demo-cta">Upload two performers on the left, choose a scene, and create yours.</p>
         </div>
       ) : (
         <div className="results-grid">
