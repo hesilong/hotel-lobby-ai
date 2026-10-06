@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Check, CreditCard, Loader2, X, Zap } from 'lucide-react'
 import { AuthModal } from '@/components/auth/AuthModal'
+import { REVIEW_MODE } from '@/config/feature-flags'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import {
   cancelSubscription,
@@ -97,6 +98,7 @@ export function PricingPanel({
     | { type: 'credit_pack'; key: CreditPackKey }
     | { type: 'subscription'; plan: 'pro' | 'ultimate'; cycle: BillingCycle }
   ) => {
+    if (REVIEW_MODE) return
     if (!requireAuth()) return
     const key = input.type === 'credit_pack' ? `pack-${input.key}` : `plan-${input.plan}-${input.cycle}`
     setBusy(key)
@@ -121,6 +123,7 @@ export function PricingPanel({
   }
 
   const selectPlan = async (plan: 'pro' | 'ultimate') => {
+    if (REVIEW_MODE) return
     if (!requireAuth()) return
     const current = billing?.subscription
     if (!current || !['active','trialing','scheduled_cancel'].includes(current.status)) {
@@ -205,7 +208,7 @@ export function PricingPanel({
           className={pricingMode === 'yearly' ? 'active' : ''}
           onClick={() => setPricingMode('yearly')}
         >
-          Yearly <span>Save 20%</span>
+          Yearly {!REVIEW_MODE && <span>Save 20%</span>}
         </button>
         <button
           type="button"
@@ -229,7 +232,10 @@ export function PricingPanel({
               {featured && <span className="pricing-badge">{recommended ? 'Recommended' : 'Most popular'}</span>}
               <h3>{pack.name}</h3>
               <p className="pricing-capacity"><span>{pack.credits.toLocaleString()}</span> credits</p>
-              <div className="pricing-price"><strong>${pack.priceUsd.toFixed(2)}</strong><span>one-time</span></div>
+              <div className={REVIEW_MODE ? 'pricing-price pricing-price-pending' : 'pricing-price'}>
+                <strong>{REVIEW_MODE ? 'Coming Soon' : `$${pack.priceUsd.toFixed(2)}`}</strong>
+                {!REVIEW_MODE && <span>one-time</span>}
+              </div>
               <div className="pricing-feature-title">Included</div>
               <ul>
                 <li><Check size={15}/> Credits valid for 180 days</li>
@@ -239,11 +245,11 @@ export function PricingPanel({
               <button
                 type="button"
                 className="pricing-buy"
-                disabled={Boolean(busy) || !pack.configured}
+                disabled={REVIEW_MODE || Boolean(busy) || !pack.configured}
                 onClick={() => void checkout({ type: 'credit_pack', key })}
               >
                 {busy === `pack-${key}` ? <Loader2 className="spin" size={16}/> : <Zap size={16}/>}
-                {pack.configured ? `Buy ${pack.name}` : 'Coming soon'}
+                {REVIEW_MODE ? 'Coming Soon' : pack.configured ? `Buy ${pack.name}` : 'Coming soon'}
               </button>
             </article>
           })}
@@ -259,8 +265,11 @@ export function PricingPanel({
               {planId === 'ultimate' && <span className="pricing-badge">Most popular</span>}
               <h3>{plan.name}</h3>
               <p className="pricing-capacity"><span>{plan.monthlyCredits.toLocaleString()}</span> credits / month</p>
-              <div className="pricing-price"><strong>${monthlyDisplay.toFixed(2)}</strong><span>/mo</span></div>
-              {cycle === 'yearly' && <p className="pricing-billed">Billed ${plan.yearlyPriceUsd.toFixed(2)} yearly</p>}
+              <div className={REVIEW_MODE ? 'pricing-price pricing-price-pending' : 'pricing-price'}>
+                <strong>{REVIEW_MODE ? 'Coming Soon' : `$${monthlyDisplay.toFixed(2)}`}</strong>
+                {!REVIEW_MODE && <span>/mo</span>}
+              </div>
+              {!REVIEW_MODE && cycle === 'yearly' && <p className="pricing-billed">Billed ${plan.yearlyPriceUsd.toFixed(2)} yearly</p>}
               <div className="pricing-feature-title">Supported features</div>
               <ul>
                 <li><Check size={15}/> Two-performer AI video generation</li>
@@ -271,11 +280,11 @@ export function PricingPanel({
               <button
                 type="button"
                 className="pricing-buy"
-                disabled={Boolean(busy) || isCurrent || !configured}
+                disabled={REVIEW_MODE || Boolean(busy) || isCurrent || !configured}
                 onClick={() => void selectPlan(planId)}
               >
                 {busy === `plan-${planId}-${cycle}` ? <Loader2 className="spin" size={16}/> : <CreditCard size={16}/>}
-                {isCurrent ? 'Current plan' : !configured ? 'Coming soon' : current ? 'Switch plan' : `Choose ${plan.name}`}
+                {REVIEW_MODE ? 'Coming Soon' : isCurrent ? 'Current plan' : !configured ? 'Coming soon' : current ? 'Switch plan' : `Choose ${plan.name}`}
               </button>
             </article>
           })}
