@@ -1,6 +1,7 @@
 export type MotionTemplate = {
   id: string
   name: string
+  duration: 5 | 10 | 15 | 20 | 25 | 30
   previewVideoUrl: string
   sourceVideoUrl: string
   defaultPrompt: string
@@ -14,18 +15,24 @@ export type HotelLobbyScene = {
   prompt: string
 }
 
-const SOURCE = 'https://cdn.clothmotion.app/templates/hotel-lobby-ai'
-const PREVIEW = `${SOURCE}/preview`
+const SOURCE = 'https://cdn.hotel-lobby-ai.pro/template'
 
 const basePrompt = 'Create a coordinated entertainment video using TWO separate reference performers. Use @Image1 as the Left Performer and @Image2 as the Right Performer; each reference may depict an adult person or a pet. Preserve each performer\'s recognizable appearance, facial or head features, hair or fur, markings, clothing if present, colors, and overall visual characteristics. Keep the Left Performer on the LEFT and the Right Performer on the RIGHT. Follow @Video1 for choreography, timing, framing, gestures, body movement, and camera behavior. Do not blend the performers, swap sides, add extra performers, text, logos, or watermarks.'
 
 export const HOTEL_LOBBY_TEMPLATES: MotionTemplate[] = [
-  { id: 'hotel-lobby-1', name: 'Hotel Lobby 1', previewVideoUrl: `${PREVIEW}/hotel-lobby-ai-1.mp4`, sourceVideoUrl: `${SOURCE}/hotel-lobby-ai-1.mp4`, defaultPrompt: basePrompt, defaultRatio: '16:9' },
-  { id: 'hotel-lobby-2', name: 'Hotel Lobby 2', previewVideoUrl: `${PREVIEW}/hotel-lobby-ai-2.mp4`, sourceVideoUrl: `${SOURCE}/hotel-lobby-ai-2.mp4`, defaultPrompt: basePrompt, defaultRatio: '9:16' },
-  { id: 'hotel-lobby-3', name: 'Hotel Lobby 3', previewVideoUrl: `${PREVIEW}/hotel-lobby-ai-3.mp4`, sourceVideoUrl: `${SOURCE}/hotel-lobby-ai-3.mp4`, defaultPrompt: basePrompt, defaultRatio: '16:9' },
+  { id: 'hotel-lobby-5', name: 'Hotel Lobby 5s', duration: 5, previewVideoUrl: `${SOURCE}/hotel-lobby_5.mp4`, sourceVideoUrl: `${SOURCE}/hotel-lobby_5.mp4`, defaultPrompt: basePrompt, defaultRatio: '16:9' },
+  { id: 'hotel-lobby-10', name: 'Hotel Lobby 10s', duration: 10, previewVideoUrl: `${SOURCE}/hotel-lobby_10.mp4`, sourceVideoUrl: `${SOURCE}/hotel-lobby_10.mp4`, defaultPrompt: basePrompt, defaultRatio: '16:9' },
+  { id: 'hotel-lobby-15', name: 'Hotel Lobby 15s', duration: 15, previewVideoUrl: `${SOURCE}/hotel-lobby_15.mp4`, sourceVideoUrl: `${SOURCE}/hotel-lobby_15.mp4`, defaultPrompt: basePrompt, defaultRatio: '16:9' },
+  { id: 'hotel-lobby-20', name: 'Hotel Lobby 20s', duration: 20, previewVideoUrl: `${SOURCE}/hotel-lobby_20.mp4`, sourceVideoUrl: `${SOURCE}/hotel-lobby_20.mp4`, defaultPrompt: basePrompt, defaultRatio: '16:9' },
+  { id: 'hotel-lobby-25', name: 'Hotel Lobby 25s', duration: 25, previewVideoUrl: `${SOURCE}/hotel-lobby_25.mp4`, sourceVideoUrl: `${SOURCE}/hotel-lobby_25.mp4`, defaultPrompt: basePrompt, defaultRatio: '16:9' },
+  { id: 'hotel-lobby-30', name: 'Hotel Lobby 30s', duration: 30, previewVideoUrl: `${SOURCE}/hotel-lobby_30.mp4`, sourceVideoUrl: `${SOURCE}/hotel-lobby_30.mp4`, defaultPrompt: basePrompt, defaultRatio: '16:9' },
 ]
 
-export const HOTEL_LOBBY_GENERATION_TEMPLATE = HOTEL_LOBBY_TEMPLATES[0]
+export const getHotelLobbyGenerationTemplate = (duration: number) => {
+  const template = HOTEL_LOBBY_TEMPLATES.find(item => item.duration === duration)
+  if (!template) throw new Error('REFERENCE_VIDEO_NOT_READY')
+  return template
+}
 
 export const HOTEL_LOBBY_SCENES: HotelLobbyScene[] = [
   {
