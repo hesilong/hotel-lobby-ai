@@ -156,6 +156,7 @@ async function submitGenerationForUser(userId: string, data: CreateGenerationInp
         resolution: data.resolution,
         aspect_ratio: data.aspectRatio,
         generate_audio: data.generateAudio,
+        prompt: data.prompt.trim(),
       }
     }
 
@@ -182,6 +183,7 @@ async function submitGenerationForUser(userId: string, data: CreateGenerationInp
         resolution: data.resolution,
         aspect_ratio: data.aspectRatio,
         generate_audio: data.generateAudio,
+        prompt: data.prompt.trim(),
       }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'GENERATION_SUBMIT_FAILED'
