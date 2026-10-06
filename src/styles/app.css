@@ -273,14 +273,6 @@ body{background:#f7f8fb;color:#17191f}
   .header-account-popover{right:-2px;width:210px}
 }
 
-.account-trust{padding-top:46px;padding-bottom:46px}
-.trust-card{max-width:900px;margin:0 auto;padding:28px 30px;border:1px solid #e2e5eb;background:#fff;border-radius:20px;box-shadow:0 14px 40px rgba(31,37,49,.05)}
-.trust-card h2{margin:8px 0 12px;color:#20242c;font-size:28px;line-height:1.15;letter-spacing:-.03em}
-.trust-card p{margin:8px 0;color:#6e7480;font-size:14px;line-height:1.7}
-.trust-links{display:flex;gap:18px;margin-top:16px}
-.trust-links a{color:#5f46c8;font-size:13px;font-weight:800}
-.trust-links a:hover{text-decoration:underline}
-@media(max-width:760px){.account-trust{padding-top:32px;padding-bottom:32px}.trust-card{padding:22px}.trust-card h2{font-size:24px}.trust-links{flex-wrap:wrap}}
 .motion-preview{position:relative;display:block;width:100%;padding:0;border:0;background:#11141c;color:#fff;cursor:pointer;overflow:hidden;aspect-ratio:16/9}
 .motion-preview video{display:block;width:100%;height:100%;object-fit:cover;pointer-events:none}
 .motion-preview-control{display:none;pointer-events:none}
@@ -293,8 +285,8 @@ body{background:#f7f8fb;color:#17191f}
 
 
 /* Hotel Lobby generator: Seedance 2.5 side-by-side workspace */
-.workbench-shell{max-width:1240px}
-.generator-layout{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(360px,.92fr);gap:18px;align-items:stretch}
+.workbench-shell{max-width:1340px}
+.generator-layout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:stretch}
 .generator-workbench{padding:22px}
 .generator-workbench .asset-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
 .generator-workbench .image-slot{width:100%;text-align:left;color:#4f5561;font-size:12px;line-height:1.3}
@@ -317,7 +309,7 @@ body{background:#f7f8fb;color:#17191f}
 .generator-submit:hover:not(:disabled){transform:translateY(-1px);background:#e8560c}
 .generator-submit:active:not(:disabled){transform:translateY(2px);box-shadow:0 4px 0 #252833}
 .generator-results{min-width:0}
-.generator-results .results{height:100%;min-height:100%;margin-top:0;border-radius:24px;background:#fff;border-color:#e3e6ec;box-shadow:0 22px 70px rgba(34,40,55,.10);display:flex;flex-direction:column}
+.generator-results .results{width:100%;height:100%;min-height:100%;margin-top:0;border-radius:24px;background:#fff;border-color:#e3e6ec;box-shadow:0 22px 70px rgba(34,40,55,.10);display:flex;flex-direction:column}
 .generator-results .results-head{border-color:#eceef2;padding:17px 18px}
 .generator-results .results-head h2{color:#232730}
 .generator-results .results-head p,.generator-results .results-head>span{color:#8a909a}
@@ -361,8 +353,9 @@ body{background:#f7f8fb;color:#17191f}
 .results-empty svg{color:#8b6de8}
 .results-empty strong{color:#30343d;font-size:14px}
 .results-empty span{max-width:260px;font-size:12px;line-height:1.55}
-@media(max-width:980px){
+@media(max-width:1378px){
   .generator-layout{grid-template-columns:1fr}
+  .generator-workbench,.generator-results{width:min(100%,660px);margin-inline:auto}
   .generator-results .result-card,.results-empty{min-height:380px}
   .generator-results .result-card video{min-height:380px}
 }
@@ -410,15 +403,15 @@ body{background:#f7f8fb;color:#17191f}
 .history-grid{
   display:grid;
   grid-template-columns:repeat(2,minmax(0,1fr));
-  grid-auto-rows:auto;
+  grid-auto-rows:max-content;
   gap:14px;
   padding:16px 18px 18px;
   overflow:auto;
+  align-content:start;
   align-items:start;
 }
 .history-card{
-  display:grid;
-  grid-template-rows:auto auto;
+  display:block;
   min-width:0;
   height:auto;
   align-self:start;
@@ -431,11 +424,10 @@ body{background:#f7f8fb;color:#17191f}
 .history-card-media{
   position:relative;
   width:100%;
-  height:auto;
-  aspect-ratio:16/9;
   overflow:hidden;
   background:#0b0d11;
 }
+.history-card-media::before{content:"";display:block;padding-top:56.25%}
 .history-thumb{
   position:absolute;
   inset:0;
@@ -529,7 +521,7 @@ body{background:#f7f8fb;color:#17191f}
 
 
 /* Demo refinements: preserve performer proportions and align both panels */
-@media(min-width:981px){
+@media(min-width:1379px){
   .generator-layout{align-items:stretch}
   .generator-results{display:flex;min-height:0}
   .generator-results .results{height:100%;min-height:100%}

@@ -173,27 +173,6 @@ function HomePage() {
         </div>
       </section>
 
-      <section className="section account-trust" id="google-sign-in">
-        <div className="trust-card">
-          <span className="section-kicker">Account & safety</span>
-          <h2>Google Sign-In is for account access only</h2>
-          <p>
-            Hotel Lobby AI uses Google OAuth only for account sign-in and basic profile information such as your email
-            address. The app does not use Google Generative AI APIs (including Gemini or Imagen), Google Photos, Google
-            Drive, or other Google APIs to create, edit, analyze, or process uploaded images, videos, or AI-generated
-            media.
-          </p>
-          <p>
-            Non-consensual intimate imagery (NCII), sexual content involving minors, deceptive impersonation, and
-            unauthorized use of another person&apos;s likeness are prohibited.
-          </p>
-          <div className="trust-links">
-            <a href="/privacy-policy">Privacy Policy</a>
-            <a href="/terms-of-service#acceptable-use">Acceptable Use</a>
-          </div>
-        </div>
-      </section>
-
       <section className="section feature-split">
         <div className="feature-intro">
           <span className="section-kicker">Simple by design</span>
