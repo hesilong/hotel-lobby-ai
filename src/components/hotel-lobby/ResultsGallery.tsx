@@ -74,6 +74,10 @@ export function ResultsGallery({
             </figure>
           </div>
 
+          <div className="results-demo-arrow" aria-hidden="true">
+            <ArrowDown size={16}/>
+          </div>
+
           <div className="results-demo-video">
             <video
               src={DEMO.video}
