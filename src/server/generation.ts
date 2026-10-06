@@ -35,6 +35,10 @@ export type GenerationTask = {
   provider_task_id: string | null
   provider?: string | null
   credits_used?: number
+  duration_seconds?: number
+  resolution?: '480p' | '720p' | '1080p'
+  aspect_ratio?: '16:9' | '9:16' | '1:1'
+  generate_audio?: boolean
 }
 
 const mockEnabled = () => process.env.MOCK_GENERATION === 'true'
@@ -142,7 +146,16 @@ async function submitGenerationForUser(userId: string, data: CreateGenerationInp
         provider_task_id: `mock:${Date.now()}`,
         updated_at: new Date().toISOString(),
       }).eq('id', task.id)
-      return { id: task.id, status: 'processing' as const, creditsUsed: credits, balance: debit.balance }
+      return {
+        id: task.id,
+        status: 'processing' as const,
+        creditsUsed: credits,
+        balance: debit.balance,
+        duration_seconds: data.duration,
+        resolution: data.resolution,
+        aspect_ratio: data.aspectRatio,
+        generate_audio: data.generateAudio,
+      }
     }
 
     const upstream = await submitKieSeedanceVideo({
@@ -159,7 +172,16 @@ async function submitGenerationForUser(userId: string, data: CreateGenerationInp
       provider_task_id: upstream.taskId,
       updated_at: new Date().toISOString(),
     }).eq('id', task.id)
-    return { id: task.id, status: 'processing' as const, creditsUsed: credits, balance: debit.balance }
+    return {
+        id: task.id,
+        status: 'processing' as const,
+        creditsUsed: credits,
+        balance: debit.balance,
+        duration_seconds: data.duration,
+        resolution: data.resolution,
+        aspect_ratio: data.aspectRatio,
+        generate_audio: data.generateAudio,
+      }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'GENERATION_SUBMIT_FAILED'
     if (message === 'INSUFFICIENT_CREDITS') {
@@ -246,7 +268,7 @@ export const listGenerationTasks = createServerFn({ method: 'GET' }).handler(asy
   const user = await authUser()
   const admin = getSupabaseAdminClient()
   const { data, error } = await admin.from('generation_tasks')
-    .select('id,status,result_url,failure_message,created_at,provider_task_id,provider,credits_used')
+    .select('id,status,result_url,failure_message,created_at,provider_task_id,provider,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(20)
@@ -260,7 +282,7 @@ export const refreshGenerationTask = createServerFn({ method: 'POST' })
     const user = await authUser()
     const admin = getSupabaseAdminClient()
     const { data: task, error } = await admin.from('generation_tasks')
-      .select('id,user_id,status,provider,provider_task_id,result_url,failure_message,created_at,credits_used')
+      .select('id,user_id,status,provider,provider_task_id,result_url,failure_message,created_at,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio')
       .eq('id', data.taskId).eq('user_id', user.id).maybeSingle()
     if (error || !task) throw new Error('TASK_NOT_FOUND')
     if (task.status === 'completed' || task.status === 'failed') return task as GenerationTask
@@ -274,7 +296,7 @@ export const refreshGenerationTask = createServerFn({ method: 'POST' })
         result_url: mockResultUrl(),
         updated_at: new Date().toISOString(),
       }).eq('id', task.id)
-        .select('id,status,result_url,failure_message,created_at,provider_task_id,provider,credits_used')
+        .select('id,status,result_url,failure_message,created_at,provider_task_id,provider,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio')
         .single()
       if (updateError || !updated) throw new Error(updateError?.message || 'MOCK_TASK_UPDATE_FAILED')
       return updated as GenerationTask
@@ -291,7 +313,7 @@ export const refreshGenerationTask = createServerFn({ method: 'POST' })
           result_url: persistedUrl,
           updated_at: new Date().toISOString(),
         }).eq('id', task.id)
-          .select('id,status,result_url,failure_message,created_at,provider_task_id,provider,credits_used')
+          .select('id,status,result_url,failure_message,created_at,provider_task_id,provider,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio')
           .single()
         return updated as GenerationTask
       } catch (error) {
@@ -302,7 +324,7 @@ export const refreshGenerationTask = createServerFn({ method: 'POST' })
           failure_code: 'RESULT_PERSIST_FAILED',
           updated_at: new Date().toISOString(),
         }).eq('id', task.id)
-          .select('id,status,result_url,failure_message,created_at,provider_task_id,provider,credits_used')
+          .select('id,status,result_url,failure_message,created_at,provider_task_id,provider,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio')
           .single()
         await refundTaskIfNeeded(task.id, user.id, message)
         return updated as GenerationTask
@@ -317,7 +339,7 @@ export const refreshGenerationTask = createServerFn({ method: 'POST' })
         failure_message: message,
         updated_at: new Date().toISOString(),
       }).eq('id', task.id)
-        .select('id,status,result_url,failure_message,created_at,provider_task_id,provider,credits_used')
+        .select('id,status,result_url,failure_message,created_at,provider_task_id,provider,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio')
         .single()
       await refundTaskIfNeeded(task.id, user.id, message)
       return updated as GenerationTask
