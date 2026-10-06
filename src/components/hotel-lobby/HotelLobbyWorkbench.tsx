@@ -272,6 +272,11 @@ export function HotelLobbyWorkbench() {
         created_at: new Date().toISOString(),
         provider_task_id: null,
         credits_used: task.creditsUsed,
+      duration_seconds: task.duration_seconds,
+      resolution: task.resolution,
+      aspect_ratio: task.aspect_ratio,
+      generate_audio: task.generate_audio,
+      prompt: task.prompt,
       }, ...current])
       publishCredits(task.balance)
       setPendingGenerate(false)
@@ -360,6 +365,11 @@ export function HotelLobbyWorkbench() {
         created_at: new Date().toISOString(),
         provider_task_id: null,
         credits_used: task.creditsUsed,
+      duration_seconds: task.duration_seconds,
+      resolution: task.resolution,
+      aspect_ratio: task.aspect_ratio,
+      generate_audio: task.generate_audio,
+      prompt: task.prompt,
       }, ...current])
       publishCredits(task.balance)
     } catch (e) {
