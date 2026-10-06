@@ -4,8 +4,8 @@ import type { GenerationTask } from '@/server/generation'
 
 const DEMO_BASE = 'https://cdn.hotel-lobby-ai.pro/demo/5'
 const DEMO = {
-  leftImage: `${DEMO_BASE}/hotel-lobby-ai-left.png`,
-  rightImage: `${DEMO_BASE}/hotel-lobby-ai-right.png`,
+  leftImage: `${DEMO_BASE}/hotel-lobby-left.png`,
+  rightImage: `${DEMO_BASE}/hotel-lobby-right.png`,
   video: `${DEMO_BASE}/hotel-lobby-ai-480p-5.mp4`,
 }
 
@@ -50,12 +50,8 @@ export function ResultsGallery({
 
       {!visibleTasks.length ? (
         <div className="results-demo">
-          <div className="results-demo-intro">
-            <div>
-              <span className="results-demo-badge">Example</span>
-              <strong>Two performers in, one video out</strong>
-              <p>See the workflow before you create your first video.</p>
-            </div>
+          <div className="results-demo-topline">
+            <span className="results-demo-badge">Example</span>
             <div className="results-demo-meta">
               <span>5s</span>
               <span>480P</span>
@@ -67,20 +63,15 @@ export function ResultsGallery({
               <div className="results-demo-image">
                 <img src={DEMO.leftImage} alt="Example left performer"/>
               </div>
-              <figcaption>Left Performer</figcaption>
+              <figcaption>Left</figcaption>
             </figure>
             <span className="results-demo-plus" aria-hidden="true">+</span>
             <figure>
               <div className="results-demo-image">
                 <img src={DEMO.rightImage} alt="Example right performer"/>
               </div>
-              <figcaption>Right Performer</figcaption>
+              <figcaption>Right</figcaption>
             </figure>
-          </div>
-
-          <div className="results-demo-flow">
-            <span>Generated result</span>
-            <ArrowDown size={15}/>
           </div>
 
           <div className="results-demo-video">
@@ -94,8 +85,6 @@ export function ResultsGallery({
               preload="metadata"
             />
           </div>
-
-          <p className="results-demo-cta">Upload two performers on the left, choose a scene, and create yours.</p>
         </div>
       ) : (
         <div className="results-grid">
