@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle2, Download, Loader2, RotateCcw, Sparkles } from 'lucide-react'
+import { AlertCircle, Download, Loader2, RotateCcw, Sparkles } from 'lucide-react'
 import type { GenerationTask } from '@/server/generation'
 
 export function ResultsGallery({
@@ -36,7 +36,6 @@ export function ResultsGallery({
 
           return <article key={task.id} className="result-card">
             {task.status === 'completed' && task.result_url ? <>
-              <div className="result-status result-status-complete"><CheckCircle2 size={13}/> Completed</div>
               <video src={task.result_url} controls playsInline preload="metadata"/>
               <a
                 className="result-download"
@@ -48,7 +47,6 @@ export function ResultsGallery({
                 <Download size={17}/>
               </a>
             </> : task.status === 'failed' ? <>
-              <div className="result-status result-status-failed"><AlertCircle size={13}/> Failed</div>
               <div className="result-state">
                 <AlertCircle size={24}/>
                 <strong>Generation failed</strong>
@@ -64,7 +62,6 @@ export function ResultsGallery({
                 </button>}
               </div>
             </> : <>
-              <div className="result-status result-status-generating"><Loader2 className="spin" size={13}/> Generating</div>
               <div className="result-state">
                 <Loader2 className="spin" size={25}/>
                 <strong>Generating…</strong>
