@@ -511,3 +511,20 @@ body{background:#f7f8fb;color:#17191f}
   .results-demo-performers{grid-template-columns:minmax(0,1fr) 18px minmax(0,1fr);gap:6px}
   .results-demo-video video{max-height:none}
 }
+
+
+/* Demo refinements: preserve performer proportions and align both panels */
+@media(min-width:981px){
+  .generator-layout{align-items:stretch}
+  .generator-results{display:flex;min-height:0}
+  .generator-results .results{height:100%;min-height:100%}
+  .results-demo{flex:1}
+  .results-demo-video{margin-top:auto}
+}
+.results-demo-image{display:flex;align-items:center;justify-content:center;background:#f4f5f7}
+.results-demo-image img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  object-position:center;
+}
