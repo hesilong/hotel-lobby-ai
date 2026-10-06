@@ -208,7 +208,7 @@ export function PricingPanel({
           className={pricingMode === 'yearly' ? 'active' : ''}
           onClick={() => setPricingMode('yearly')}
         >
-          Yearly {!REVIEW_MODE && <span>Save 20%</span>}
+          Yearly <span>Save 20%</span>
         </button>
         <button
           type="button"
@@ -232,10 +232,7 @@ export function PricingPanel({
               {featured && <span className="pricing-badge">{recommended ? 'Recommended' : 'Most popular'}</span>}
               <h3>{pack.name}</h3>
               <p className="pricing-capacity"><span>{pack.credits.toLocaleString()}</span> credits</p>
-              <div className={REVIEW_MODE ? 'pricing-price pricing-price-pending' : 'pricing-price'}>
-                <strong>{REVIEW_MODE ? 'Coming Soon' : `$${pack.priceUsd.toFixed(2)}`}</strong>
-                {!REVIEW_MODE && <span>one-time</span>}
-              </div>
+              <div className="pricing-price"><strong>${pack.priceUsd.toFixed(2)}</strong><span>one-time</span></div>
               <div className="pricing-feature-title">Included</div>
               <ul>
                 <li><Check size={15}/> Credits valid for 180 days</li>
@@ -265,11 +262,8 @@ export function PricingPanel({
               {planId === 'ultimate' && <span className="pricing-badge">Most popular</span>}
               <h3>{plan.name}</h3>
               <p className="pricing-capacity"><span>{plan.monthlyCredits.toLocaleString()}</span> credits / month</p>
-              <div className={REVIEW_MODE ? 'pricing-price pricing-price-pending' : 'pricing-price'}>
-                <strong>{REVIEW_MODE ? 'Coming Soon' : `$${monthlyDisplay.toFixed(2)}`}</strong>
-                {!REVIEW_MODE && <span>/mo</span>}
-              </div>
-              {!REVIEW_MODE && cycle === 'yearly' && <p className="pricing-billed">Billed ${plan.yearlyPriceUsd.toFixed(2)} yearly</p>}
+              <div className="pricing-price"><strong>${monthlyDisplay.toFixed(2)}</strong><span>/mo</span></div>
+              {cycle === 'yearly' && <p className="pricing-billed">Billed ${plan.yearlyPriceUsd.toFixed(2)} yearly</p>}
               <div className="pricing-feature-title">Supported features</div>
               <ul>
                 <li><Check size={15}/> Two-performer AI video generation</li>

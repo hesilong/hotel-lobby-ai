@@ -187,7 +187,6 @@ body{background:#f7f8fb;color:#17191f}
 .pricing-capacity span{display:inline-flex;align-items:center;border:1px solid rgba(111,70,217,.18);background:rgba(111,70,217,.06);color:#343944;border-radius:5px;padding:1px 6px;font-weight:800}
 .pricing-price{display:flex;align-items:baseline;gap:5px;margin:26px 0 4px}
 .pricing-price strong{font-size:42px;line-height:1;letter-spacing:-.045em}
-.pricing-price-pending strong{font-size:clamp(27px,4vw,36px);letter-spacing:-.03em}
 .pricing-price span{color:#8a909a;font-size:13px}
 .pricing-billed{margin:0 0 4px;color:#8a909a;font-size:12px}
 .pricing-feature-title{margin:24px 0 12px;color:#8b909a;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.13em}
