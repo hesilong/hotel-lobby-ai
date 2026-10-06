@@ -22,8 +22,7 @@ export function ResultsGallery({
   )
 
   const openHistory = () => {
-    const newestCompleted = tasks.find(task => task.status === 'completed' && task.result_url)
-    setSelectedTaskId(newestCompleted?.id || null)
+    setSelectedTaskId(null)
     setHistoryOpen(true)
   }
 
@@ -101,59 +100,85 @@ export function ResultsGallery({
           <div className="history-modal-head">
             <div>
               <h2>Generation history</h2>
-              <p>Your recent Hotel Lobby AI videos.</p>
+              <p>{tasks.length} recent generation{tasks.length === 1 ? '' : 's'} · newest first</p>
             </div>
             <button type="button" className="history-modal-close" onClick={() => setHistoryOpen(false)} aria-label="Close history">
               <X size={18}/>
             </button>
           </div>
 
-          {selectedTask && (
-            <div className="history-player">
-              <video key={selectedTask.id} src={selectedTask.result_url!} controls autoPlay playsInline preload="metadata"/>
-              <div className="history-player-meta">
-                <span>{taskDetails(selectedTask)}</span>
-                <a href={`/api/download/${selectedTask.id}`} download>
-                  <Download size={15}/> Download
-                </a>
-              </div>
-            </div>
-          )}
-
           <div className="history-grid">
             {tasks.map(task => {
               const retrying = retryingTaskId === task.id
               const completed = task.status === 'completed' && Boolean(task.result_url)
-              return <article key={task.id} className={`history-card ${selectedTaskId === task.id ? 'active' : ''}`}>
-                {completed ? (
-                  <button
-                    type="button"
-                    className="history-thumb"
-                    onClick={() => setSelectedTaskId(task.id)}
-                    aria-label="Play generated video"
-                  >
-                    <video src={task.result_url!} muted playsInline preload="metadata"/>
-                    <span className="history-play"><Play size={18} fill="currentColor"/></span>
-                  </button>
-                ) : task.status === 'failed' ? (
-                  <div className="history-thumb history-thumb-state">
-                    <AlertCircle size={22}/>
-                    <span>Failed</span>
-                  </div>
-                ) : (
-                  <div className="history-thumb history-thumb-state">
-                    <Loader2 className="spin" size={22}/>
-                    <span>Generating…</span>
-                  </div>
-                )}
+              const status = taskStatus(task)
 
-                <div className="history-card-body">
-                  <div>
-                    <strong>{taskDetails(task)}</strong>
-                    <span>{formatTaskDate(task.created_at)}</span>
+              return <article key={task.id} className="history-card">
+                <div className="history-card-media">
+                  {completed ? (
+                    <button
+                      type="button"
+                      className="history-thumb"
+                      onClick={() => setSelectedTaskId(task.id)}
+                      aria-label="Play generated video"
+                    >
+                      <video
+                        src={task.result_url!}
+                        muted
+                        playsInline
+                        preload="metadata"
+                        onLoadedMetadata={event => {
+                          const video = event.currentTarget
+                          if (video.duration > 0 && video.currentTime === 0) {
+                            video.currentTime = Math.min(0.1, video.duration / 2)
+                          }
+                        }}
+                      />
+                      <span className="history-play"><Play size={17} fill="currentColor"/></span>
+                    </button>
+                  ) : task.status === 'failed' ? (
+                    <div className="history-thumb history-thumb-state">
+                      <AlertCircle size={24}/>
+                      <strong>Generation failed</strong>
+                    </div>
+                  ) : (
+                    <div className="history-thumb history-thumb-state">
+                      <Loader2 className="spin" size={24}/>
+                      <strong>Generating…</strong>
+                    </div>
+                  )}
+                  <span className={`history-status history-status-${status.key}`}>{status.label}</span>
+                </div>
+
+                <div className="history-card-content">
+                  <div className="history-card-title">
+                    <div>
+                      <strong>{sceneLabel(task)}</strong>
+                      <span>{formatTaskDate(task.created_at)}</span>
+                    </div>
+                    <span className="history-credit">{task.credits_used ?? '—'} credits</span>
                   </div>
+
+                  <div className="history-params">
+                    <HistoryParam label="Duration" value={task.duration_seconds ? `${task.duration_seconds}s` : '—'} />
+                    <HistoryParam label="Resolution" value={task.resolution?.toUpperCase() || '—'} />
+                    <HistoryParam label="Orientation" value={task.aspect_ratio || '—'} />
+                    <HistoryParam label="Soundtrack" value={task.generate_audio ? 'On' : 'Off'} />
+                  </div>
+
+                  {task.status === 'failed' && task.failure_message && (
+                    <p className="history-error" title={task.failure_message}>{task.failure_message}</p>
+                  )}
+
                   <div className="history-card-actions">
-                    {completed && <a href={`/api/download/${task.id}`} download aria-label="Download generated video"><Download size={15}/></a>}
+                    {completed && <>
+                      <button type="button" onClick={() => setSelectedTaskId(task.id)}>
+                        <Play size={14} fill="currentColor"/> Play
+                      </button>
+                      <a href={`/api/download/${task.id}`} download>
+                        <Download size={14}/> Download
+                      </a>
+                    </>}
                     {task.status === 'failed' && onRetry && (
                       <button type="button" disabled={retrying} onClick={() => onRetry(task.id)}>
                         {retrying ? <Loader2 className="spin" size={14}/> : <RotateCcw size={14}/>}
@@ -166,9 +191,53 @@ export function ResultsGallery({
             })}
           </div>
         </section>
+
+        {selectedTask && (
+          <div className="history-viewer-backdrop" onMouseDown={event => {
+            if (event.currentTarget === event.target) setSelectedTaskId(null)
+          }}>
+            <section className="history-viewer" role="dialog" aria-modal="true" aria-label="Generated video preview">
+              <div className="history-viewer-head">
+                <div>
+                  <strong>{sceneLabel(selectedTask)}</strong>
+                  <span>{taskDetails(selectedTask)} · {formatTaskDate(selectedTask.created_at)}</span>
+                </div>
+                <button type="button" onClick={() => setSelectedTaskId(null)} aria-label="Close video preview"><X size={18}/></button>
+              </div>
+              <video key={selectedTask.id} src={selectedTask.result_url!} controls autoPlay playsInline preload="metadata"/>
+              <div className="history-viewer-footer">
+                <span>{selectedTask.generate_audio ? 'Soundtrack on' : 'Soundtrack off'} · {selectedTask.credits_used ?? '—'} credits</span>
+                <a href={`/api/download/${selectedTask.id}`} download>
+                  <Download size={15}/> Download
+                </a>
+              </div>
+            </section>
+          </div>
+        )}
       </div>
     )}
   </>
+}
+
+function HistoryParam({ label, value }: { label: string; value: string }) {
+  return <div className="history-param">
+    <span>{label}</span>
+    <strong>{value}</strong>
+  </div>
+}
+
+function taskStatus(task: GenerationTask) {
+  if (task.status === 'completed') return { key: 'completed', label: 'Completed' }
+  if (task.status === 'failed') return { key: 'failed', label: 'Failed' }
+  return { key: 'generating', label: 'Generating' }
+}
+
+function sceneLabel(task: GenerationTask) {
+  const prompt = task.prompt || ''
+  if (prompt.includes('warm orange studio stage')) return 'Orange Stage'
+  if (prompt.includes('modern recording studio')) return 'Recording Studio'
+  if (prompt.includes('elegant grand hall')) return 'Grand Hall'
+  return 'Preset Scene'
 }
 
 function taskDetails(task: GenerationTask) {
@@ -176,7 +245,6 @@ function taskDetails(task: GenerationTask) {
   if (task.duration_seconds) parts.push(`${task.duration_seconds}s`)
   if (task.resolution) parts.push(task.resolution.toUpperCase())
   if (task.aspect_ratio) parts.push(task.aspect_ratio)
-  if (!parts.length && task.credits_used) parts.push(`${task.credits_used} credits`)
   return parts.join(' · ') || 'Hotel Lobby AI'
 }
 
