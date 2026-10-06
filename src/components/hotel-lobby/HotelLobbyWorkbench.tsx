@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Loader2, Plus, X, Zap } from 'lucide-react'
-import { HOTEL_LOBBY_GENERATION_TEMPLATE, HOTEL_LOBBY_SCENES } from '@/config/hotel-lobby'
+import { getHotelLobbyGenerationTemplate, HOTEL_LOBBY_SCENES } from '@/config/hotel-lobby'
 import { calculateGenerationCredits } from '@/config/generation-cost'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { AuthModal } from '@/components/auth/AuthModal'
@@ -44,7 +44,7 @@ export function HotelLobbyWorkbench() {
   const assetErrorTimer = useRef<number | null>(null)
 
   const selectedScene = HOTEL_LOBBY_SCENES.find(scene => scene.id === selectedSceneId) || HOTEL_LOBBY_SCENES[0]
-  const fixedTemplate = HOTEL_LOBBY_GENERATION_TEMPLATE
+  const fixedTemplate = getHotelLobbyGenerationTemplate(duration)
   const cost = calculateGenerationCredits(duration, resolution)
   const isSubmitting = submitStage !== 'idle'
   const imagesReady = personA.status === 'approved' && personB.status === 'approved'
