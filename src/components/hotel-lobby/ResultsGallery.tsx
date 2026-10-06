@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { AlertCircle, ArrowDown, Clock3, Download, Loader2, Play, RotateCcw, X } from 'lucide-react'
 import type { GenerationTask } from '@/server/generation'
+import { REVIEW_MODE } from '@/config/feature-flags'
 
 const DEMO_BASE = 'https://cdn.hotel-lobby-ai.pro/demo/5'
 const DEMO = {
@@ -49,6 +50,12 @@ export function ResultsGallery({
       </div>
 
       {!visibleTasks.length ? (
+        REVIEW_MODE ? (
+          <div className="results-empty results-empty-review">
+            <strong>Ready for your first generation</strong>
+            <span>Upload two performers, choose a scene, and click Generate.</span>
+          </div>
+        ) : (
         <div className="results-demo">
           <div className="results-demo-topline">
             <span className="results-demo-badge">Example</span>
@@ -90,6 +97,7 @@ export function ResultsGallery({
             />
           </div>
         </div>
+        )
       ) : (
         <div className="results-grid">
           {visibleTasks.map(task => {
