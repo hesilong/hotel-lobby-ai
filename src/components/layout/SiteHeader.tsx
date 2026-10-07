@@ -3,6 +3,7 @@ import { LogIn, LogOut, UserRound } from 'lucide-react'
 import { AuthModal } from '@/components/auth/AuthModal'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { getBillingState } from '@/server/billing'
+import { SITE_CONFIG } from '@/config/site'
 
 export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
   const [authed, setAuthed] = useState(false)
@@ -75,8 +76,8 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
     <>
       <header className={overlay ? 'site-header site-header-overlay' : 'site-header'}>
         <a className="brand" href="/">
-          <img className="brand-icon" src="/favicon.svg" alt="" aria-hidden="true"/>
-          <span>Hotel Lobby AI</span>
+          <img className="brand-icon" src={SITE_CONFIG.faviconPath} alt="" aria-hidden="true"/>
+          <span>{SITE_CONFIG.name}</span>
         </a>
 
         <nav className="header-nav">
