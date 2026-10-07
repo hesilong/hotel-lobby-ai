@@ -1,3 +1,5 @@
+import { mediaUrl } from '@/config/site'
+
 export type MotionTemplate = {
   id: string
   name: string
@@ -15,7 +17,7 @@ export type HotelLobbyScene = {
   prompt: string
 }
 
-const SOURCE = 'https://cdn.hotel-lobby-ai.pro/template'
+const SOURCE = mediaUrl('/template')
 
 const basePrompt = 'Create a coordinated entertainment video using TWO separate reference performers. Use @Image1 as the Left Performer and @Image2 as the Right Performer; each reference may depict an adult person or a pet. Preserve each performer\'s recognizable appearance, facial or head features, hair or fur, markings, clothing if present, colors, and overall visual characteristics. Keep the Left Performer on the LEFT and the Right Performer on the RIGHT. Follow @Video1 for choreography, timing, framing, gestures, body movement, and camera behavior. Do not blend the performers, swap sides, add extra performers, text, logos, or watermarks.'
 
