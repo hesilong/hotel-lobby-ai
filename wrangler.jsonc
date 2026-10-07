@@ -8,8 +8,7 @@
   "r2_buckets": [
     {
       "binding": "AI_MEDIA_BUCKET",
-      "bucket_name": "hotel-lobby-ai",
-      "remote": true
+      "bucket_name": "hotel-lobby-ai"
     }
   ],
   "triggers": {
