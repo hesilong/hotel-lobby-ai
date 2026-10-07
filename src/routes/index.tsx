@@ -4,6 +4,7 @@ import { MotionGallery } from '@/components/hotel-lobby/MotionGallery'
 import { SiteHeader } from '@/components/layout/SiteHeader'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { HOTEL_LOBBY_FRIENDS_WEBP, HOTEL_LOBBY_PETS_WEBP, HOTEL_LOBBY_STREETWEAR_WEBP } from '@/config/hotel-lobby-visuals'
+import { SITE_CONFIG, siteUrl } from '@/config/site'
 
 const faqItems = [
   {
@@ -53,8 +54,8 @@ const jsonLd = {
   '@graph': [
     {
       '@type': 'WebApplication',
-      name: 'Hotel Lobby AI Video Generator',
-      url: 'https://hotel-lobby-ai.pro/',
+      name: `${SITE_CONFIG.name} Video Generator`,
+      url: siteUrl('/'),
       applicationCategory: 'MultimediaApplication',
       operatingSystem: 'Web',
       description: 'Create Hotel Lobby AI videos from two performer photos and a preset scene.'
@@ -76,28 +77,28 @@ const jsonLd = {
 export const Route = createFileRoute('/')({
   head: () => ({
     meta: [
-      { title: 'Hotel Lobby AI Generator – Create Viral Hotel Lobby Videos' },
+      { title: `${SITE_CONFIG.name} Generator – Create Viral Hotel Lobby Videos` },
       {
         name: 'description',
         content: 'Create Hotel Lobby AI videos from two performer photos. Upload people or pets, choose a preset scene, and generate your video online.',
       },
-      { property: 'og:title', content: 'Hotel Lobby AI Generator – Create Viral Hotel Lobby Videos' },
+      { property: 'og:title', content: `${SITE_CONFIG.name} Generator – Create Viral Hotel Lobby Videos` },
       {
         property: 'og:description',
         content: 'Create Hotel Lobby AI videos from two photos of people or pets, choose a preset scene, and generate a coordinated performance online.',
       },
       { property: 'og:type', content: 'website' },
-      { property: 'og:url', content: 'https://hotel-lobby-ai.pro/' },
-      { property: 'og:site_name', content: 'Hotel Lobby AI' },
+      { property: 'og:url', content: siteUrl('/') },
+      { property: 'og:site_name', content: SITE_CONFIG.name },
       { name: 'twitter:card', content: 'summary' },
-      { name: 'twitter:title', content: 'Hotel Lobby AI Generator' },
+      { name: 'twitter:title', content: `${SITE_CONFIG.name} Generator` },
       {
         name: 'twitter:description',
         content: 'Turn two performer photos into a Hotel Lobby AI video with a preset scene and guided performance.',
       },
       { name: 'robots', content: 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1' },
     ],
-    links: [{ rel: 'canonical', href: 'https://hotel-lobby-ai.pro/' }],
+    links: [{ rel: 'canonical', href: siteUrl('/') }],
   }),
   component: HomePage,
 })
@@ -296,7 +297,7 @@ function HomePage() {
             <h2>Hotel Lobby AI questions</h2>
             <p>
               Have more questions? Contact us at{' '}
-              <a href="mailto:support@hotel-lobby-ai.pro">support@hotel-lobby-ai.pro</a>
+              <a href={`mailto:${SITE_CONFIG.supportEmail}`}>{SITE_CONFIG.supportEmail}</a>
             </p>
           </div>
           <div className="faq-list">
