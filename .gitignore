@@ -10,3 +10,4 @@ node_modules
 .tanstack/
 .waffo/
 supabase/.temp
+r2-test*.txt
