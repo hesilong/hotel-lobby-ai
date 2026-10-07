@@ -65,7 +65,7 @@ export default {
     if (request.method === 'POST' && url.pathname === '/api/kie/callback') {
       return handleKieCallback(request, workerEnv, ctx)
     }
-    return handler.fetch(request, workerEnv, ctx)
+    return handler.fetch(request)
   },
 
   async scheduled(
