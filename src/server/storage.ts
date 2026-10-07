@@ -427,5 +427,10 @@ export async function persistGeneratedVideo(params: {
     },
   })
 
+  const stored = await params.bucket.head(key)
+  if (!stored) {
+    throw new Error('RESULT_PERSIST_VERIFY_FAILED')
+  }
+
   return `${publicBase}/${key}`
 }
