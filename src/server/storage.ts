@@ -398,8 +398,20 @@ export async function persistGeneratedVideo(params: {
 
   const publicBase = generatedVideoPublicBase()
   const key = `generated/videos/${params.taskId}.mp4`
-  const existing = await params.bucket.head(key)
-  if (existing) return `${publicBase}/${key}`
+
+  // Reusing an existing deterministic object is only an optimization.
+  // Remote R2 bindings can occasionally surface opaque HEAD errors during
+  // local development, so a failed existence check must not block upload.
+  try {
+    const existing = await params.bucket.head(key)
+    if (existing) return `${publicBase}/${key}`
+  } catch (error) {
+    console.warn('[storage] generated video HEAD check failed; continuing with upload', {
+      taskId: params.taskId,
+      key,
+      error,
+    })
+  }
 
   assertRemoteGeneratedVideoUrl(params.sourceUrl)
   const response = await fetch(params.sourceUrl, {
@@ -415,7 +427,7 @@ export async function persistGeneratedVideo(params: {
 
   const rawContentType = response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() || ''
   const contentType = rawContentType.startsWith('video/') ? rawContentType : 'video/mp4'
-  await params.bucket.put(key, response.body, {
+  const stored = await params.bucket.put(key, response.body, {
     httpMetadata: {
       contentType,
       cacheControl: 'public, max-age=31536000, immutable',
@@ -427,10 +439,16 @@ export async function persistGeneratedVideo(params: {
     },
   })
 
-  const stored = await params.bucket.head(key)
   if (!stored) {
-    throw new Error('RESULT_PERSIST_VERIFY_FAILED')
+    throw new Error('RESULT_PERSIST_PUT_FAILED')
   }
+
+  console.info('[storage] generated video persisted', {
+    taskId: params.taskId,
+    key: stored.key,
+    size: stored.size,
+    etag: stored.etag,
+  })
 
   return `${publicBase}/${key}`
 }
