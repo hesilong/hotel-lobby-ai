@@ -237,14 +237,13 @@ async function failProviderTask(
     .eq('id', task.id)
     .eq('user_id', task.user_id)
     .in('status', ['pending', 'processing'])
-    .select(TASK_SELECT)
+    .select('id')
     .maybeSingle()
 
   if (error) throw new Error(error.message)
 
-  if (data) {
+  if (data?.id) {
     await refundTaskIfNeeded(task.id, task.user_id, failureMessage)
-    return (await readTask(task.id)) || (data as GenerationTaskRow)
   }
 
   return (await readTask(task.id)) || task
