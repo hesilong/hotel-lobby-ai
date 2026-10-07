@@ -1,18 +1,19 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { SiteHeader } from '@/components/layout/SiteHeader'
 import { SiteFooter } from '@/components/layout/SiteFooter'
+import { SITE_CONFIG, siteUrl } from '@/config/site'
 
 export const Route = createFileRoute('/privacy-policy')({
   head: () => ({
     meta: [
-      { title: 'Privacy Policy – Hotel Lobby AI' },
+      { title: `Privacy Policy – ${SITE_CONFIG.name}` },
       {
         name: 'description',
-        content: 'Read the Hotel Lobby AI Privacy Policy, including how account information, uploaded media, prompts, generated content, and technical data are handled.',
+        content: `Read the ${SITE_CONFIG.name} Privacy Policy, including how account information, uploaded media, prompts, generated content, and technical data are handled.`,
       },
       { name: 'robots', content: 'index,follow' },
     ],
-    links: [{ rel: 'canonical', href: 'https://hotel-lobby-ai.pro/privacy-policy' }],
+    links: [{ rel: 'canonical', href: siteUrl('/privacy-policy') }],
   }),
   component: PrivacyPolicyPage,
 })
@@ -29,8 +30,8 @@ function PrivacyPolicyPage() {
 
       <article className="legal-page">
         <p>
-          This Privacy Policy explains how Hotel Lobby AI ("Hotel Lobby AI," "we," "us," or "our")
-          handles information when you use hotel-lobby-ai.pro and related features (the "Service").
+          This Privacy Policy explains how {SITE_CONFIG.name} ("{SITE_CONFIG.name}," "we," "us," or "our")
+          handles information when you use {SITE_CONFIG.domain} and related features (the "Service").
           By using the Service, you acknowledge the practices described below.
         </p>
 
