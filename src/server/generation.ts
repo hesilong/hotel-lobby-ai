@@ -45,10 +45,6 @@ export type GenerationTask = {
 }
 
 const mockEnabled = () => process.env.MOCK_GENERATION === 'true'
-const mockResultUrl = () =>
-  process.env.MOCK_RESULT_VIDEO_URL ||
-  'https://cdn.hotel-lobby-ai.pro/template/hotel-lobby_5.mp4'
-
 const kieCallbackUrl = () => {
   const explicit = process.env.KIE_CALLBACK_URL?.trim()
   if (explicit) return explicit
@@ -152,20 +148,18 @@ async function submitGenerationForUser(userId: string, data: CreateGenerationInp
     })
 
     if (isMock) {
-      const resultUrl = mockResultUrl()
+      const now = new Date().toISOString()
       await admin.from('generation_tasks').update({
-        status: 'completed',
+        status: 'processing',
         provider_task_id: `mock:${Date.now()}`,
-        provider_result_url: resultUrl,
-        result_url: resultUrl,
-        storage_status: 'persisted',
-        storage_updated_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        storage_status: 'pending',
+        updated_at: now,
       }).eq('id', task.id)
+
       return {
         id: task.id,
-        status: 'completed' as const,
-        result_url: resultUrl,
+        status: 'processing' as const,
+        result_url: null,
         creditsUsed: credits,
         balance: debit.balance,
         duration_seconds: data.duration,
