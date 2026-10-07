@@ -389,6 +389,13 @@ export async function persistGeneratedVideo(params: {
   sourceUrl: string
   bucket: R2Bucket
 }) {
+  if (
+    process.env.MOCK_GENERATION === 'true' &&
+    process.env.MOCK_R2_FAILURE === 'true'
+  ) {
+    throw new Error('MOCK_R2_FAILURE')
+  }
+
   const publicBase = generatedVideoPublicBase()
   const key = `generated/videos/${params.taskId}.mp4`
   const existing = await params.bucket.head(key)
