@@ -2,6 +2,7 @@ import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { refundCredits } from '@/server/credits'
 import { getKieTask } from '@/server/kie'
 import { persistGeneratedVideo } from '@/server/storage'
+import { mediaUrl } from '@/config/site'
 
 export type GenerationWorkerBindings = {
   AI_MEDIA_BUCKET: R2Bucket
@@ -60,7 +61,7 @@ const TASK_SELECT = [
 
 const mockResultUrl = () =>
   process.env.MOCK_RESULT_VIDEO_URL ||
-  'https://cdn.hotel-lobby-ai.pro/template/hotel-lobby_5.mp4'
+  mediaUrl('/demo/5/hotel-lobby-ai-480p-5.mp4')
 
 async function readTask(taskId: string): Promise<GenerationTaskRow | null> {
   const admin = getSupabaseAdminClient()
