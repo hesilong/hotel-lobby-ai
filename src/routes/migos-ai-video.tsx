@@ -5,6 +5,7 @@ import { SiteHeader } from '@/components/layout/SiteHeader'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { HOTEL_LOBBY_TEMPLATES } from '@/config/hotel-lobby'
 import { HOTEL_LOBBY_FRIENDS_WEBP, HOTEL_LOBBY_STREETWEAR_WEBP } from '@/config/hotel-lobby-visuals'
+import { SITE_CONFIG, siteUrl } from '@/config/site'
 
 const faqItems = [
   {
@@ -31,7 +32,7 @@ const jsonLd = {
     {
       '@type': 'WebApplication',
       name: 'Migos AI Video Generator',
-      url: 'https://hotel-lobby-ai.pro/migos-ai-video',
+      url: siteUrl('/migos-ai-video'),
       applicationCategory: 'MultimediaApplication',
       operatingSystem: 'Web',
       description: 'Create a Migos AI-style hotel lobby video from two photos and a motion reference.',
@@ -61,14 +62,14 @@ export const Route = createFileRoute('/migos-ai-video')({
       { property: 'og:title', content: 'Migos AI Video Generator – Create Hotel Lobby AI Videos' },
       { property: 'og:description', content: 'Create a two-person Migos AI-style Hotel Lobby video from your photos and a motion reference.' },
       { property: 'og:type', content: 'website' },
-      { property: 'og:url', content: 'https://hotel-lobby-ai.pro/migos-ai-video' },
-      { property: 'og:site_name', content: 'Hotel Lobby AI' },
+      { property: 'og:url', content: siteUrl('/migos-ai-video') },
+      { property: 'og:site_name', content: SITE_CONFIG.name },
       { name: 'twitter:card', content: 'summary' },
       { name: 'twitter:title', content: 'Migos AI Video Generator' },
       { name: 'twitter:description', content: 'Upload two photos and create a hotel-lobby-style Migos AI video with a reference motion.' },
       { name: 'robots', content: 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1' },
     ],
-    links: [{ rel: 'canonical', href: 'https://hotel-lobby-ai.pro/migos-ai-video' }],
+    links: [{ rel: 'canonical', href: siteUrl('/migos-ai-video') }],
   }),
   component: MigosAiPage,
 })
