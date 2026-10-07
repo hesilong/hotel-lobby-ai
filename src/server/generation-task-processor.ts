@@ -249,31 +249,13 @@ async function failProviderTask(
   return (await readTask(task.id)) || task
 }
 
-async function completeLegacyMockTask(task: GenerationTaskRow) {
+async function completeMockTask(
+  task: GenerationTaskRow,
+  bindings: GenerationWorkerBindings,
+) {
   const startedAt = Number(task.provider_task_id?.split(':')[1] || Date.parse(task.created_at))
   if (Date.now() - startedAt < 4000) return task
-
-  const admin = getSupabaseAdminClient()
-  const now = new Date().toISOString()
-  const resultUrl = mockResultUrl()
-  const { data, error } = await admin
-    .from('generation_tasks')
-    .update({
-      status: 'completed',
-      provider_result_url: resultUrl,
-      result_url: resultUrl,
-      storage_status: 'persisted',
-      storage_last_error: null,
-      storage_updated_at: now,
-      updated_at: now,
-    })
-    .eq('id', task.id)
-    .in('status', ['pending', 'processing'])
-    .select(TASK_SELECT)
-    .maybeSingle()
-
-  if (error) throw new Error(error.message)
-  return (data as GenerationTaskRow | null) || (await readTask(task.id)) || task
+  return completeProviderTask(task, mockResultUrl(), bindings)
 }
 
 export async function processGenerationTask(
@@ -291,7 +273,7 @@ export async function processGenerationTask(
   }
 
   if (task.provider === 'mock') {
-    return completeLegacyMockTask(task)
+    return completeMockTask(task, bindings)
   }
 
   if (task.provider !== 'kie' || !task.provider_task_id) return task
