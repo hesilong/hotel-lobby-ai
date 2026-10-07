@@ -4,8 +4,8 @@ import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { assertPromptAllowed } from '@/server/moderation'
 import { deductCredits, refundCredits, reconcileYearlySubscriptionCredits } from '@/server/credits'
 import { calculateGenerationCredits } from '@/config/generation-cost'
-import { getKieTask, KIE_VIDEO_MODEL, submitKieSeedanceVideo } from '@/server/kie'
-import { persistGeneratedVideo, verifyPreparedAssets } from '@/server/storage'
+import { KIE_VIDEO_MODEL, submitKieSeedanceVideo } from '@/server/kie'
+import { verifyPreparedAssets } from '@/server/storage'
 import { HOTEL_LOBBY_TEMPLATES } from '@/config/hotel-lobby'
 
 export type CreateGenerationInput = {
@@ -30,6 +30,8 @@ export type GenerationTask = {
   id: string
   status: 'pending' | 'processing' | 'completed' | 'failed'
   result_url: string | null
+  provider_result_url?: string | null
+  storage_status?: 'pending' | 'persisted' | 'fallback'
   failure_message: string | null
   created_at: string
   provider_task_id: string | null
@@ -46,6 +48,14 @@ const mockEnabled = () => process.env.MOCK_GENERATION === 'true'
 const mockResultUrl = () =>
   process.env.MOCK_RESULT_VIDEO_URL ||
   'https://cdn.hotel-lobby-ai.pro/template/hotel-lobby_5.mp4'
+
+const kieCallbackUrl = () => {
+  const explicit = process.env.KIE_CALLBACK_URL?.trim()
+  if (explicit) return explicit
+  if (process.env.NODE_ENV !== 'production') return undefined
+  const siteUrl = process.env.VITE_SITE_URL?.trim().replace(/\/+$/, '')
+  return siteUrl ? `${siteUrl}/api/kie/callback` : undefined
+}
 
 async function authUser() {
   const supabase = getSupabaseServerClient()
@@ -142,14 +152,20 @@ async function submitGenerationForUser(userId: string, data: CreateGenerationInp
     })
 
     if (isMock) {
+      const resultUrl = mockResultUrl()
       await admin.from('generation_tasks').update({
-        status: 'processing',
+        status: 'completed',
         provider_task_id: `mock:${Date.now()}`,
+        provider_result_url: resultUrl,
+        result_url: resultUrl,
+        storage_status: 'persisted',
+        storage_updated_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       }).eq('id', task.id)
       return {
         id: task.id,
-        status: 'processing' as const,
+        status: 'completed' as const,
+        result_url: resultUrl,
         creditsUsed: credits,
         balance: debit.balance,
         duration_seconds: data.duration,
@@ -168,6 +184,7 @@ async function submitGenerationForUser(userId: string, data: CreateGenerationInp
       resolution: data.resolution,
       aspectRatio: data.aspectRatio,
       generateAudio: data.generateAudio,
+      callBackUrl: kieCallbackUrl(),
     })
     await admin.from('generation_tasks').update({
       status: 'processing',
@@ -177,6 +194,7 @@ async function submitGenerationForUser(userId: string, data: CreateGenerationInp
     return {
         id: task.id,
         status: 'processing' as const,
+        result_url: null,
         creditsUsed: credits,
         balance: debit.balance,
         duration_seconds: data.duration,
@@ -271,7 +289,7 @@ export const listGenerationTasks = createServerFn({ method: 'GET' }).handler(asy
   const user = await authUser()
   const admin = getSupabaseAdminClient()
   const { data, error } = await admin.from('generation_tasks')
-    .select('id,status,result_url,failure_message,created_at,provider_task_id,provider,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio,prompt')
+    .select('id,status,result_url,provider_result_url,storage_status,failure_message,created_at,provider_task_id,provider,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio,prompt')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(20)
@@ -285,68 +303,11 @@ export const refreshGenerationTask = createServerFn({ method: 'POST' })
     const user = await authUser()
     const admin = getSupabaseAdminClient()
     const { data: task, error } = await admin.from('generation_tasks')
-      .select('id,user_id,status,provider,provider_task_id,result_url,failure_message,created_at,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio,prompt')
-      .eq('id', data.taskId).eq('user_id', user.id).maybeSingle()
+      .select('id,user_id,status,provider,provider_task_id,result_url,provider_result_url,storage_status,failure_message,created_at,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio,prompt')
+      .eq('id', data.taskId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+
     if (error || !task) throw new Error('TASK_NOT_FOUND')
-    if (task.status === 'completed' || task.status === 'failed') return task as GenerationTask
-
-    if (task.provider === 'mock') {
-      const startedAt = Number(task.provider_task_id?.split(':')[1] || Date.parse(task.created_at))
-      if (Date.now() - startedAt < 4000) return task as GenerationTask
-
-      const { data: updated, error: updateError } = await admin.from('generation_tasks').update({
-        status: 'completed',
-        result_url: mockResultUrl(),
-        updated_at: new Date().toISOString(),
-      }).eq('id', task.id)
-        .select('id,status,result_url,failure_message,created_at,provider_task_id,provider,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio,prompt')
-        .single()
-      if (updateError || !updated) throw new Error(updateError?.message || 'MOCK_TASK_UPDATE_FAILED')
-      return updated as GenerationTask
-    }
-
-    if (!task.provider_task_id) return task as GenerationTask
-
-    const upstream = await getKieTask(task.provider_task_id)
-    if (upstream.state === 'success' && upstream.resultUrl) {
-      try {
-        const persistedUrl = await persistGeneratedVideo({ taskId: task.id, sourceUrl: upstream.resultUrl })
-        const { data: updated } = await admin.from('generation_tasks').update({
-          status: 'completed',
-          result_url: persistedUrl,
-          updated_at: new Date().toISOString(),
-        }).eq('id', task.id)
-          .select('id,status,result_url,failure_message,created_at,provider_task_id,provider,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio,prompt')
-          .single()
-        return updated as GenerationTask
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'RESULT_PERSIST_FAILED'
-        const { data: updated } = await admin.from('generation_tasks').update({
-          status: 'failed',
-          failure_message: message,
-          failure_code: 'RESULT_PERSIST_FAILED',
-          updated_at: new Date().toISOString(),
-        }).eq('id', task.id)
-          .select('id,status,result_url,failure_message,created_at,provider_task_id,provider,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio,prompt')
-          .single()
-        await refundTaskIfNeeded(task.id, user.id, message)
-        return updated as GenerationTask
-      }
-    }
-
-    if (upstream.state === 'fail') {
-      const message = upstream.failMessage || 'Generation failed'
-      const { data: updated } = await admin.from('generation_tasks').update({
-        status: 'failed',
-        failure_code: upstream.failCode || null,
-        failure_message: message,
-        updated_at: new Date().toISOString(),
-      }).eq('id', task.id)
-        .select('id,status,result_url,failure_message,created_at,provider_task_id,provider,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio,prompt')
-        .single()
-      await refundTaskIfNeeded(task.id, user.id, message)
-      return updated as GenerationTask
-    }
-
     return task as GenerationTask
   })

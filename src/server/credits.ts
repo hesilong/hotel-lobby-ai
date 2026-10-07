@@ -57,55 +57,29 @@ export async function deductCredits(params: {
   meta?: Record<string, unknown>
 }) {
   const amount = Math.abs(Math.round(params.amount))
-  const balance = await getCreditBalance(params.admin, params.userId)
-  if (balance < amount) throw new InsufficientCreditsError()
+  if (!params.taskId) throw new Error('TASK_ID_REQUIRED')
 
-  const { data: grants, error: grantsError } = await params.admin
-    .from('credit_grants')
-    .select('id,credits_remaining,expires_at')
-    .eq('user_id', params.userId)
-    .eq('status', 'active')
-    .gt('credits_remaining', 0)
-    .order('expires_at', { ascending: true, nullsFirst: false })
-    .order('created_at', { ascending: true })
-  if (grantsError) throw new Error(grantsError.message)
-
-  let remaining = amount
-  const grantDebits: Array<{ grant_id: string; amount: number }> = []
-  for (const grant of grants || []) {
-    if (remaining <= 0) break
-    const current = Number(grant.credits_remaining || 0)
-    if (current <= 0) continue
-    const used = Math.min(current, remaining)
-    grantDebits.push({ grant_id: grant.id, amount: used })
-    remaining -= used
-  }
-
-  const debit = await adjustCredits({
-    admin: params.admin,
-    userId: params.userId,
-    delta: -amount,
-    reason: 'generation',
-    taskId: params.taskId,
-    meta: { ...(params.meta || {}), grant_debits: grantDebits },
+  const { data, error } = await params.admin.rpc('consume_generation_credits', {
+    p_user_id: params.userId,
+    p_amount: amount,
+    p_task_id: params.taskId,
+    p_meta: params.meta || {},
   })
 
-  try {
-    for (const grantDebit of grantDebits) {
-      const grant = (grants || []).find(item => item.id === grantDebit.grant_id)
-      const current = Number(grant?.credits_remaining || 0)
-      const { error } = await params.admin.from('credit_grants').update({
-        credits_remaining: Math.max(0, current - grantDebit.amount),
-        updated_at: new Date().toISOString(),
-      }).eq('id', grantDebit.grant_id).eq('user_id', params.userId)
-      if (error) throw new Error(error.message)
+  if (error) {
+    if ((error.message || '').includes('INSUFFICIENT_CREDITS')) {
+      throw new InsufficientCreditsError()
     }
-  } catch (error) {
-    // Keep monetary balance correct even if grant attribution fails; ledger records the intended debits.
-    console.error('[credits] failed to update grant attribution', error)
+    throw new Error(error.message)
   }
 
-  return debit
+  const row = Array.isArray(data) ? data[0] : data
+  return {
+    amount,
+    balance: Number(row?.balance || 0),
+    ledgerId: row?.ledger_id || null,
+    duplicate: row?.duplicate === true,
+  }
 }
 
 export async function refundCredits(params: {
@@ -115,56 +89,32 @@ export async function refundCredits(params: {
   taskId: string
   meta?: Record<string, unknown>
 }) {
-  const { data: existing, error } = await params.admin
-    .from('credit_ledger')
-    .select('id')
-    .eq('user_id', params.userId)
-    .eq('task_id', params.taskId)
-    .eq('reason', 'generation_refund')
-    .maybeSingle()
-  if (error) throw new Error(error.message)
-  if (existing) return { duplicate: true, balance: await getCreditBalance(params.admin, params.userId) }
-
-  const { data: original, error: originalError } = await params.admin
-    .from('credit_ledger')
-    .select('meta')
-    .eq('user_id', params.userId)
-    .eq('task_id', params.taskId)
-    .eq('reason', 'generation')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-  if (originalError) throw new Error(originalError.message)
-
-  const result = await adjustCredits({
-    admin: params.admin,
-    userId: params.userId,
-    delta: Math.abs(params.amount),
-    reason: 'generation_refund',
-    taskId: params.taskId,
-    meta: params.meta,
-  })
-
-  const rawDebits = Array.isArray((original?.meta as any)?.grant_debits)
-    ? (original!.meta as any).grant_debits as Array<{ grant_id?: unknown; amount?: unknown }>
-    : []
-  for (const debit of rawDebits) {
-    if (typeof debit.grant_id !== 'string') continue
-    const amount = Number(debit.amount || 0)
-    if (amount <= 0) continue
-    const { data: grant } = await params.admin.from('credit_grants')
-      .select('credits_remaining,credits_total,status')
-      .eq('id', debit.grant_id)
-      .eq('user_id', params.userId)
-      .maybeSingle()
-    if (!grant || grant.status !== 'active') continue
-    await params.admin.from('credit_grants').update({
-      credits_remaining: Math.min(Number(grant.credits_total || 0), Number(grant.credits_remaining || 0) + amount),
-      updated_at: new Date().toISOString(),
-    }).eq('id', debit.grant_id).eq('user_id', params.userId)
+  const amount = Math.abs(Math.round(params.amount))
+  if (amount <= 0) {
+    return {
+      duplicate: false,
+      amount: 0,
+      balance: await getCreditBalance(params.admin, params.userId),
+      ledgerId: null,
+    }
   }
 
-  return { duplicate: false, ...result }
+  const { data, error } = await params.admin.rpc('refund_generation_credits', {
+    p_user_id: params.userId,
+    p_amount: amount,
+    p_task_id: params.taskId,
+    p_meta: params.meta || {},
+  })
+
+  if (error) throw new Error(error.message)
+
+  const row = Array.isArray(data) ? data[0] : data
+  return {
+    duplicate: row?.duplicate === true,
+    amount,
+    balance: Number(row?.balance || 0),
+    ledgerId: row?.ledger_id || null,
+  }
 }
 
 export async function grantPurchasedCredits(params: {

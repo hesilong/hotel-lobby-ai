@@ -139,7 +139,7 @@ export function HotelLobbyWorkbench() {
           setTasks(current => [{
             id: task.id,
             status: task.status,
-            result_url: null,
+            result_url: task.result_url ?? null,
             failure_message: null,
             created_at: new Date().toISOString(),
             provider_task_id: null,
@@ -267,7 +267,7 @@ export function HotelLobbyWorkbench() {
       setTasks(current => [{
         id: task.id,
         status: task.status,
-        result_url: null,
+        result_url: task.result_url ?? null,
         failure_message: null,
         created_at: new Date().toISOString(),
         provider_task_id: null,
@@ -360,7 +360,7 @@ export function HotelLobbyWorkbench() {
       setTasks(current => [{
         id: task.id,
         status: task.status,
-        result_url: null,
+        result_url: task.result_url ?? null,
         failure_message: null,
         created_at: new Date().toISOString(),
         provider_task_id: null,

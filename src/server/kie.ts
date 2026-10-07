@@ -13,6 +13,7 @@ export async function submitKieSeedanceVideo(input: {
   resolution: '480p' | '720p' | '1080p'
   aspectRatio: '16:9' | '9:16' | '1:1'
   generateAudio: boolean
+  callBackUrl?: string
 }) {
   const apiKey = process.env.KIE_API_KEY
   if (!apiKey) throw new Error('KIE_API_KEY_MISSING')
@@ -26,6 +27,7 @@ export async function submitKieSeedanceVideo(input: {
     },
     body: JSON.stringify({
       model: KIE_VIDEO_MODEL,
+      ...(input.callBackUrl ? { callBackUrl: input.callBackUrl } : {}),
       input: {
         prompt: input.prompt,
         reference_image_urls: input.imageUrls,

@@ -363,45 +363,62 @@ export async function verifyPreparedAssetsForHandoff(params: {
   return true
 }
 
+const MAX_GENERATED_VIDEO_BYTES = 512 * 1024 * 1024
+
+function generatedVideoPublicBase() {
+  const value = process.env.R2_PUBLIC_BASE_URL?.replace(/\/$/, '')
+  if (!value) throw new Error('R2_PUBLIC_BASE_URL_MISSING')
+  return value
+}
+
+function assertRemoteGeneratedVideoUrl(value: string) {
+  let parsed: URL
+  try {
+    parsed = new URL(value)
+  } catch {
+    throw new Error('INVALID_RESULT_URL')
+  }
+  if (parsed.protocol !== 'https:' || parsed.username || parsed.password) {
+    throw new Error('INVALID_RESULT_URL')
+  }
+  return parsed
+}
+
 export async function persistGeneratedVideo(params: {
   taskId: string
   sourceUrl: string
+  bucket: R2Bucket
 }) {
-  const response = await fetch(params.sourceUrl)
-  if (!response.ok) throw new Error('RESULT_DOWNLOAD_FAILED')
+  const publicBase = generatedVideoPublicBase()
+  const key = `generated/videos/${params.taskId}.mp4`
+  const existing = await params.bucket.head(key)
+  if (existing) return `${publicBase}/${key}`
+
+  assertRemoteGeneratedVideoUrl(params.sourceUrl)
+  const response = await fetch(params.sourceUrl, {
+    headers: { Accept: 'video/*,application/octet-stream;q=0.9,*/*;q=0.5' },
+  })
+  if (!response.ok || !response.body) throw new Error(`RESULT_DOWNLOAD_FAILED_${response.status}`)
 
   const declaredSize = Number(response.headers.get('content-length') || 0)
-  if (declaredSize > 100 * 1024 * 1024) {
+  if (Number.isFinite(declaredSize) && declaredSize > MAX_GENERATED_VIDEO_BYTES) {
+    void response.body.cancel().catch(() => {})
     throw new Error('RESULT_TOO_LARGE_TO_PERSIST')
   }
 
-  const bytes = new Uint8Array(await response.arrayBuffer())
-  if (bytes.byteLength > 100 * 1024 * 1024) {
-    throw new Error('RESULT_TOO_LARGE_TO_PERSIST')
-  }
-
-  const { publicBase } = r2Config()
-  const key = `generated/videos/${params.taskId}.mp4`
-  const contentType = response.headers.get('content-type') || 'video/mp4'
-  const uploadUrl = await createSignedPutUrl(key)
-
-  const uploadResponse = await fetch(uploadUrl, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': contentType,
-      'Cache-Control': 'public, max-age=31536000, immutable',
+  const rawContentType = response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() || ''
+  const contentType = rawContentType.startsWith('video/') ? rawContentType : 'video/mp4'
+  await params.bucket.put(key, response.body, {
+    httpMetadata: {
+      contentType,
+      cacheControl: 'public, max-age=31536000, immutable',
+      contentDisposition: 'inline',
     },
-    body: bytes,
+    customMetadata: {
+      mediaKind: 'generated-video',
+      taskId: params.taskId,
+    },
   })
-
-  if (!uploadResponse.ok) {
-    const detail = await uploadResponse.text().catch(() => '')
-    console.error('[R2] generated video persist failed', {
-      status: uploadResponse.status,
-      detail: detail.slice(0, 500),
-    })
-    throw new Error(`RESULT_PERSIST_FAILED_${uploadResponse.status}`)
-  }
 
   return `${publicBase}/${key}`
 }

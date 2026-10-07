@@ -3,6 +3,15 @@
   "name": "hotel-lobby-ai",
   "compatibility_date": "2026-09-30",
   "compatibility_flags": ["nodejs_compat"],
-  "main": "@tanstack/react-start/server-entry",
-  "keep_vars": true
+  "main": "src/server.ts",
+  "keep_vars": true,
+  "r2_buckets": [
+    {
+      "binding": "AI_MEDIA_BUCKET",
+      "bucket_name": "hotel-lobby-ai"
+    }
+  ],
+  "triggers": {
+    "crons": ["*/2 * * * *"]
+  }
 }
