@@ -2,6 +2,7 @@ import { HeadContent, Outlet, Scripts, createRootRoute } from '@tanstack/react-r
 import appCss from '@/styles/app.css?url'
 import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics'
 import { Clarity } from '@/components/analytics/Clarity'
+import { SITE_CONFIG } from '@/config/site'
 
 export const Route = createRootRoute({
   head: () => ({
@@ -9,15 +10,15 @@ export const Route = createRootRoute({
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
       { name: 'theme-color', content: '#f7f8fb' },
-      { title: 'Hotel Lobby AI Video Generator' },
+      { title: SITE_CONFIG.defaultTitle },
       {
         name: 'description',
-        content: 'Create Hotel Lobby AI videos from two photos and a reference motion video.',
+        content: SITE_CONFIG.defaultDescription,
       },
     ],
     links: [
       { rel: 'stylesheet', href: appCss },
-      { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+      { rel: 'icon', type: 'image/svg+xml', href: SITE_CONFIG.faviconPath },
     ],
   }),
   component: RootDocument,
