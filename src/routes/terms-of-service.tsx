@@ -1,18 +1,19 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { SiteHeader } from '@/components/layout/SiteHeader'
 import { SiteFooter } from '@/components/layout/SiteFooter'
+import { SITE_CONFIG, siteUrl } from '@/config/site'
 
 export const Route = createFileRoute('/terms-of-service')({
   head: () => ({
     meta: [
-      { title: 'Terms of Service – Hotel Lobby AI' },
+      { title: `Terms of Service – ${SITE_CONFIG.name}` },
       {
         name: 'description',
-        content: 'Read the Hotel Lobby AI Terms of Service covering acceptable use, uploaded content, AI-generated results, accounts, and service limitations.',
+        content: `Read the ${SITE_CONFIG.name} Terms of Service covering acceptable use, uploaded content, AI-generated results, accounts, and service limitations.`,
       },
       { name: 'robots', content: 'index,follow' },
     ],
-    links: [{ rel: 'canonical', href: 'https://hotel-lobby-ai.pro/terms-of-service' }],
+    links: [{ rel: 'canonical', href: siteUrl('/terms-of-service') }],
   }),
   component: TermsPage,
 })
@@ -29,7 +30,7 @@ function TermsPage() {
 
       <article className="legal-page">
         <p>
-          These Terms of Service ("Terms") govern your use of hotel-lobby-ai.pro and related features
+          These Terms of Service ("Terms") govern your use of {SITE_CONFIG.domain} and related features
           (the "Service"). By accessing or using the Service, you agree to these Terms.
         </p>
 
@@ -180,7 +181,7 @@ function TermsPage() {
         <h2>14. Contact</h2>
         <p>
           For customer support, questions about these Terms, or content reports, email{' '}
-          <a href="mailto:support@hotel-lobby-ai.pro">support@hotel-lobby-ai.pro</a>.
+          <a href={`mailto:${SITE_CONFIG.supportEmail}`}>{SITE_CONFIG.supportEmail}</a>.
         </p>
       </article>
       <SiteFooter />
