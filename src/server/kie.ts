@@ -1,3 +1,5 @@
+import type { GenerationAspectRatio, GenerationResolution } from '@/config/generation'
+
 const KIE_BASE = process.env.KIE_API_BASE_URL || 'https://api.kie.ai'
 type JsonObject = Record<string, unknown>
 const obj = (v: unknown): JsonObject => (v && typeof v === 'object' && !Array.isArray(v) ? v as JsonObject : {})
@@ -9,8 +11,8 @@ export async function submitKieSeedanceVideo(input: {
   videoUrl: string
   prompt: string
   duration: number
-  resolution: '480p' | '720p' | '1080p'
-  aspectRatio: '16:9' | '9:16' | '1:1'
+  resolution: GenerationResolution
+  aspectRatio: GenerationAspectRatio
   generateAudio: boolean
   callBackUrl?: string
 }) {
