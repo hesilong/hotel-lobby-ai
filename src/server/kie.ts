@@ -1,11 +1,10 @@
 const KIE_BASE = process.env.KIE_API_BASE_URL || 'https://api.kie.ai'
-export const KIE_VIDEO_MODEL = 'bytedance/seedance-2-5'
-
 type JsonObject = Record<string, unknown>
 const obj = (v: unknown): JsonObject => (v && typeof v === 'object' && !Array.isArray(v) ? v as JsonObject : {})
 const str = (v: unknown) => typeof v === 'string' && v.trim() ? v.trim() : undefined
 
 export async function submitKieSeedanceVideo(input: {
+  model: string
   imageUrls: string[]
   videoUrl: string
   prompt: string
@@ -26,7 +25,7 @@ export async function submitKieSeedanceVideo(input: {
       Accept: 'application/json',
     },
     body: JSON.stringify({
-      model: KIE_VIDEO_MODEL,
+      model: input.model,
       ...(input.callBackUrl ? { callBackUrl: input.callBackUrl } : {}),
       input: {
         prompt: input.prompt,
