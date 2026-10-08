@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Loader2, Plus, X, Zap } from 'lucide-react'
 import { getHotelLobbyGenerationTemplate, HOTEL_LOBBY_SCENES } from '@/config/hotel-lobby'
-import { calculateGenerationCredits } from '@/config/generation-cost'
+import type { GenerationAspectRatio, GenerationResolution } from '@/config/generation'
+import { HOTEL_LOBBY_GENERATION_CONFIG } from '@/config/hotel-lobby-generation'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { AuthModal } from '@/components/auth/AuthModal'
 import { PricingPanel } from '@/components/billing/PricingPanel'
@@ -25,10 +26,10 @@ export function HotelLobbyWorkbench() {
   const [personA, setPersonA] = useState<ImageAssetState>(emptyImage)
   const [personB, setPersonB] = useState<ImageAssetState>(emptyImage)
   const [selectedSceneId, setSelectedSceneId] = useState(HOTEL_LOBBY_SCENES[0].id)
-  const [duration, setDuration] = useState(5)
-  const [resolution, setResolution] = useState<'480p'|'720p'|'1080p'>('480p')
-  const [aspectRatio, setAspectRatio] = useState<'16:9'|'9:16'|'1:1'>('9:16')
-  const [generateAudio, setGenerateAudio] = useState(true)
+  const [duration, setDuration] = useState<number>(HOTEL_LOBBY_GENERATION_CONFIG.defaultDuration)
+  const [resolution, setResolution] = useState<GenerationResolution>(HOTEL_LOBBY_GENERATION_CONFIG.defaultResolution)
+  const [aspectRatio, setAspectRatio] = useState<GenerationAspectRatio>(HOTEL_LOBBY_GENERATION_CONFIG.defaultAspectRatio)
+  const [generateAudio, setGenerateAudio] = useState(HOTEL_LOBBY_GENERATION_CONFIG.defaultGenerateAudio)
   const [authOpen, setAuthOpen] = useState(false)
   const [pricingOpen, setPricingOpen] = useState(false)
   const [authed, setAuthed] = useState(false)
@@ -45,7 +46,7 @@ export function HotelLobbyWorkbench() {
 
   const selectedScene = HOTEL_LOBBY_SCENES.find(scene => scene.id === selectedSceneId) || HOTEL_LOBBY_SCENES[0]
   const fixedTemplate = getHotelLobbyGenerationTemplate(duration)
-  const cost = calculateGenerationCredits(duration, resolution)
+  const cost = HOTEL_LOBBY_GENERATION_CONFIG.calculateCredits(duration, resolution)
   const isSubmitting = submitStage !== 'idle'
   const imagesReady = personA.status === 'approved' && personB.status === 'approved'
   const canGenerate = Boolean(imagesReady && selectedScene && !isSubmitting)
@@ -127,7 +128,7 @@ export function HotelLobbyWorkbench() {
 
     let stopped = false
     setSubmitStage('syncing')
-    const required = calculateGenerationCredits(draft.duration, draft.resolution)
+    const required = HOTEL_LOBBY_GENERATION_CONFIG.calculateCredits(draft.duration, draft.resolution)
     const recover = async (attempt = 0) => {
       if (stopped) return
       const balance = await loadBilling()
@@ -413,15 +414,17 @@ export function HotelLobbyWorkbench() {
               <span>Choose a scene</span>
               <small>The performance motion is preset automatically.</small>
             </div>
-            <label className="soundtrack-toggle">
-              <span>Soundtrack</span>
-              <input
-                type="checkbox"
-                checked={generateAudio}
-                onChange={e => setGenerateAudio(e.target.checked)}
-              />
-              <i aria-hidden="true"/>
-            </label>
+            {HOTEL_LOBBY_GENERATION_CONFIG.capabilities.audio && (
+              <label className="soundtrack-toggle">
+                <span>Soundtrack</span>
+                <input
+                  type="checkbox"
+                  checked={generateAudio}
+                  onChange={e => setGenerateAudio(e.target.checked)}
+                />
+                <i aria-hidden="true"/>
+              </label>
+            )}
           </div>
           <div className="scene-grid">
             {HOTEL_LOBBY_SCENES.map(scene => (
@@ -445,28 +448,25 @@ export function HotelLobbyWorkbench() {
           <label>
             <span>Duration</span>
             <select value={duration} onChange={e=>setDuration(Number(e.target.value))}>
-              <option value={5}>5 seconds</option>
-              <option value={10}>10 seconds</option>
-              <option value={15}>15 seconds</option>
-              <option value={20}>20 seconds</option>
-              <option value={25}>25 seconds</option>
-              <option value={30}>30 seconds</option>
+              {HOTEL_LOBBY_GENERATION_CONFIG.durations.map(value => (
+                <option key={value} value={value}>{value} seconds</option>
+              ))}
             </select>
           </label>
           <label>
             <span>Resolution</span>
-            <select value={resolution} onChange={e=>setResolution(e.target.value as typeof resolution)}>
-              <option value="480p">480P</option>
-              <option value="720p">720P</option>
-              <option value="1080p">1080P</option>
+            <select value={resolution} onChange={e=>setResolution(e.target.value as GenerationResolution)}>
+              {HOTEL_LOBBY_GENERATION_CONFIG.resolutions.map(value => (
+                <option key={value} value={value}>{value.toUpperCase()}</option>
+              ))}
             </select>
           </label>
           <label>
             <span>Orientation</span>
-            <select value={aspectRatio} onChange={e=>setAspectRatio(e.target.value as typeof aspectRatio)}>
-              <option value="16:9">Landscape · 16:9</option>
-              <option value="9:16">Portrait · 9:16</option>
-              <option value="1:1">Square · 1:1</option>
+            <select value={aspectRatio} onChange={e=>setAspectRatio(e.target.value as GenerationAspectRatio)}>
+              {HOTEL_LOBBY_GENERATION_CONFIG.aspectRatios.map(value => (
+                <option key={value} value={value}>{aspectRatioLabel(value)}</option>
+              ))}
             </select>
           </label>
         </div>
@@ -510,6 +510,12 @@ export function HotelLobbyWorkbench() {
       </div>
     </div>}
   </div>
+}
+
+function aspectRatioLabel(value: GenerationAspectRatio) {
+  if (value === '16:9') return 'Landscape · 16:9'
+  if (value === '9:16') return 'Portrait · 9:16'
+  return 'Square · 1:1'
 }
 
 function friendlyError(message: string) {
