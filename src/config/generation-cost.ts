@@ -1,4 +1,4 @@
-export type GenerationResolution = '480p' | '720p' | '1080p'
+import type { GenerationResolution } from '@/config/generation'
 
 export const KIE_WITH_VIDEO_CREDITS_PER_SECOND: Record<GenerationResolution, number> = {
   '480p': 17,
