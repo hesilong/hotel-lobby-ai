@@ -3,10 +3,10 @@ import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { assertPromptAllowed } from '@/server/moderation'
 import { deductCredits, refundCredits, reconcileYearlySubscriptionCredits } from '@/server/credits'
-import { calculateGenerationCredits } from '@/config/generation-cost'
-import { KIE_VIDEO_MODEL, submitKieSeedanceVideo } from '@/server/kie'
+import type { GenerationAspectRatio, GenerationResolution } from '@/config/generation'
+import { HOTEL_LOBBY_GENERATION_CONFIG } from '@/config/hotel-lobby-generation'
+import { submitKieSeedanceVideo } from '@/server/kie'
 import { verifyPreparedAssets } from '@/server/storage'
-import { HOTEL_LOBBY_TEMPLATES } from '@/config/hotel-lobby'
 
 export type CreateGenerationInput = {
   imageAAssetId?: string | null
@@ -21,8 +21,8 @@ export type CreateGenerationInput = {
   referenceVideoUrl: string
   prompt: string
   duration: number
-  resolution: '480p' | '720p' | '1080p'
-  aspectRatio: '16:9' | '9:16' | '1:1'
+  resolution: GenerationResolution
+  aspectRatio: GenerationAspectRatio
   generateAudio: boolean
 }
 
@@ -38,8 +38,8 @@ export type GenerationTask = {
   provider?: string | null
   credits_used?: number
   duration_seconds?: number
-  resolution?: '480p' | '720p' | '1080p'
-  aspect_ratio?: '16:9' | '9:16' | '1:1'
+  resolution?: GenerationResolution
+  aspect_ratio?: GenerationAspectRatio
   generate_audio?: boolean
   prompt?: string
 }
@@ -65,8 +65,18 @@ function validateInput(data: CreateGenerationInput) {
     throw new Error('INVALID_ASSET_URL')
   }
   if (!data.prompt.trim() || data.prompt.length > 3072) throw new Error('INVALID_PROMPT')
-  if (![5, 10, 15, 20, 25, 30].includes(data.duration)) throw new Error('INVALID_DURATION')
-  if (!['480p', '720p', '1080p'].includes(data.resolution)) throw new Error('INVALID_RESOLUTION')
+  if (!HOTEL_LOBBY_GENERATION_CONFIG.durations.some(value => value === data.duration)) {
+    throw new Error('INVALID_DURATION')
+  }
+  if (!HOTEL_LOBBY_GENERATION_CONFIG.resolutions.some(value => value === data.resolution)) {
+    throw new Error('INVALID_RESOLUTION')
+  }
+  if (!HOTEL_LOBBY_GENERATION_CONFIG.aspectRatios.some(value => value === data.aspectRatio)) {
+    throw new Error('INVALID_ASPECT_RATIO')
+  }
+  if (!HOTEL_LOBBY_GENERATION_CONFIG.capabilities.audio && data.generateAudio) {
+    throw new Error('AUDIO_NOT_SUPPORTED')
+  }
 }
 
 async function refundTaskIfNeeded(taskId: string, userId: string, reason: string) {
@@ -106,7 +116,7 @@ async function submitGenerationForUser(userId: string, data: CreateGenerationInp
   // performs prompt moderation before billing/model invocation.
   await assertPromptAllowed({ prompt: data.prompt, userId })
 
-  const credits = calculateGenerationCredits(data.duration, data.resolution)
+  const credits = HOTEL_LOBBY_GENERATION_CONFIG.calculateCredits(data.duration, data.resolution)
   const isMock = mockEnabled()
   const admin = getSupabaseAdminClient()
   await reconcileYearlySubscriptionCredits(admin, userId)
@@ -126,8 +136,8 @@ async function submitGenerationForUser(userId: string, data: CreateGenerationInp
     resolution: data.resolution,
     aspect_ratio: data.aspectRatio,
     generate_audio: data.generateAudio,
-    provider: isMock ? 'mock' : 'kie',
-    model_id: isMock ? 'mock/reference-to-video' : KIE_VIDEO_MODEL,
+    provider: isMock ? 'mock' : HOTEL_LOBBY_GENERATION_CONFIG.provider,
+    model_id: isMock ? 'mock/reference-to-video' : HOTEL_LOBBY_GENERATION_CONFIG.model,
     provider_task_id: null,
     credits_used: credits,
     credits_refunded: 0,
@@ -143,7 +153,7 @@ async function submitGenerationForUser(userId: string, data: CreateGenerationInp
       meta: {
         duration: data.duration,
         resolution: data.resolution,
-        model: isMock ? 'mock/reference-to-video' : KIE_VIDEO_MODEL,
+        model: isMock ? 'mock/reference-to-video' : HOTEL_LOBBY_GENERATION_CONFIG.model,
       },
     })
 
@@ -171,6 +181,7 @@ async function submitGenerationForUser(userId: string, data: CreateGenerationInp
     }
 
     const upstream = await submitKieSeedanceVideo({
+      model: HOTEL_LOBBY_GENERATION_CONFIG.model,
       imageUrls: [data.imageAUrl, data.imageBUrl],
       videoUrl: data.referenceVideoUrl,
       prompt: data.prompt.trim(),
@@ -223,7 +234,7 @@ export const createGeneration = createServerFn({ method: 'POST' })
     }
 
     if (data.referenceTemplateId) {
-      const template = HOTEL_LOBBY_TEMPLATES.find(
+      const template = HOTEL_LOBBY_GENERATION_CONFIG.templates.find(
         item => item.id === data.referenceTemplateId && item.duration === data.duration,
       )
       if (!template || template.sourceVideoUrl !== data.referenceVideoUrl) {
