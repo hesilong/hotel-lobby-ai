@@ -29,7 +29,7 @@ export function HotelLobbyWorkbench() {
   const [duration, setDuration] = useState<number>(HOTEL_LOBBY_GENERATION_CONFIG.defaultDuration)
   const [resolution, setResolution] = useState<GenerationResolution>(HOTEL_LOBBY_GENERATION_CONFIG.defaultResolution)
   const [aspectRatio, setAspectRatio] = useState<GenerationAspectRatio>(HOTEL_LOBBY_GENERATION_CONFIG.defaultAspectRatio)
-  const [generateAudio, setGenerateAudio] = useState(HOTEL_LOBBY_GENERATION_CONFIG.defaultGenerateAudio)
+  const [generateAudio, setGenerateAudio] = useState<boolean>(HOTEL_LOBBY_GENERATION_CONFIG.defaultGenerateAudio)
   const [authOpen, setAuthOpen] = useState(false)
   const [pricingOpen, setPricingOpen] = useState(false)
   const [authed, setAuthed] = useState(false)
