@@ -61,7 +61,7 @@ export function HotelLobbyWorkbench() {
   const imagesReady = personA.status === 'approved' && personB.status === 'approved'
   const canGenerate = Boolean(imagesReady && !isSubmitting)
   const swapBusy = [personA.status, personB.status].some(status => status === 'uploading' || status === 'moderating')
-  const canSwap = Boolean(!swapBusy && (personA.previewUrl || personB.previewUrl))
+  const canSwap = Boolean(!isSubmitting && !swapBusy && (personA.previewUrl || personB.previewUrl))
 
   const showAssetError = (message: string) => {
     setAssetError(message)
@@ -106,6 +106,7 @@ export function HotelLobbyWorkbench() {
       } else {
         setTasks([])
         setPurchaseOrderId(null)
+        checkoutLockRef.current = false
       }
     })
 
@@ -412,6 +413,7 @@ export function HotelLobbyWorkbench() {
             state={personA}
             onPick={(file) => void prepareImage(file, 'A')}
             onClear={() => clearImage('A')}
+            disabled={isSubmitting}
           />
           <button
             type="button"
@@ -428,6 +430,7 @@ export function HotelLobbyWorkbench() {
             state={personB}
             onPick={(file) => void prepareImage(file, 'B')}
             onClear={() => clearImage('B')}
+            disabled={isSubmitting}
           />
         </div>
         <p className="performer-help">One clear person or pet per photo. Keep the face or muzzle visible and use an original, well-lit image.</p>
@@ -462,6 +465,7 @@ export function HotelLobbyWorkbench() {
                 type="button"
                 className={`format-option ${aspectRatio === value ? 'active' : ''}`}
                 aria-pressed={aspectRatio === value}
+                disabled={isSubmitting}
                 onClick={() => setAspectRatio(value)}
               >
                 <strong>{value === '9:16' ? 'Vertical' : 'Landscape'}</strong>
@@ -485,6 +489,7 @@ export function HotelLobbyWorkbench() {
                   type="button"
                   className={`quality-option ${resolution === value ? 'active' : ''}`}
                   aria-pressed={resolution === value}
+                  disabled={isSubmitting}
                   onClick={() => setResolution(value)}
                 >
                   <strong>{value.toUpperCase()}</strong>
@@ -568,13 +573,15 @@ function ImageUpload({
   state,
   onPick,
   onClear,
+  disabled = false,
 }: {
   label: string
   state: ImageAssetState
   onPick: (file?: File) => void
   onClear: () => void
+  disabled?: boolean
 }) {
-  return <label className="image-slot">
+  return <label className={`image-slot ${disabled ? 'image-slot-disabled' : ''}`}>
     <span className="image-slot-label">{label}</span>
     <div className="asset-tile">
       {state.previewUrl ? <img src={state.previewUrl} alt=""/> : <Plus size={22}/>}
@@ -584,12 +591,13 @@ function ImageUpload({
         </span>
       )}
     </div>
-    {state.previewUrl && <button type="button" className="remove-asset" onClick={(event) => {
+    {state.previewUrl && <button type="button" className="remove-asset" disabled={disabled} onClick={(event) => {
       event.preventDefault()
-      onClear()
+      if (!disabled) onClear()
     }}><X size={11}/></button>}
     <input
       hidden
+      disabled={disabled}
       type="file"
       accept="image/jpeg,image/png,image/webp"
       onChange={(event) => {
