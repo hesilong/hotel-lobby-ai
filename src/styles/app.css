@@ -615,3 +615,16 @@ body{background:#f7f8fb;color:#17191f}
   .generator-trust-row{gap:5px}
   .generator-trust-row span:not(:last-child)::after{margin-left:5px}
 }
+
+
+/* Generated result player should fill the stretched result card */
+.generator-results .result-card{height:100%}
+.generator-results .result-card video{
+  display:block;
+  width:100%;
+  height:100%;
+  min-height:0;
+  max-height:none;
+  object-fit:contain;
+  background:#000;
+}
