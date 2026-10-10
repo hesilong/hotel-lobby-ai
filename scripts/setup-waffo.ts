@@ -45,28 +45,38 @@ for (const option of Object.values(GENERATION_PURCHASE_OPTIONS)) {
   const key = `WAFFO_GENERATION_${option.resolution.toUpperCase()}_PRODUCT_ID`
   if (process.env[key]) cache.products[key] = process.env[key]!
 
+  const desired = {
+    name: `Hotel Lobby AI ${option.resolution.toUpperCase()} · 15s`,
+    description: `One 15-second Hotel Lobby AI video at ${option.resolution.toUpperCase()} quality.`,
+    prices: {
+      USD: {
+        amount: option.priceUsd.toFixed(2),
+        taxCategory: TaxCategory.SaaS,
+      },
+    },
+    metadata: {
+      productType: 'generation',
+      resolution: option.resolution,
+      duration: '15',
+    },
+  }
+
   if (!cache.products[key]) {
     const { product } = await client.onetimeProducts.create({
       storeId,
-      name: `Hotel Lobby AI ${option.resolution.toUpperCase()} · 15s`,
-      description: `One 15-second Hotel Lobby AI video at ${option.resolution.toUpperCase()} quality.`,
-      prices: {
-        USD: {
-          amount: option.priceUsd.toFixed(2),
-          taxCategory: TaxCategory.SaaS,
-        },
-      },
-      metadata: {
-        productType: 'generation',
-        resolution: option.resolution,
-        duration: '15',
-      },
+      ...desired,
     }, {
       idempotencyKey: `hotel-lobby-test-${storeId}-generation-${option.resolution}`,
     })
 
     cache.products[key] = product.id
     await save()
+  } else {
+    // Keep an existing test product aligned with the prices/config in source.
+    await client.onetimeProducts.update({
+      id: cache.products[key],
+      ...desired,
+    })
   }
 }
 
