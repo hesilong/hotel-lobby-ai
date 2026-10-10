@@ -53,14 +53,14 @@ export function ResultsGallery({
         REVIEW_MODE ? (
           <div className="results-empty results-empty-review">
             <strong>Ready for your first generation</strong>
-            <span>Upload two performers, choose a scene, and click Generate.</span>
+            <span>Upload two performers, choose format and quality, and click Generate.</span>
           </div>
         ) : (
         <div className="results-demo">
           <div className="results-demo-topline">
             <span className="results-demo-badge">Example</span>
             <div className="results-demo-meta">
-              <span>5s</span>
+              <span>Preview</span>
               <span>480P</span>
             </div>
           </div>
