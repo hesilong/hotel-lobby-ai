@@ -108,6 +108,7 @@ export function PricingPanel({
       const result = await createCheckout({ data: { type: 'credit_pack', key, returnPath } })
       if (paymentTab) paymentTab.location.replace(result.checkoutUrl)
       else window.location.assign(result.checkoutUrl)
+      setBusy('')
     } catch (e) {
       paymentTab?.close()
       setError(e instanceof Error ? e.message : 'Unable to start checkout')
