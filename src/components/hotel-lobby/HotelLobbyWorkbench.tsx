@@ -3,13 +3,13 @@ import { ArrowLeftRight, Loader2, Plus, X, Zap } from 'lucide-react'
 import { getHotelLobbyGenerationTemplate, HOTEL_LOBBY_SCENES } from '@/config/hotel-lobby'
 import type { GenerationAspectRatio, GenerationResolution } from '@/config/generation'
 import { HOTEL_LOBBY_GENERATION_CONFIG } from '@/config/hotel-lobby-generation'
+import { GENERATION_PURCHASE_OPTIONS, generationPriceLabel } from '@/config/generation-purchase'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { AuthModal } from '@/components/auth/AuthModal'
-import { PricingPanel } from '@/components/billing/PricingPanel'
 import { ResultsGallery } from '@/components/hotel-lobby/ResultsGallery'
 import { createUploadUrl, finalizeUploadedAsset } from '@/server/storage'
-import { getBillingState } from '@/server/billing'
-import { createGeneration, listGenerationTasks, refreshGenerationTask, retryGenerationTask, type CreateGenerationInput, type GenerationTask } from '@/server/generation'
+import { listGenerationTasks, refreshGenerationTask, retryGenerationTask, type CreateGenerationInput, type GenerationTask } from '@/server/generation'
+import { createGenerationPurchase, getGenerationPurchase, requestGenerationRefund } from '@/server/generation-purchases'
 
 type ImageAssetState = {
   previewUrl: string | null
@@ -19,8 +19,15 @@ type ImageAssetState = {
   status: 'empty' | 'uploading' | 'moderating' | 'approved'
 }
 
-const emptyImage: ImageAssetState = { previewUrl: null, publicUrl: null, assetId: null, assetToken: null, status: 'empty' }
-const RECOVERY_KEY = 'hotel_lobby_generation_recovery_v1'
+const emptyImage: ImageAssetState = {
+  previewUrl: null,
+  publicUrl: null,
+  assetId: null,
+  assetToken: null,
+  status: 'empty',
+}
+
+const PURCHASE_RECOVERY_KEY = 'hotel_lobby_generation_purchase_v1'
 
 export function HotelLobbyWorkbench() {
   const [personA, setPersonA] = useState<ImageAssetState>(emptyImage)
@@ -29,35 +36,31 @@ export function HotelLobbyWorkbench() {
   const [resolution, setResolution] = useState<GenerationResolution>(HOTEL_LOBBY_GENERATION_CONFIG.defaultResolution)
   const [aspectRatio, setAspectRatio] = useState<GenerationAspectRatio>(HOTEL_LOBBY_GENERATION_CONFIG.defaultAspectRatio)
   const generateAudio = HOTEL_LOBBY_GENERATION_CONFIG.defaultGenerateAudio
+
   const [authOpen, setAuthOpen] = useState(false)
-  const [pricingOpen, setPricingOpen] = useState(false)
   const [authed, setAuthed] = useState(false)
   const [pendingGenerate, setPendingGenerate] = useState(false)
-  const [submitStage, setSubmitStage] = useState<'idle'|'moderating'|'starting'|'syncing'|'redirecting'>('idle')
+  const [submitStage, setSubmitStage] = useState<'idle' | 'checking' | 'checkout' | 'waiting'>('idle')
+  const [purchaseOrderId, setPurchaseOrderId] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [assetError, setAssetError] = useState('')
   const [tasks, setTasks] = useState<GenerationTask[]>([])
-  const [credits, setCredits] = useState<number | null>(null)
   const [retryingTaskId, setRetryingTaskId] = useState<string | null>(null)
+  const [refundingTaskId, setRefundingTaskId] = useState<string | null>(null)
+
   const personARequest = useRef<string | null>(null)
   const personBRequest = useRef<string | null>(null)
   const assetErrorTimer = useRef<number | null>(null)
+  const paymentWindowRef = useRef<Window | null>(null)
 
   const selectedScene = HOTEL_LOBBY_SCENES[0]
   const fixedTemplate = getHotelLobbyGenerationTemplate(duration)
-  const cost = HOTEL_LOBBY_GENERATION_CONFIG.calculateCredits(duration, resolution)
+  const priceLabel = generationPriceLabel(resolution)
   const isSubmitting = submitStage !== 'idle'
   const imagesReady = personA.status === 'approved' && personB.status === 'approved'
   const canGenerate = Boolean(imagesReady && !isSubmitting)
   const swapBusy = [personA.status, personB.status].some(status => status === 'uploading' || status === 'moderating')
   const canSwap = Boolean(!swapBusy && (personA.previewUrl || personB.previewUrl))
-
-  const publishCredits = (value: number | null) => {
-    setCredits(value)
-    if (typeof window !== 'undefined' && value !== null) {
-      window.dispatchEvent(new CustomEvent('hla:credits-changed', { detail: value }))
-    }
-  }
 
   const showAssetError = (message: string) => {
     setAssetError(message)
@@ -65,19 +68,23 @@ export function HotelLobbyWorkbench() {
     assetErrorTimer.current = window.setTimeout(() => setAssetError(''), 6000)
   }
 
-  const loadBilling = async () => {
+  const loadTasks = async () => {
     try {
-      const state = await getBillingState()
-      publishCredits(state.credits)
-      return state.credits
+      setTasks(await listGenerationTasks())
     } catch {
-      publishCredits(null)
-      return null
+      setTasks([])
     }
   }
 
-  const loadTasks = async () => {
-    try { setTasks(await listGenerationTasks()) } catch { setTasks([]) }
+  const clearPurchaseRecovery = () => {
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.removeItem(PURCHASE_RECOVERY_KEY)
+      const url = new URL(window.location.href)
+      url.searchParams.delete('purchase_return')
+      url.searchParams.delete('generation_order')
+      window.history.replaceState({}, '', url.pathname + url.search + url.hash)
+    }
+    setPurchaseOrderId(null)
   }
 
   useEffect(() => {
@@ -85,22 +92,21 @@ export function HotelLobbyWorkbench() {
     void supabase.auth.getSession().then(({ data }) => {
       const yes = Boolean(data.session)
       setAuthed(yes)
-      if (yes) {
-        void loadTasks()
-        void loadBilling()
-      }
+      if (yes) void loadTasks()
     })
+
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       const yes = Boolean(session)
       setAuthed(yes)
       if (yes) {
+        setAuthOpen(false)
         void loadTasks()
-        void loadBilling()
       } else {
-        publishCredits(null)
         setTasks([])
+        setPurchaseOrderId(null)
       }
     })
+
     return () => listener.subscription.unsubscribe()
   }, [])
 
@@ -111,7 +117,7 @@ export function HotelLobbyWorkbench() {
   }, [])
 
   useEffect(() => {
-    if (!authed || !tasks.some(t => t.status === 'pending' || t.status === 'processing')) return
+    if (!authed || !tasks.some(task => task.status === 'pending' || task.status === 'processing')) return
     const timer = window.setInterval(() => void refreshActiveTasks(), 3000)
     return () => window.clearInterval(timer)
   }, [authed, tasks])
@@ -119,74 +125,66 @@ export function HotelLobbyWorkbench() {
   useEffect(() => {
     if (!authed || typeof window === 'undefined') return
     const params = new URLSearchParams(window.location.search)
-    if (params.get('purchase_return') !== '1') return
-    const raw = window.sessionStorage.getItem(RECOVERY_KEY)
-    if (!raw) return
+    const queryOrderId = params.get('generation_order')
+    const storedOrderId = window.sessionStorage.getItem(PURCHASE_RECOVERY_KEY)
+    const orderId = queryOrderId || storedOrderId
+    if (orderId) setPurchaseOrderId(orderId)
+  }, [authed])
 
-    let draft: CreateGenerationInput | null = null
-    try { draft = JSON.parse(raw) as CreateGenerationInput } catch { window.sessionStorage.removeItem(RECOVERY_KEY) }
-    if (!draft) return
+  useEffect(() => {
+    if (!authed || !purchaseOrderId) return
 
     let stopped = false
-    setSubmitStage('syncing')
-    const required = HOTEL_LOBBY_GENERATION_CONFIG.calculateCredits(draft.duration, draft.resolution)
-    const recover = async (attempt = 0) => {
+    const poll = async () => {
       if (stopped) return
-      const balance = await loadBilling()
-      if (balance !== null && balance >= required) {
-        try {
-          setSubmitStage('moderating')
-          const task = await createGeneration({ data: draft! })
-          window.sessionStorage.removeItem(RECOVERY_KEY)
-          setTasks(current => [{
-            id: task.id,
-            status: task.status,
-            result_url: task.result_url ?? null,
-            failure_message: null,
-            created_at: new Date().toISOString(),
-            provider_task_id: null,
-            credits_used: task.creditsUsed,
-            duration_seconds: task.duration_seconds,
-            resolution: task.resolution,
-            aspect_ratio: task.aspect_ratio,
-            generate_audio: task.generate_audio,
-          }, ...current])
-          publishCredits(task.balance)
-          const url = new URL(window.location.href)
-          url.searchParams.delete('purchase_return')
-          url.searchParams.delete('purchase_type')
-          window.history.replaceState({}, '', url.pathname + url.search + url.hash)
-          setSubmitStage('idle')
-          return
-        } catch (e) {
-          const message = e instanceof Error ? e.message : 'Generation failed'
-          if (message.includes('INSUFFICIENT_CREDITS') && attempt < 12) {
-            window.setTimeout(() => void recover(attempt + 1), 1500)
+      try {
+        const order = await getGenerationPurchase({ data: { orderId: purchaseOrderId } })
+
+        if (order.status === 'pending_payment' || order.status === 'paid') {
+          if (paymentWindowRef.current?.closed && order.status === 'pending_payment') {
+            clearPurchaseRecovery()
+            setSubmitStage('idle')
             return
           }
-          setError(friendlyError(message))
+          window.setTimeout(() => void poll(), 1500)
+          return
+        }
+
+        if (order.status === 'processing' || order.status === 'failed' || order.status === 'fulfilled') {
+          paymentWindowRef.current?.close()
+          paymentWindowRef.current = null
+          await loadTasks()
+          clearPurchaseRecovery()
           setSubmitStage('idle')
           return
         }
-      }
-      if (attempt < 12) {
-        window.setTimeout(() => void recover(attempt + 1), 1500)
-      } else {
-        setError('Payment completed, but your credits are still syncing. Refresh in a moment.')
-        setSubmitStage('idle')
+
+        if (order.status === 'refund_requested' || order.status === 'refunded') {
+          await loadTasks()
+          clearPurchaseRecovery()
+          setSubmitStage('idle')
+          return
+        }
+      } catch {
+        window.setTimeout(() => void poll(), 1800)
       }
     }
-    void recover()
-    return () => { stopped = true }
-  }, [authed])
+
+    setSubmitStage('waiting')
+    void poll()
+    return () => {
+      stopped = true
+    }
+  }, [authed, purchaseOrderId])
 
   const refreshActiveTasks = async () => {
-    const active = tasks.filter(t => t.status === 'pending' || t.status === 'processing')
+    const active = tasks.filter(task => task.status === 'pending' || task.status === 'processing')
     if (!active.length) return
-    const updates = await Promise.all(active.map(t => refreshGenerationTask({ data: { taskId: t.id } }).catch(() => t)))
-    const map = new Map(updates.map(t => [t.id, t]))
-    setTasks(current => current.map(t => map.get(t.id) || t))
-    void loadBilling()
+    const updates = await Promise.all(
+      active.map(task => refreshGenerationTask({ data: { taskId: task.id } }).catch(() => task)),
+    )
+    const map = new Map(updates.map(task => [task.id, task]))
+    setTasks(current => current.map(task => map.get(task.id) || task))
   }
 
   const uploadFile = async (file: File) => {
@@ -221,10 +219,19 @@ export function HotelLobbyWorkbench() {
     try {
       const signed = await uploadFile(file)
       if (requestRef.current !== requestId) return
-      setter(current => ({ ...current, publicUrl: signed.publicUrl, assetId: signed.assetId, assetToken: signed.assetToken, status: 'moderating' }))
+      setter(current => ({
+        ...current,
+        publicUrl: signed.publicUrl,
+        assetId: signed.assetId,
+        assetToken: signed.assetToken,
+        status: 'moderating',
+      }))
 
-      const finalized = await finalizeUploadedAsset({ data: { assetId: signed.assetId, assetToken: signed.assetToken } })
+      const finalized = await finalizeUploadedAsset({
+        data: { assetId: signed.assetId, assetToken: signed.assetToken },
+      })
       if (requestRef.current !== requestId) return
+
       setter(current => ({
         ...current,
         publicUrl: finalized.publicUrl,
@@ -268,44 +275,6 @@ export function HotelLobbyWorkbench() {
     setPersonB(personA)
   }
 
-  const runGeneration = async (data: CreateGenerationInput) => {
-    setSubmitStage('moderating')
-    window.sessionStorage.setItem(RECOVERY_KEY, JSON.stringify(data))
-    try {
-      const task = await createGeneration({ data })
-      window.sessionStorage.removeItem(RECOVERY_KEY)
-      setTasks(current => [{
-        id: task.id,
-        status: task.status,
-        result_url: task.result_url ?? null,
-        failure_message: null,
-        created_at: new Date().toISOString(),
-        provider_task_id: null,
-        credits_used: task.creditsUsed,
-      duration_seconds: task.duration_seconds,
-      resolution: task.resolution,
-      aspect_ratio: task.aspect_ratio,
-      generate_audio: task.generate_audio,
-      prompt: task.prompt,
-      }, ...current])
-      publishCredits(task.balance)
-      setPendingGenerate(false)
-      setSubmitStage('idle')
-      return true
-    } catch (e) {
-      const message = e instanceof Error ? e.message : 'Generation failed'
-      if (message.includes('INSUFFICIENT_CREDITS')) {
-        setError('')
-        setPricingOpen(true)
-      } else {
-        window.sessionStorage.removeItem(RECOVERY_KEY)
-        setError(friendlyError(message))
-      }
-      setSubmitStage('idle')
-      return false
-    }
-  }
-
   const buildGenerationInput = (): CreateGenerationInput | null => {
     if (
       personA.status !== 'approved' ||
@@ -337,14 +306,35 @@ export function HotelLobbyWorkbench() {
     }
   }
 
-  const submitAfterAuth = async () => {
+  const startCheckout = async () => {
     if (isSubmitting) return
     const data = buildGenerationInput()
     if (!data) return
 
+    const paymentTab = window.open('about:blank', '_blank')
+    if (!paymentTab) {
+      setError('Please allow popups so we can open the secure Waffo checkout.')
+      return
+    }
+    paymentTab.opener = null
+    paymentWindowRef.current = paymentTab
+
     setError('')
-    setSubmitStage('starting')
-    await runGeneration(data)
+    setSubmitStage('checking')
+
+    try {
+      const purchase = await createGenerationPurchase({ data })
+      window.sessionStorage.setItem(PURCHASE_RECOVERY_KEY, purchase.orderId)
+      setPurchaseOrderId(purchase.orderId)
+      setSubmitStage('checkout')
+      paymentTab.location.replace(purchase.checkoutUrl)
+      setPendingGenerate(false)
+    } catch (e) {
+      paymentTab.close()
+      paymentWindowRef.current = null
+      setSubmitStage('idle')
+      setError(friendlyError(e instanceof Error ? e.message : 'Unable to start checkout'))
+    }
   }
 
   const onGenerate = async () => {
@@ -354,46 +344,44 @@ export function HotelLobbyWorkbench() {
       setAuthOpen(true)
       return
     }
-    if (credits !== null && credits < cost) {
-      setPricingOpen(true)
-      return
-    }
-    await submitAfterAuth()
+    await startCheckout()
   }
 
   const handleRetry = async (taskId: string) => {
-    if (retryingTaskId) return
+    if (retryingTaskId || refundingTaskId) return
     setRetryingTaskId(taskId)
     setError('')
+
     try {
       const task = await retryGenerationTask({ data: { taskId } })
-      setTasks(current => [{
-        id: task.id,
-        status: task.status,
-        result_url: task.result_url ?? null,
-        failure_message: null,
-        created_at: new Date().toISOString(),
-        provider_task_id: null,
-        credits_used: task.creditsUsed,
-      duration_seconds: task.duration_seconds,
-      resolution: task.resolution,
-      aspect_ratio: task.aspect_ratio,
-      generate_audio: task.generate_audio,
-      prompt: task.prompt,
-      }, ...current])
-      publishCredits(task.balance)
+      setTasks(current => [task, ...current])
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Retry failed'
-      if (message.includes('INSUFFICIENT_CREDITS')) setPricingOpen(true)
-      else setError(friendlyError(message))
-    } finally { setRetryingTaskId(null) }
+      setError(friendlyError(e instanceof Error ? e.message : 'Retry failed'))
+    } finally {
+      setRetryingTaskId(null)
+    }
+  }
+
+  const handleRefund = async (taskId: string) => {
+    if (retryingTaskId || refundingTaskId) return
+    setRefundingTaskId(taskId)
+    setError('')
+
+    try {
+      await requestGenerationRefund({ data: { taskId } })
+      const refreshed = await refreshGenerationTask({ data: { taskId } })
+      setTasks(current => current.map(task => task.id === taskId ? refreshed : task))
+    } catch (e) {
+      setError(friendlyError(e instanceof Error ? e.message : 'Refund request failed'))
+    } finally {
+      setRefundingTaskId(null)
+    }
   }
 
   const handleAuthed = () => {
     setAuthed(true)
     void loadTasks()
-    void loadBilling()
-    if (pendingGenerate) window.setTimeout(() => void submitAfterAuth(), 150)
+    if (pendingGenerate) window.setTimeout(() => void startCheckout(), 150)
   }
 
   return <div className="workbench-shell">
@@ -475,12 +463,11 @@ export function HotelLobbyWorkbench() {
         <div className="output-control">
           <div className="output-control-head">
             <span>Quality</span>
-            <small>Higher quality uses more credits</small>
+            <small>One-time price per generated video</small>
           </div>
           <div className="quality-options">
             {HOTEL_LOBBY_GENERATION_CONFIG.resolutions.map(value => {
-              const optionCost = HOTEL_LOBBY_GENERATION_CONFIG.calculateCredits(duration, value)
-              const label = value === '480p' ? 'Lite' : value === '720p' ? 'Standard' : 'Pro'
+              const option = GENERATION_PURCHASE_OPTIONS[value]
               return (
                 <button
                   key={value}
@@ -490,8 +477,8 @@ export function HotelLobbyWorkbench() {
                   onClick={() => setResolution(value)}
                 >
                   <strong>{value.toUpperCase()}</strong>
-                  <span>{label}</span>
-                  <small>{optionCost} credits</small>
+                  <span>{option.name}{option.recommended ? ' · Recommended' : ''}</span>
+                  <small>{generationPriceLabel(value)}</small>
                 </button>
               )
             })}
@@ -500,23 +487,23 @@ export function HotelLobbyWorkbench() {
 
         {error && <div className="generation-error">{error}</div>}
 
-        <div className="generation-summary">
-          <span>Balance <b>{credits === null ? '—' : credits} credits</b></span>
-          <span>This generation <b>{cost} credits</b></span>
+        <div className="generation-summary generation-price-summary">
+          <span>15-second video</span>
+          <span>One-time payment <b>{priceLabel}</b></span>
         </div>
 
         <button disabled={!canGenerate} className="generate generator-submit" onClick={() => void onGenerate()}>
           {isSubmitting ? <Loader2 size={16} className="spin"/> : <Zap size={16} fill="currentColor"/>}
-          {submitStage === 'moderating' ? 'Checking…' :
-           submitStage === 'starting' ? 'Starting…' :
-           submitStage === 'syncing' ? 'Syncing credits…' :
-           `Generate Hotel Lobby Video · ${cost} credits`}
+          {submitStage === 'checking' ? 'Checking your images…' :
+           submitStage === 'checkout' ? 'Opening secure checkout…' :
+           submitStage === 'waiting' ? 'Waiting for payment…' :
+           `Generate for ${priceLabel}`}
         </button>
 
         <div className="generator-trust-row">
-          <span>No subscription required</span>
-          <span>Failed generations return credits</span>
-          <span>Direct MP4 download</span>
+          <span>No subscription</span>
+          <span>Free retries if generation fails</span>
+          <span>Refund available after a failed attempt</span>
         </div>
 
         <p className="generator-safety-note">
@@ -532,23 +519,20 @@ export function HotelLobbyWorkbench() {
           latestOnly
           onRetry={(taskId) => void handleRetry(taskId)}
           retryingTaskId={retryingTaskId}
+          onRefund={(taskId) => void handleRefund(taskId)}
+          refundingTaskId={refundingTaskId}
         />
       </div>
     </div>
 
-    <AuthModal open={authOpen} onClose={() => { setAuthOpen(false); setPendingGenerate(false) }} onAuthed={handleAuthed}/>
-
-    {pricingOpen && <div className="modal-backdrop" onMouseDown={e => { if (e.currentTarget === e.target) setPricingOpen(false) }}>
-      <div className="pricing-modal-shell">
-        <PricingPanel
-          modal
-          requiredCredits={cost}
-          returnPath="/"
-          onClose={() => setPricingOpen(false)}
-          onBalanceChange={publishCredits}
-        />
-      </div>
-    </div>}
+    <AuthModal
+      open={authOpen}
+      onClose={() => {
+        setAuthOpen(false)
+        setPendingGenerate(false)
+      }}
+      onAuthed={handleAuthed}
+    />
   </div>
 }
 
@@ -559,6 +543,10 @@ function friendlyError(message: string) {
     return 'Please choose your two reference images again.'
   }
   if (message.includes('REFERENCE_VIDEO_NOT_READY')) return 'The preset performance is temporarily unavailable. Please try again shortly.'
+  if (message.includes('WAFFO_GENERATION_PRODUCT_NOT_CONFIGURED')) return 'This video quality is not connected to checkout yet.'
+  if (message.includes('DIRECT_GENERATION_REQUIRES_WAFFO')) return 'Secure checkout is temporarily unavailable.'
+  if (message.includes('REFUND_NOT_AVAILABLE')) return 'A refund is only available after a failed paid generation.'
+  if (message.includes('PAYMENT_NOT_READY')) return 'Payment confirmation is still syncing. Please try again in a moment.'
   if (message.includes('AUTH_REQUIRED')) return 'Please sign in and try again.'
   return message
 }
@@ -584,14 +572,17 @@ function ImageUpload({
         </span>
       )}
     </div>
-    {state.previewUrl && <button type="button" className="remove-asset" onClick={(e) => { e.preventDefault(); onClear() }}><X size={11}/></button>}
+    {state.previewUrl && <button type="button" className="remove-asset" onClick={(event) => {
+      event.preventDefault()
+      onClear()
+    }}><X size={11}/></button>}
     <input
       hidden
       type="file"
       accept="image/jpeg,image/png,image/webp"
-      onChange={(e) => {
-        const file = e.target.files?.[0]
-        e.currentTarget.value = ''
+      onChange={(event) => {
+        const file = event.target.files?.[0]
+        event.currentTarget.value = ''
         onPick(file)
       }}
     />
