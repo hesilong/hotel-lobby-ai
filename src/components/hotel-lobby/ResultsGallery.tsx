@@ -142,7 +142,7 @@ export function ResultsGallery({
                             : 'Your payment is protected. Retry this generation for free, or request a refund.'
                           : task.failure_message || 'Please try again.'}
                   </span>
-                  {task.refund_error && <span className="result-refund-error">Refund request failed: {task.refund_error}</span>}
+                  {task.refund_error && <span className="result-refund-error">The payment provider could not complete the refund automatically.</span>}
                   {!refundRequested && !refunded && (
                     <div className="result-failure-actions">
                       {onRetry && canRetryPaid && <button
