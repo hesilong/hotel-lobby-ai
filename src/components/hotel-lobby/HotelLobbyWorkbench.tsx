@@ -52,6 +52,7 @@ export function HotelLobbyWorkbench() {
   const personBRequest = useRef<string | null>(null)
   const assetErrorTimer = useRef<number | null>(null)
   const paymentWindowRef = useRef<Window | null>(null)
+  const checkoutLockRef = useRef(false)
 
   const selectedScene = HOTEL_LOBBY_SCENES[0]
   const fixedTemplate = getHotelLobbyGenerationTemplate(duration)
@@ -85,6 +86,7 @@ export function HotelLobbyWorkbench() {
       window.history.replaceState({}, '', url.pathname + url.search + url.hash)
     }
     setPurchaseOrderId(null)
+    checkoutLockRef.current = false
   }
 
   useEffect(() => {
@@ -307,12 +309,14 @@ export function HotelLobbyWorkbench() {
   }
 
   const startCheckout = async () => {
-    if (isSubmitting) return
+    if (isSubmitting || checkoutLockRef.current) return
     const data = buildGenerationInput()
     if (!data) return
 
+    checkoutLockRef.current = true
     const paymentTab = window.open('about:blank', '_blank')
     if (!paymentTab) {
+      checkoutLockRef.current = false
       setError('Please allow popups so we can open the secure Waffo checkout.')
       return
     }
@@ -332,6 +336,7 @@ export function HotelLobbyWorkbench() {
     } catch (e) {
       paymentTab.close()
       paymentWindowRef.current = null
+      checkoutLockRef.current = false
       setSubmitStage('idle')
       setError(friendlyError(e instanceof Error ? e.message : 'Unable to start checkout'))
     }
