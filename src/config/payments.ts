@@ -4,7 +4,7 @@ import type { GenerationResolution } from './generation'
 export type PaymentProvider = 'creem' | 'waffo'
 
 export function paymentProvider(): PaymentProvider {
-  const provider = process.env.PAYMENT_PROVIDER?.trim() || 'creem'
+  const provider = process.env.PAYMENT_PROVIDER?.trim() || 'waffo'
   if (provider !== 'creem' && provider !== 'waffo') throw new Error('INVALID_PAYMENT_PROVIDER')
   return provider
 }
