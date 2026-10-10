@@ -86,7 +86,7 @@ export function BlogArticlePage({ article }: { article: BlogArticle }) {
 
         <aside className="blog-price-note">
           <strong>No subscription required.</strong>
-          <span>Hotel Lobby AI uses one-time credit packs. Failed generations return reserved credits.</span>
+          <span>Pay per video: $4.99 for 480p, $9.90 for 720p, or $19.90 for 1080p. Technical failures can be retried free or refunded on request.</span>
           <a href="/pricing">View pricing →</a>
         </aside>
       </div>
