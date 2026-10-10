@@ -25,7 +25,7 @@ function PrivacyPolicyPage() {
       <section className="legal-hero">
         <span className="eyebrow">Legal</span>
         <h1>Privacy Policy</h1>
-        <p>Effective date: October 1, 2026</p>
+        <p>Effective date: October 10, 2026</p>
       </section>
 
       <article className="legal-page">
@@ -54,18 +54,19 @@ function PrivacyPolicyPage() {
 
         <h3>Content you provide</h3>
         <p>
-          The Service may process performer photos, including photos of adults or pets, preset-scene selections,
-          generation settings, and related information that you choose to submit. The current generator does not accept
-          user-uploaded motion videos. We may also store
+          The Service may process performer photos, including photos of adults or pets, left/right performer placement,
+          output format and quality settings, and related information that you choose to submit. The current generator
+          does not accept user-uploaded motion videos. We may also store
           generated videos, generation task records, status information, and error details so the Service can display your
           results and operate reliably.
         </p>
 
         <h3>Payment and billing information</h3>
         <p>
-          If you purchase a plan or credit pack, our payment provider may provide transaction identifiers, product or
-          subscription status, billing-period information, and limited customer details needed to match the purchase to
-          your account. We do not receive or store your full payment-card number.
+          If you purchase a generated video, Waffo may provide transaction identifiers, order and payment identifiers,
+          the purchased product, charged amount, refund status, and limited customer details needed to match the payment
+          to your account and generation order. Legacy subscription or credit records may remain for existing customers
+          from earlier versions of the Service. We do not receive or store your full payment-card number.
         </p>
 
         <h3>Technical and usage information</h3>
@@ -91,10 +92,10 @@ function PrivacyPolicyPage() {
           To generate videos, information you submit may be transmitted to third-party AI generation providers
           that process the input on our behalf or as part of providing the requested generation service. We also
           use infrastructure and authentication providers for database services, object storage, hosting, security,
-          sign-in functionality, content moderation, and payment processing. CREEM or Waffo, as identified at checkout,
-          may process checkout, subscription,
-          tax, fraud-prevention, and payment information when you make a purchase. These providers may process data
-          according to their own terms and privacy policies.
+          sign-in functionality, content moderation, and payment processing. Waffo processes the current Hotel Lobby AI
+          pay-per-video checkout and may process payment, tax, fraud-prevention, refund, and related transaction information.
+          Legacy payment records may also reference earlier payment providers. These providers may process data according
+          to their own terms and privacy policies.
         </p>
 
         <h2>4. Uploaded media and generated content</h2>
