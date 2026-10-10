@@ -255,9 +255,10 @@ export async function startPaidGenerationOrder(
       .eq('status', 'processing')
 
     if (isMock) {
+      const mockProviderTaskId = `mock:${Date.now()}`
       await admin.from('generation_tasks').update({
         status: 'processing',
-        provider_task_id: `mock:${Date.now()}`,
+        provider_task_id: mockProviderTaskId,
         storage_status: 'pending',
         updated_at: new Date().toISOString(),
       }).eq('id', task.id)
@@ -268,7 +269,7 @@ export async function startPaidGenerationOrder(
         result_url: null,
         failure_message: null,
         created_at: task.created_at,
-        provider_task_id: `mock:${Date.now()}`,
+        provider_task_id: mockProviderTaskId,
         provider: 'mock',
         credits_used: 0,
         duration_seconds: input.duration,
@@ -328,10 +329,20 @@ export async function startPaidGenerationOrder(
         updated_at: new Date().toISOString(),
       }).eq('id', taskId)
     }
-    await admin.from('generation_orders').update({
-      status: 'failed',
-      updated_at: new Date().toISOString(),
-    }).eq('id', order.id).eq('status', 'processing')
+    if (taskId) {
+      await admin.from('generation_orders').update({
+        status: 'failed',
+        latest_task_id: taskId,
+        updated_at: new Date().toISOString(),
+      }).eq('id', order.id).eq('status', 'processing')
+    } else {
+      // Payment is already confirmed but no attempt exists. Put the entitlement
+      // back into the recoverable paid state so browser/Cron can safely retry.
+      await admin.from('generation_orders').update({
+        status: 'paid',
+        updated_at: new Date().toISOString(),
+      }).eq('id', order.id).eq('status', 'processing')
+    }
     console.error('[generation purchase] submit failed', { orderId: order.id, taskId, message })
     return taskId
       ? {
