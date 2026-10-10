@@ -3,7 +3,6 @@ import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { CREDIT_PACKS } from '@/config/products'
 import { waffoPlan } from '@/config/payments'
 import { waffoClient, waffoEnvironment, waffoStoreId } from './waffo'
-import { generationPriceUsd } from '@/config/generation-purchase'
 import { startPaidGenerationOrder } from '@/server/generation-purchases'
 
 export function validateWaffoEnvelope(event: WebhookEvent) {
@@ -68,7 +67,7 @@ export async function processWaffoEvent(event: WebhookEvent) {
       if (!intent || intent.purchase_type !== 'generation' || data.currency !== 'USD' || !data.paymentId) {
         throw new Error('WAFFO_INVALID_GENERATION_ORDER')
       }
-      const expected = generationPriceUsd(generationOrder.resolution)
+      const expected = Number(generationOrder.amount_usd)
       const paid = Number(data.chargedAmount ?? data.amount)
       if (!Number.isFinite(paid) || paid + 0.001 < expected) {
         throw new Error('WAFFO_PAYMENT_AMOUNT_MISMATCH')
