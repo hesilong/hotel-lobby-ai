@@ -8,7 +8,7 @@ export const Route = createFileRoute('/pricing')({
   head: () => ({
     meta: [
       { title: `Pricing – ${SITE_CONFIG.name}` },
-      { name: 'description', content: `Choose a ${SITE_CONFIG.name} plan or buy credits for AI video generation.` },
+      { name: 'description', content: `Buy one-time ${SITE_CONFIG.name} credits with no subscription or automatic renewal.` },
       { name: 'robots', content: 'index,follow' },
     ],
     links: [{ rel: 'canonical', href: siteUrl('/pricing') }],
