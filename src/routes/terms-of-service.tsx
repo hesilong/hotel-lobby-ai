@@ -25,7 +25,7 @@ function TermsPage() {
       <section className="legal-hero">
         <span className="eyebrow">Legal</span>
         <h1>Terms of Service</h1>
-        <p>Effective date: October 5, 2026</p>
+        <p>Effective date: October 10, 2026</p>
       </section>
 
       <article className="legal-page">
@@ -43,10 +43,11 @@ function TermsPage() {
 
         <h2>2. The Service</h2>
         <p>
-          Hotel Lobby AI provides a constrained entertainment-video workflow using two user-provided performer photos,
-          preset scenes, and a guided performance. Performer photos may depict adults or pets. The Service does not accept
-          user-uploaded motion videos for this generator. Features, models, limits, availability, processing times, and
-          supported formats may change over time.
+          Hotel Lobby AI provides a constrained entertainment-video workflow using two user-provided performer photos
+          and a preset 15-second Hotel Lobby performance. Performer photos may depict adults or pets. You choose the
+          left/right performer placement, supported output format, and quality; the motion and soundtrack are preset.
+          The Service does not accept user-uploaded motion videos for this generator. Features, models, limits,
+          availability, processing times, and supported formats may change over time.
         </p>
         <p>
           Direct video generation on Hotel Lobby AI currently uses ByteDance Seedance 2.5 through the KIE API.
@@ -116,18 +117,32 @@ function TermsPage() {
           authorities as required by law. Content hosted on an external service may also need to be reported to that service.
         </p>
 
-        <h2>6. Payments, subscriptions, credits, and refunds</h2>
+        <h2>6. Payments and refunds</h2>
         <p>
-          Paid plans and credit packs may be processed by CREEM or Waffo, as identified at checkout.
-          Prices, billing periods, included credits, and renewal terms are shown before purchase. Subscription plans renew
-          automatically until canceled. You may schedule cancellation through the Service, and access normally continues
-          through the paid billing period unless applicable law requires otherwise.
+          New Hotel Lobby AI purchases are one-time, pay-per-video purchases processed by Waffo. The price for the
+          selected output quality is shown before checkout. A paid generation order covers one successful result using
+          the source images, left/right placement, aspect ratio, and resolution associated with that order. Changing
+          those inputs requires a new purchase.
         </p>
         <p>
-          Credits are a limited, non-transferable service entitlement and have no cash value. Credits used for a generation
-          that fails because of a verified service or provider error may be automatically returned. Completed generations
-          and consumed compute are generally non-refundable. Payment refunds, chargebacks, or disputes may cause unused
-          purchased credits or related service access to be revoked, subject to applicable law.
+          If a paid generation ends in a verified technical or provider failure before a usable result is delivered,
+          you may retry that same paid order without another charge. After a failed attempt, you may instead request a
+          refund through the Service. Requesting a refund ends the retry path for that order while the refund is pending,
+          and a successfully refunded order cannot be retried. Refund completion is handled by the payment provider and
+          may not be instantaneous.
+        </p>
+        <p>
+          A generation that completes successfully with a usable result is considered fulfilled even if the generated
+          content does not fully match your subjective expectations. Successfully fulfilled generations are generally
+          non-refundable except where required by applicable law. A failure to copy an already generated usable result
+          to our preferred storage does not by itself make the generation unsuccessful when a usable provider result
+          remains available.
+        </p>
+        <p>
+          Legacy subscription or credit arrangements from earlier versions of the Service may remain active for existing
+          customers until ended or otherwise migrated. New Hotel Lobby AI purchases are not offered as subscriptions or
+          credit packs. Chargebacks, disputes, or payment reversals may affect access to the associated order or Service,
+          subject to applicable law.
         </p>
 
         <h2>7. Third-party services</h2>
