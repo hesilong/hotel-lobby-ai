@@ -138,16 +138,24 @@ export function HotelLobbyWorkbench() {
     if (!authed || !purchaseOrderId) return
 
     let stopped = false
+    let closedPendingChecks = 0
     const poll = async () => {
       if (stopped) return
       try {
         const order = await getGenerationPurchase({ data: { orderId: purchaseOrderId } })
 
         if (order.status === 'pending_payment' || order.status === 'paid') {
-          if (paymentWindowRef.current?.closed && order.status === 'pending_payment') {
-            clearPurchaseRecovery()
-            setSubmitStage('idle')
-            return
+          if (order.status === 'pending_payment' && paymentWindowRef.current?.closed) {
+            closedPendingChecks += 1
+            // Give Waffo/webhook delivery a short grace period after the buyer
+            // closes the checkout tab; payment confirmation can arrive slightly later.
+            if (closedPendingChecks >= 10) {
+              clearPurchaseRecovery()
+              setSubmitStage('idle')
+              return
+            }
+          } else {
+            closedPendingChecks = 0
           }
           window.setTimeout(() => void poll(), 1500)
           return
