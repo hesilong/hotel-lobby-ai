@@ -14,11 +14,15 @@ export function ResultsGallery({
   tasks,
   onRetry,
   retryingTaskId,
+  onRefund,
+  refundingTaskId,
   latestOnly = false,
 }: {
   tasks: GenerationTask[]
   onRetry?: (taskId: string) => void
   retryingTaskId?: string | null
+  onRefund?: (taskId: string) => void
+  refundingTaskId?: string | null
   latestOnly?: boolean
 }) {
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -102,6 +106,12 @@ export function ResultsGallery({
         <div className="results-grid">
           {visibleTasks.map(task => {
             const retrying = retryingTaskId === task.id
+            const refunding = refundingTaskId === task.id
+            const paidFailure = Boolean(task.generation_order_id)
+            const canRetryPaid = !paidFailure || task.generation_order_status === 'failed'
+            const canRefund = paidFailure && task.generation_order_status === 'failed'
+            const refundRequested = task.generation_order_status === 'refund_requested'
+            const refunded = task.generation_order_status === 'refunded'
 
             return <article key={task.id} className="result-card">
               {task.status === 'completed' && task.result_url ? <>
@@ -118,17 +128,39 @@ export function ResultsGallery({
               </> : task.status === 'failed' ? <>
                 <div className="result-state">
                   <AlertCircle size={24}/>
-                  <strong>Generation failed</strong>
-                  <span>{task.failure_message || 'Please try again.'}</span>
-                  {onRetry && <button
-                    type="button"
-                    className="result-retry"
-                    disabled={retrying}
-                    onClick={() => onRetry(task.id)}
-                  >
-                    {retrying ? <Loader2 className="spin" size={14}/> : <RotateCcw size={14}/>}
-                    {retrying ? 'Retrying…' : 'Retry'}
-                  </button>}
+                  <strong>{refunded ? 'Refunded' : refundRequested ? 'Refund requested' : 'Generation failed'}</strong>
+                  <span>
+                    {refunded
+                      ? 'This payment has been refunded.'
+                      : refundRequested
+                        ? 'Your refund request was submitted to Waffo.'
+                        : paidFailure
+                          ? 'Your payment is protected. Retry this generation for free, or request a refund.'
+                          : task.failure_message || 'Please try again.'}
+                  </span>
+                  {task.refund_error && <span className="result-refund-error">Refund request failed: {task.refund_error}</span>}
+                  {!refundRequested && !refunded && (
+                    <div className="result-failure-actions">
+                      {onRetry && canRetryPaid && <button
+                        type="button"
+                        className="result-retry"
+                        disabled={retrying || refunding}
+                        onClick={() => onRetry(task.id)}
+                      >
+                        {retrying ? <Loader2 className="spin" size={14}/> : <RotateCcw size={14}/>}
+                        {retrying ? 'Retrying…' : paidFailure ? 'Retry for free' : 'Retry'}
+                      </button>}
+                      {onRefund && canRefund && <button
+                        type="button"
+                        className="result-refund"
+                        disabled={retrying || refunding}
+                        onClick={() => onRefund(task.id)}
+                      >
+                        {refunding ? <Loader2 className="spin" size={14}/> : null}
+                        {refunding ? 'Requesting…' : `Request refund${task.generation_price_usd ? ` · ${task.generation_price_usd.toFixed(2)}` : ''}`}
+                      </button>}
+                    </div>
+                  )}
                 </div>
               </> : <>
                 <div className="result-state">
@@ -161,7 +193,11 @@ export function ResultsGallery({
           <div className="history-grid">
             {tasks.map(task => {
               const retrying = retryingTaskId === task.id
+              const refunding = refundingTaskId === task.id
               const completed = task.status === 'completed' && Boolean(task.result_url)
+              const paidFailure = Boolean(task.generation_order_id)
+              const canRetryPaid = !paidFailure || task.generation_order_status === 'failed'
+              const canRefund = paidFailure && task.generation_order_status === 'failed'
               const status = taskStatus(task)
 
               return <article key={task.id} className="history-card">
@@ -220,17 +256,30 @@ export function ResultsGallery({
                       <Download size={14}/> Download
                     </a>}
 
-                    {task.status === 'failed' && onRetry && (
+                    {task.status === 'failed' && task.generation_order_status !== 'refund_requested' && task.generation_order_status !== 'refunded' && onRetry && canRetryPaid && (
                       <button
                         type="button"
                         className="history-retry"
-                        disabled={retrying}
+                        disabled={retrying || refunding}
                         onClick={() => onRetry(task.id)}
                       >
                         {retrying ? <Loader2 className="spin" size={14}/> : <RotateCcw size={14}/>}
-                        {retrying ? 'Retrying…' : 'Retry'}
+                        {retrying ? 'Retrying…' : paidFailure ? 'Retry free' : 'Retry'}
                       </button>
                     )}
+                    {task.status === 'failed' && onRefund && canRefund && (
+                      <button
+                        type="button"
+                        className="history-refund"
+                        disabled={retrying || refunding}
+                        onClick={() => onRefund(task.id)}
+                      >
+                        {refunding ? <Loader2 className="spin" size={14}/> : null}
+                        {refunding ? 'Requesting…' : 'Refund'}
+                      </button>
+                    )}
+                    {task.generation_order_status === 'refund_requested' && <span className="history-chip">Refund requested</span>}
+                    {task.generation_order_status === 'refunded' && <span className="history-chip">Refunded</span>}
                   </div>
                 </div>
               </article>
@@ -252,7 +301,10 @@ export function ResultsGallery({
               </div>
               <video key={selectedTask.id} src={selectedTask.result_url!} controls autoPlay playsInline preload="metadata"/>
               <div className="history-viewer-footer">
-                <span>{selectedTask.generate_audio ? 'Soundtrack on' : 'Soundtrack off'} · {selectedTask.credits_used ?? '—'} credits</span>
+                <span>
+                  {selectedTask.generate_audio ? 'Soundtrack included' : 'Soundtrack off'}
+                  {selectedTask.generation_price_usd ? ` · ${selectedTask.generation_price_usd.toFixed(2)} paid` : ''}
+                </span>
                 <a href={`/api/download/${selectedTask.id}`} download>
                   <Download size={15}/> Download
                 </a>
@@ -278,12 +330,8 @@ function taskStatus(task: GenerationTask) {
   return { key: 'generating', label: 'Generating' }
 }
 
-function sceneLabel(task: GenerationTask) {
-  const prompt = task.prompt || ''
-  if (prompt.includes('warm orange studio stage')) return 'Orange Stage'
-  if (prompt.includes('modern recording studio')) return 'Recording Studio'
-  if (prompt.includes('elegant grand hall')) return 'Grand Hall'
-  return 'Preset Scene'
+function sceneLabel(_task: GenerationTask) {
+  return 'Hotel Lobby'
 }
 
 function taskDetails(task: GenerationTask) {
