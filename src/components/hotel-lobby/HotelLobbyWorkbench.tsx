@@ -139,6 +139,7 @@ export function HotelLobbyWorkbench() {
 
     let stopped = false
     let closedPendingChecks = 0
+    let detachedPendingChecks = 0
     const poll = async () => {
       if (stopped) return
       try {
@@ -157,6 +158,20 @@ export function HotelLobbyWorkbench() {
           } else {
             closedPendingChecks = 0
           }
+
+          if (order.status === 'pending_payment' && !paymentWindowRef.current) {
+            detachedPendingChecks += 1
+            // A reload loses the checkout-window handle. Do not lock the draft
+            // forever if the stored checkout was abandoned.
+            if (detachedPendingChecks >= 40) {
+              clearPurchaseRecovery()
+              setSubmitStage('idle')
+              return
+            }
+          } else {
+            detachedPendingChecks = 0
+          }
+
           window.setTimeout(() => void poll(), 1500)
           return
         }
