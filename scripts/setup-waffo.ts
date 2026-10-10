@@ -70,30 +70,42 @@ for (const option of Object.values(GENERATION_PURCHASE_OPTIONS)) {
   }
 }
 
-if (process.env.WAFFO_WEBHOOK_URL && !cache.webhookId) {
-  const { webhook } = await client.webhooks.add({
-    storeId,
-    channel: 'http',
-    url: process.env.WAFFO_WEBHOOK_URL,
-    testMode: true,
-    events: [
-      'order.completed',
-      'subscription.activated',
-      'subscription.payment_succeeded',
-      'subscription.canceling',
-      'subscription.uncanceled',
-      'subscription.canceled',
-      'subscription.past_due',
-      'subscription.plan_changed',
-      'refund.succeeded',
-      'refund.failed',
-    ],
-  }, {
-    idempotencyKey: `hotel-lobby-test-${storeId}-webhook`,
-  })
+const webhookEvents = [
+  'order.completed',
+  'subscription.activated',
+  'subscription.payment_succeeded',
+  'subscription.canceling',
+  'subscription.uncanceled',
+  'subscription.canceled',
+  'subscription.past_due',
+  'subscription.plan_changed',
+  'refund.succeeded',
+  'refund.failed',
+] as const
 
-  cache.webhookId = webhook.id
-  await save()
+if (process.env.WAFFO_WEBHOOK_URL) {
+  if (cache.webhookId) {
+    await client.webhooks.update({
+      id: cache.webhookId,
+      url: process.env.WAFFO_WEBHOOK_URL,
+      events: [...webhookEvents],
+    }, {
+      idempotencyKey: `hotel-lobby-test-${storeId}-webhook-update-v2`,
+    })
+  } else {
+    const { webhook } = await client.webhooks.add({
+      storeId,
+      channel: 'http',
+      url: process.env.WAFFO_WEBHOOK_URL,
+      testMode: true,
+      events: [...webhookEvents],
+    }, {
+      idempotencyKey: `hotel-lobby-test-${storeId}-webhook`,
+    })
+
+    cache.webhookId = webhook.id
+    await save()
+  }
 }
 
 const keys = Object.keys(GENERATION_PURCHASE_OPTIONS).map(
