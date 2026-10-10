@@ -3,6 +3,7 @@ import { refundCredits } from '@/server/credits'
 import { getKieTask } from '@/server/kie'
 import { persistGeneratedVideo } from '@/server/storage'
 import { mediaUrl } from '@/config/site'
+import { reconcileGenerationPurchaseOrders } from '@/server/generation-purchases'
 
 export type GenerationWorkerBindings = {
   AI_MEDIA_BUCKET: R2Bucket
@@ -422,10 +423,14 @@ export async function reconcileGenerationTasks(bindings: GenerationWorkerBinding
     }
   })
 
+  const purchaseRecovery = await reconcileGenerationPurchaseOrders()
+
   return {
-    scanned: ids.length + (unbound || []).length,
+    scanned: ids.length + (unbound || []).length + purchaseRecovery.paidScanned + purchaseRecovery.orphanedProcessing,
     unboundScanned: (unbound || []).length,
+    paidOrdersScanned: purchaseRecovery.paidScanned,
     failed: results.filter(result => result.status === 'rejected').length +
-      unboundResults.filter(result => result.status === 'rejected').length,
+      unboundResults.filter(result => result.status === 'rejected').length +
+      purchaseRecovery.failed,
   }
 }
