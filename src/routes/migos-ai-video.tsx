@@ -1,24 +1,34 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { HotelLobbyWorkbench } from '@/components/hotel-lobby/HotelLobbyWorkbench'
-import { MotionGallery } from '@/components/hotel-lobby/MotionGallery'
 import { SiteHeader } from '@/components/layout/SiteHeader'
 import { SiteFooter } from '@/components/layout/SiteFooter'
-import { HOTEL_LOBBY_TEMPLATES } from '@/config/hotel-lobby'
 import { HOTEL_LOBBY_FRIENDS_WEBP, HOTEL_LOBBY_STREETWEAR_WEBP } from '@/config/hotel-lobby-visuals'
 import { SITE_CONFIG, siteUrl } from '@/config/site'
 
 const faqItems = [
   {
     q: 'What is a Migos AI video generator?',
-    a: 'It is a search term people use for tools that create a two-person hotel-lobby-style AI performance from two images and a motion reference.',
+    a: 'Migos AI is a search term people use for the viral two-performer Hotel Lobby-style AI video format. This independent generator turns two authorized source photos into a 15-second coordinated performance.',
   },
   {
     q: 'Do I need two photos?',
-    a: 'Yes. Use one clear image for Person A and one for Person B so the generator can keep the two identities separate.',
+    a: 'Yes. Upload one clear image for the left performer and one for the right performer. You can swap their positions before generation.',
   },
   {
-    q: 'Can I use a custom motion video?',
-    a: 'Yes. You can upload your own compatible reference video or use one of the built-in Hotel Lobby AI motion templates.',
+    q: 'Do I need to upload a motion video or write a prompt?',
+    a: 'No. The Hotel Lobby motion and soundtrack are preset automatically. You only choose the two performers, 9:16 or 16:9, and export quality.',
+  },
+  {
+    q: 'How long is the generated video?',
+    a: 'Each generation is 15 seconds so the movement, pacing, and soundtrack stay consistent with the template.',
+  },
+  {
+    q: 'Is a subscription required?',
+    a: 'No. The site uses one-time credit packs with no automatic renewal.',
+  },
+  {
+    q: 'What happens if generation fails?',
+    a: 'Failed generations return the reserved credits.',
   },
   {
     q: 'Is this an official Migos product?',
@@ -35,7 +45,7 @@ const jsonLd = {
       url: siteUrl('/migos-ai-video'),
       applicationCategory: 'MultimediaApplication',
       operatingSystem: 'Web',
-      description: 'Create a Migos AI-style hotel lobby video from two photos and a motion reference.',
+      description: 'Create a 15-second two-performer Hotel Lobby-style AI video from two source photos.',
     },
     {
       '@type': 'FAQPage',
@@ -57,16 +67,16 @@ export const Route = createFileRoute('/migos-ai-video')({
       { title: 'Migos AI Video Generator – Create Hotel Lobby AI Videos' },
       {
         name: 'description',
-        content: 'Create a Migos AI-style Hotel Lobby video from two photos. Upload your duo, choose a reference motion, and generate an AI video online.',
+        content: 'Create a 15-second Migos AI-style Hotel Lobby video from two photos. Swap performers, choose 9:16 or 16:9, select quality, and generate online.',
       },
       { property: 'og:title', content: 'Migos AI Video Generator – Create Hotel Lobby AI Videos' },
-      { property: 'og:description', content: 'Create a two-person Migos AI-style Hotel Lobby video from your photos and a motion reference.' },
+      { property: 'og:description', content: 'Turn two photos into a 15-second two-performer Hotel Lobby-style AI video with preset motion and soundtrack.' },
       { property: 'og:type', content: 'website' },
       { property: 'og:url', content: siteUrl('/migos-ai-video') },
       { property: 'og:site_name', content: SITE_CONFIG.name },
       { name: 'twitter:card', content: 'summary' },
       { name: 'twitter:title', content: 'Migos AI Video Generator' },
-      { name: 'twitter:description', content: 'Upload two photos and create a hotel-lobby-style Migos AI video with a reference motion.' },
+      { name: 'twitter:description', content: 'Upload two photos and create a 15-second Hotel Lobby-style duo video with preset motion and soundtrack.' },
       { name: 'robots', content: 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1' },
     ],
     links: [{ rel: 'canonical', href: siteUrl('/migos-ai-video') }],
@@ -84,8 +94,12 @@ function MigosAiPage() {
         <div className="hero-copy">
           <span className="eyebrow">Migos AI Video</span>
           <h1>Migos AI <span>Video Generator</span></h1>
-          <p>Create a two-person hotel-lobby-style AI video from your own photos. Keep both identities separate and let a motion reference drive the performance.</p>
-          <div className="hero-chips"><span>2-person workflow</span><span>Reference motion</span><span>Online generator</span></div>
+          <p>Upload two photos and turn them into a 15-second Hotel Lobby-style duo performance. Motion and soundtrack are preset, so there is no prompt or reference-video setup.</p>
+          <div className="hero-chips">
+            <span>2 performer photos</span>
+            <span>15-second video</span>
+            <span>9:16 & 16:9</span>
+          </div>
         </div>
         <div id="generator"><HotelLobbyWorkbench /></div>
       </section>
@@ -93,50 +107,41 @@ function MigosAiPage() {
       <section className="section section-centered">
         <div className="section-heading centered">
           <span>Migos AI workflow</span>
-          <h2>Build the duo video in three parts</h2>
-          <p>The photos define the performers, the motion defines the performance, and the prompt is only there to refine the result.</p>
+          <h2>Two photos. One focused workflow.</h2>
+          <p>The photos define the performers. You decide left and right placement, format, and quality. The Hotel Lobby motion and soundtrack are handled automatically.</p>
         </div>
         <div className="steps steps-large">
-          <article><b>01</b><h3>Add Person A and Person B</h3><p>Use separate images with visible faces so the model has a clear identity source for each performer.</p></article>
-          <article><b>02</b><h3>Choose the movement</h3><p>Select a built-in Hotel Lobby AI reference or upload your own video for a different performance.</p></article>
-          <article><b>03</b><h3>Generate the Migos AI video</h3><p>Start the task and let the results area update while you prepare another variation.</p></article>
+          <article><b>01</b><h3>Upload two performers</h3><p>Add one clear person or pet for the left position and one for the right. Visible facial detail and good lighting help identity consistency.</p></article>
+          <article><b>02</b><h3>Set position and format</h3><p>Swap the performers if needed, then choose 9:16 Vertical for short-form social video or 16:9 Landscape for a wider result.</p></article>
+          <article><b>03</b><h3>Choose quality and generate</h3><p>Select 480p, 720p, or 1080p. The generator creates the fixed 15-second performance and updates the result automatically.</p></article>
         </div>
       </section>
 
       <section className="section migos-visual-story">
         <div className="visual-story-copy">
-          <span className="section-kicker">Visual examples</span>
+          <span className="section-kicker">Source-photo ideas</span>
           <h2>Keep the duo format, change the cast</h2>
-          <p>The same reference-driven workflow can be used with different people, outfits, and visual styles while preserving the two-person performance structure.</p>
+          <p>Use friends, creators, pets, or different outfits while keeping the same two-performer Hotel Lobby structure. Clear source photos matter more than complicated settings.</p>
         </div>
         <div className="visual-story-grid">
-          <figure><img src={HOTEL_LOBBY_FRIENDS_WEBP} alt="Friends in a Hotel Lobby AI duo scene" loading="lazy" /><figcaption>Friends & creator duos</figcaption></figure>
-          <figure><img src={HOTEL_LOBBY_STREETWEAR_WEBP} alt="Streetwear duo in a Hotel Lobby AI scene" loading="lazy" /><figcaption>Streetwear & fashion edits</figcaption></figure>
+          <figure><img src={HOTEL_LOBBY_FRIENDS_WEBP} alt="Friends used as a two-performer Hotel Lobby AI example" loading="lazy" /><figcaption>Friends & creator duos</figcaption></figure>
+          <figure><img src={HOTEL_LOBBY_STREETWEAR_WEBP} alt="Streetwear duo used as a Hotel Lobby AI example" loading="lazy" /><figcaption>Streetwear & fashion edits</figcaption></figure>
         </div>
-      </section>
-
-      <section className="section" id="templates">
-        <div className="section-heading">
-          <span>Motion Library</span>
-          <h2>Try the same identities with different motion</h2>
-          <p>Switch the reference to change pacing, framing, and performance style without changing your source photos.</p>
-        </div>
-        <MotionGallery templates={HOTEL_LOBBY_TEMPLATES} />
       </section>
 
       <section className="band">
         <div className="section split-info">
           <div>
-            <span className="section-kicker">Why reference motion?</span>
-            <h2>Show the movement instead of describing everything</h2>
-            <p>A Migos AI video depends heavily on timing and coordinated motion. A reference clip gives the model a clearer movement pattern than a long text prompt alone.</p>
+            <span className="section-kicker">No motion setup</span>
+            <h2>The Hotel Lobby performance is already configured</h2>
+            <p>You do not need to upload a reference video, write a motion prompt, or choose a duration. Each generation uses the preset 15-second Hotel Lobby motion and soundtrack.</p>
           </div>
           <div className="tips-panel">
             <h3>Source image checklist</h3>
             <ul>
-              <li>One main person per image.</li>
-              <li>Visible face and hairstyle.</li>
-              <li>Enough body detail for the selected motion.</li>
+              <li>Use one main subject per image.</li>
+              <li>Keep the face or muzzle visible.</li>
+              <li>Use a three-quarter or full-body image when possible.</li>
               <li>Avoid blurry group photos and heavy occlusion.</li>
             </ul>
           </div>
@@ -147,43 +152,38 @@ function MigosAiPage() {
         <div className="editorial-lead">
           <span className="section-kicker">Migos AI Guide</span>
           <h2>What people mean when they search for Migos AI video</h2>
-          <p>This page focuses on the search intent around Migos AI, Migos AI Video Generator, and the related Hotel Lobby AI format.</p>
+          <p>This page covers the search intent around Migos AI, Migos AI Video Generator, Migos Hotel Lobby AI, and the broader two-performer Hotel Lobby video trend.</p>
         </div>
 
         <div className="editorial-grid">
           <article>
             <h3>What is a Migos AI Video Generator?</h3>
-            <p>Migos AI is a search term many people use when looking for the viral two-person hotel-lobby-style AI video format. A Migos AI Video Generator takes two separate images and combines them with a motion reference so the people in the uploaded photos can follow the timing, poses, gestures, and framing of the reference clip. The workflow is intended for users who want the recognizable duo-video look without manually animating every movement. On this page, the phrase Migos AI refers to that broader AI video trend and search intent; Hotel Lobby AI is an independent tool and is not affiliated with or endorsed by Migos or related rights holders.</p>
+            <p>Migos AI is a search term commonly used for the viral two-performer Hotel Lobby-style AI video format. The basic idea is simple: two separate source photos provide the left and right performers, and an AI video model creates a coordinated performance using a preset movement sequence. On this site, you do not need to configure the underlying model, upload motion footage, or write a prompt. Hotel Lobby AI is an independent tool and is not affiliated with or endorsed by Migos or related rights holders.</p>
           </article>
 
           <article>
             <h3>How to make a Migos AI video</h3>
-            <p>To make a Migos AI video, upload one image for Person A and one for Person B. Keeping the identities separate matters because the generator needs a clear source for the left and right performers. After the photos are selected, choose a Hotel Lobby motion template or upload your own reference video. The motion source provides the structure of the performance, while your images provide faces, hairstyles, outfits, and identity details. The Migos AI Video Generator then uses those inputs together to create a new two-person clip that follows the movement and timing of the reference.</p>
+            <p>Start with one clear image for each performer. Upload the first image into the Left Performer slot and the second into the Right Performer slot. If the positions look wrong, use the swap control before generation. Next, choose 9:16 Vertical or 16:9 Landscape and select 480p, 720p, or 1080p. Every generation is 15 seconds and uses the preset Hotel Lobby motion and soundtrack.</p>
           </article>
 
           <article>
             <h3>Choose better photos for Migos AI video generation</h3>
-            <p>Image quality has a major effect on Migos AI video results. Clear portraits with visible facial features usually provide more identity information than dark, blurred, or heavily filtered photos. If the reference video contains full-body movement, try to use images that show more than just the face. Clothing details are also easier to preserve when the outfit is visible and not hidden by objects or extreme cropping. For a two-person Migos Hotel Lobby AI video, avoid group photos because the model may have difficulty deciding who should represent Person A or Person B.</p>
+            <p>Source-image quality has a major effect on identity stability. Clear photos with visible facial features usually provide more useful information than dark, blurred, heavily filtered, or strongly cropped images. If the motion includes more of the body, three-quarter or full-body images can help. Avoid group photos because the model may have difficulty deciding which person should represent the left or right performer.</p>
           </article>
 
           <article>
-            <h3>Why reference motion matters</h3>
-            <p>The motion reference is just as important as the photos. A built-in Hotel Lobby AI template is useful when you want a familiar style quickly. Uploading a custom reference video gives you more control over pacing, body movement, camera behavior, and gestures. This is why a Migos AI generator based on reference-to-video can be more predictable than a pure text-to-video workflow for this kind of trend. Instead of describing a movement sequence only with words, you can show the model the motion pattern you want it to follow.</p>
+            <h3>9:16 or 16:9?</h3>
+            <p>Choose 9:16 Vertical when the video is mainly for TikTok, Instagram Reels, or YouTube Shorts. Choose 16:9 Landscape when you want a wider result for desktop viewing, YouTube, or other landscape placements. The performance remains the same; only the output framing changes.</p>
           </article>
 
           <article>
-            <h3>Ways creators use Migos AI videos</h3>
-            <p>A Migos AI Video Generator can be used for creator edits, social experiments, duo performances, meme-style clips, character transformations, fashion content, and trend remixes. The same workflow can be repeated with different image pairs and motion references, which makes it useful for testing multiple creative directions. You can keep the same motion while changing the people, or keep the same identities while trying different reference clips. This makes the Migos AI format flexible beyond a single viral example while preserving the recognizable two-person performance structure.</p>
+            <h3>Why the generator fixes the video at 15 seconds</h3>
+            <p>The fixed duration keeps the template motion, pacing, and soundtrack aligned. Instead of exposing a large set of technical controls, the generator focuses on the choices that materially affect the final use: who appears on each side, whether the video is vertical or landscape, and the export quality.</p>
           </article>
 
           <article>
-            <h3>Migos AI vs. Hotel Lobby AI</h3>
-            <p>Migos AI and Hotel Lobby AI are closely related search terms in this context. Some users search for Migos AI video, others search for Hotel Lobby AI, Hotel Lobby AI Generator, or Migos Hotel Lobby AI. The underlying intent is usually similar: they want an online tool that can turn two images into a coordinated AI performance using a reference video. This page focuses on Migos AI Video Generator searches, while the main Hotel Lobby AI page provides the broader generator experience and Hotel Lobby AI information. Both routes use the same core two-person workflow.</p>
-          </article>
-
-          <article>
-            <h3>Tips for more consistent Migos AI results</h3>
-            <p>Keep the prompt focused on identity preservation and motion following instead of adding many unrelated scene changes. The generator works best when it can clearly understand which details come from the photos and which details come from the reference motion. If a result changes a face too much or mixes the identities, try clearer source photos with more visible facial and clothing detail. If the motion does not match closely enough, choose a cleaner reference clip with fewer cuts or camera changes. Small improvements in source material can make a noticeable difference in a Migos AI video.</p>
+            <h3>What happens if generation fails?</h3>
+            <p>Hotel Lobby AI uses credits rather than requiring a recurring subscription. If a generation fails during provider or processing stages, the reserved credits are returned. Completed results can be played in the Results panel and downloaded directly as an MP4 file.</p>
           </article>
         </div>
       </section>
@@ -192,18 +192,21 @@ function MigosAiPage() {
         <div className="section">
           <div className="section-heading"><span>FAQ</span><h2>Migos AI video questions</h2></div>
           <div className="faq-list">
-            {faqItems.map(item => <details key={item.q}><summary>{item.q}</summary><p>{item.a}</p></details>)}
+            {faqItems.map((item, index) => <details key={item.q}>
+              <summary><span className="faq-number">{index + 1}</span><span>{item.q}</span></summary>
+              <p>{item.a}</p>
+            </details>)}
           </div>
         </div>
       </section>
 
       <section className="section launch-cta">
         <div>
-          <span className="eyebrow">Related generator</span>
-          <h2>Explore the full Hotel Lobby AI workflow</h2>
-          <p>Use the main page for the broader Hotel Lobby AI generator, templates, and detailed guide.</p>
+          <span className="eyebrow">Ready to create?</span>
+          <h2>Make your own Hotel Lobby AI video</h2>
+          <p>Upload two performers, choose format and quality, and create the fixed 15-second Hotel Lobby performance.</p>
         </div>
-        <a className="seo-cta" href="/">Open Hotel Lobby AI →</a>
+        <a className="seo-cta" href="#generator">Open generator ↑</a>
       </section>
 
       <SiteFooter />
