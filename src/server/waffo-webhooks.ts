@@ -3,6 +3,8 @@ import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { CREDIT_PACKS } from '@/config/products'
 import { waffoPlan } from '@/config/payments'
 import { waffoClient, waffoEnvironment, waffoStoreId } from './waffo'
+import { generationPriceUsd } from '@/config/generation-purchase'
+import { startPaidGenerationOrder } from '@/server/generation-purchases'
 
 export function validateWaffoEnvelope(event: WebhookEvent) {
   if (event.mode !== waffoEnvironment() || event.storeId !== waffoStoreId()) throw new Error('WAFFO_WEBHOOK_SCOPE_MISMATCH')
@@ -23,7 +25,7 @@ export async function processWaffoEvent(event: WebhookEvent) {
   const admin = getSupabaseAdminClient()
   const data = event.data
   const subscriptionEvent = event.eventType in statusByEvent || event.eventType === 'subscription.payment_succeeded'
-  if (!subscriptionEvent && !['order.completed', 'refund.succeeded'].includes(event.eventType)) {
+  if (!subscriptionEvent && !['order.completed', 'refund.succeeded', 'refund.failed'].includes(event.eventType)) {
     const { error } = await admin.from('waffo_webhook_events').update({ status: 'ignored', processed_at: new Date().toISOString() }).eq('delivery_id', event.id)
     if (error) throw new Error(error.message)
     return
@@ -37,9 +39,117 @@ export async function processWaffoEvent(event: WebhookEvent) {
       .eq('environment', event.mode).eq('store_id', event.storeId).maybeSingle()
     : { data: null, error: null }
   if (intentError) throw new Error(intentError.message)
-  const userId = subscription?.user_id || intent?.user_id
+  let generationOrder: any = null
+  if (intent?.purchase_type === 'generation' && intent.generation_order_id) {
+    const { data: order, error: orderError } = await admin.from('generation_orders').select('*')
+      .eq('id', intent.generation_order_id)
+      .eq('waffo_product_id', intent.product_id)
+      .maybeSingle()
+    if (orderError) throw new Error(orderError.message)
+    generationOrder = order
+  } else if (data.orderId) {
+    const { data: order, error: orderError } = await admin.from('generation_orders').select('*')
+      .eq('waffo_order_id', data.orderId)
+      .eq('waffo_environment', event.mode)
+      .maybeSingle()
+    if (orderError) throw new Error(orderError.message)
+    generationOrder = order
+  }
+
+  const userId = subscription?.user_id || intent?.user_id || generationOrder?.user_id
   if (!userId) throw new Error('WAFFO_ORDER_OWNER_NOT_FOUND')
-  if ((intent && intent.user_id !== userId) || (data.merchantProvidedBuyerIdentity && data.merchantProvidedBuyerIdentity !== userId)) throw new Error('WAFFO_ORDER_OWNER_MISMATCH')
+  if ((intent && intent.user_id !== userId) || (generationOrder && generationOrder.user_id !== userId) ||
+      (data.merchantProvidedBuyerIdentity && data.merchantProvidedBuyerIdentity !== userId)) {
+    throw new Error('WAFFO_ORDER_OWNER_MISMATCH')
+  }
+
+  if (generationOrder) {
+    if (event.eventType === 'order.completed') {
+      if (!intent || intent.purchase_type !== 'generation' || data.currency !== 'USD' || !data.paymentId) {
+        throw new Error('WAFFO_INVALID_GENERATION_ORDER')
+      }
+      const expected = generationPriceUsd(generationOrder.resolution)
+      const paid = Number(data.chargedAmount ?? data.amount)
+      if (!Number.isFinite(paid) || paid + 0.001 < expected) {
+        throw new Error('WAFFO_PAYMENT_AMOUNT_MISMATCH')
+      }
+
+      const paidAt = new Date().toISOString()
+      const { error: updateError } = await admin.from('generation_orders').update({
+        status: 'paid',
+        waffo_order_id: data.orderId,
+        waffo_payment_id: data.paymentId,
+        waffo_environment: event.mode,
+        charged_amount: String(data.chargedAmount ?? data.amount),
+        paid_at: paidAt,
+        updated_at: paidAt,
+      })
+        .eq('id', generationOrder.id)
+        .eq('user_id', userId)
+        .eq('status', 'pending_payment')
+      if (updateError) throw new Error(updateError.message)
+
+      const { error: inboxError } = await admin.from('waffo_webhook_events').update({
+        status: 'processed',
+        error: null,
+        processed_at: new Date().toISOString(),
+      }).eq('delivery_id', event.id)
+      if (inboxError) throw new Error(inboxError.message)
+
+      try {
+        await startPaidGenerationOrder(generationOrder.id, 'paid')
+      } catch (error) {
+        console.error('[Waffo] paid generation start failed', {
+          orderId: generationOrder.id,
+          error,
+        })
+      }
+      return
+    }
+
+    if (event.eventType === 'refund.succeeded') {
+      const now = new Date().toISOString()
+      const { error: updateError } = await admin.from('generation_orders').update({
+        status: 'refunded',
+        refunded_at: now,
+        refund_error: null,
+        updated_at: now,
+      })
+        .eq('id', generationOrder.id)
+        .eq('user_id', userId)
+        .in('status', ['refund_requested', 'refunded'])
+      if (updateError) throw new Error(updateError.message)
+
+      const { error: inboxError } = await admin.from('waffo_webhook_events').update({
+        status: 'processed',
+        error: null,
+        processed_at: now,
+      }).eq('delivery_id', event.id)
+      if (inboxError) throw new Error(inboxError.message)
+      return
+    }
+
+    if (event.eventType === 'refund.failed') {
+      const now = new Date().toISOString()
+      const { error: updateError } = await admin.from('generation_orders').update({
+        status: 'failed',
+        refund_error: data.paymentFailureReason || data.refundReason || 'REFUND_FAILED',
+        updated_at: now,
+      })
+        .eq('id', generationOrder.id)
+        .eq('user_id', userId)
+        .eq('status', 'refund_requested')
+      if (updateError) throw new Error(updateError.message)
+
+      const { error: inboxError } = await admin.from('waffo_webhook_events').update({
+        status: 'processed',
+        error: null,
+        processed_at: now,
+      }).eq('delivery_id', event.id)
+      if (inboxError) throw new Error(inboxError.message)
+      return
+    }
+  }
 
   let productId = intent?.product_id || subscription?.plan_id
   let periodStart = data.currentPeriodStart || subscription?.current_period_start
