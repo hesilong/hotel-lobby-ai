@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { AlertCircle, ArrowDown, Clock3, Download, Loader2, Play, RotateCcw, X } from 'lucide-react'
 import type { GenerationTask } from '@/server/generation'
 import { REVIEW_MODE } from '@/config/feature-flags'
+import { SITE_CONFIG } from '@/config/site'
 
 const DEMO_BASE = 'https://cdn.hotel-lobby-ai.pro/demo/5'
 const DEMO = {
@@ -162,7 +163,7 @@ export function ResultsGallery({
                         {refunding ? <Loader2 className="spin" size={14}/> : null}
                         {refunding ? 'Requesting…' : `Request refund${task.generation_price_usd ? ` · ${task.generation_price_usd.toFixed(2)}` : ''}`}
                       </button>}
-                      {refundNeedsSupport && <a className="result-refund" href="/terms-of-service#reporting">Contact support</a>}
+                      {refundNeedsSupport && <a className="result-refund" href={`mailto:${SITE_CONFIG.supportEmail}?subject=Refund%20support`}>Contact support</a>}
                     </div>
                   )}
                 </div>
@@ -283,7 +284,7 @@ export function ResultsGallery({
                         {refunding ? 'Requesting…' : 'Refund'}
                       </button>
                     )}
-                    {refundNeedsSupport && <a className="history-refund" href="/terms-of-service#reporting">Support</a>}
+                    {refundNeedsSupport && <a className="history-refund" href={`mailto:${SITE_CONFIG.supportEmail}?subject=Refund%20support`}>Support</a>}
                     {task.generation_order_status === 'refund_requested' && <span className="history-chip">Refund requested</span>}
                     {task.generation_order_status === 'refunded' && <span className="history-chip">Refunded</span>}
                   </div>
