@@ -12,6 +12,7 @@ export function SiteFooter() {
       <div className="footer-links">
         <a href="/">{SITE_CONFIG.name}</a>
         <a href="/migos-ai-video">Migos AI Video</a>
+        <a href="/blog">Blog</a>
         <a href="/pricing">Pricing</a>
         <a href="/privacy-policy">Privacy</a>
         <a href="/terms-of-service">Terms</a>
