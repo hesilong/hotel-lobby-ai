@@ -33,6 +33,7 @@ type GenerationTaskRow = {
   aspect_ratio: string | null
   generate_audio: boolean | null
   prompt: string | null
+  generation_order_id: string | null
 }
 
 const TASK_SELECT = [
@@ -57,6 +58,7 @@ const TASK_SELECT = [
   'aspect_ratio',
   'generate_audio',
   'prompt',
+  'generation_order_id',
 ].join(',')
 
 const mockResultUrl = () =>
@@ -216,6 +218,21 @@ async function completeProviderTask(
 
   if (!completed) throw new Error('TASK_NOT_FOUND')
   if (completed.status !== 'completed') return completed
+
+  if (completed.generation_order_id) {
+    const { error: orderError } = await admin.from('generation_orders').update({
+      status: 'fulfilled',
+      fulfilled_at: now,
+      updated_at: now,
+    })
+      .eq('id', completed.generation_order_id)
+      .eq('user_id', completed.user_id)
+      .eq('status', 'processing')
+      .eq('latest_task_id', completed.id)
+
+    if (orderError) throw new Error(orderError.message)
+  }
+
   return persistCompletedTask(completed, bindings)
 }
 
@@ -244,7 +261,20 @@ async function failProviderTask(
   if (error) throw new Error(error.message)
 
   if (data?.id) {
-    await refundTaskIfNeeded(task.id, task.user_id, failureMessage)
+    if (task.generation_order_id) {
+      const { error: orderError } = await admin.from('generation_orders').update({
+        status: 'failed',
+        updated_at: now,
+      })
+        .eq('id', task.generation_order_id)
+        .eq('user_id', task.user_id)
+        .eq('status', 'processing')
+        .eq('latest_task_id', task.id)
+
+      if (orderError) throw new Error(orderError.message)
+    } else {
+      await refundTaskIfNeeded(task.id, task.user_id, failureMessage)
+    }
   }
 
   return (await readTask(task.id)) || task
