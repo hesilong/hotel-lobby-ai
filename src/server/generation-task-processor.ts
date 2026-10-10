@@ -78,6 +78,32 @@ async function readTask(taskId: string): Promise<GenerationTaskRow | null> {
   return data as GenerationTaskRow | null
 }
 
+async function syncPaidOrderTerminalState(task: GenerationTaskRow) {
+  if (!task.generation_order_id || (task.status !== 'completed' && task.status !== 'failed')) return
+
+  const now = new Date().toISOString()
+  const update = task.status === 'completed'
+    ? {
+        status: 'fulfilled',
+        fulfilled_at: now,
+        updated_at: now,
+      }
+    : {
+        status: 'failed',
+        updated_at: now,
+      }
+
+  const { error } = await getSupabaseAdminClient()
+    .from('generation_orders')
+    .update(update)
+    .eq('id', task.generation_order_id)
+    .eq('user_id', task.user_id)
+    .eq('status', 'processing')
+    .eq('latest_task_id', task.id)
+
+  if (error) throw new Error(error.message)
+}
+
 async function refundTaskIfNeeded(taskId: string, userId: string, reason: string) {
   const admin = getSupabaseAdminClient()
   const { data: task, error } = await admin
@@ -297,9 +323,13 @@ export async function processGenerationTask(
   const task = await readTask(taskId)
   if (!task) return null
 
-  if (task.status === 'failed') return task
+  if (task.status === 'failed') {
+    await syncPaidOrderTerminalState(task)
+    return task
+  }
 
   if (task.status === 'completed') {
+    await syncPaidOrderTerminalState(task)
     if (task.storage_status === 'persisted') return task
     return persistCompletedTask(task, bindings)
   }
