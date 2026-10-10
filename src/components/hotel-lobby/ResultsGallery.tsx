@@ -162,6 +162,7 @@ export function ResultsGallery({
                         {refunding ? <Loader2 className="spin" size={14}/> : null}
                         {refunding ? 'Requesting…' : `Request refund${task.generation_price_usd ? ` · ${task.generation_price_usd.toFixed(2)}` : ''}`}
                       </button>}
+                      {refundNeedsSupport && <a className="result-refund" href="/terms-of-service#reporting">Contact support</a>}
                     </div>
                   )}
                 </div>
