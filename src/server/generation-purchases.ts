@@ -374,6 +374,60 @@ export async function retryPaidGenerationOrderForUser(userId: string, taskId: st
   return next
 }
 
+export async function reconcileGenerationPurchaseOrders() {
+  const admin = getSupabaseAdminClient()
+  const staleCutoff = new Date(Date.now() - 5 * 60_000).toISOString()
+
+  const [
+    { data: paidOrders, error: paidError },
+    { data: orphanedProcessing, error: orphanedError },
+  ] = await Promise.all([
+    admin.from('generation_orders')
+      .select('id')
+      .eq('status', 'paid')
+      .order('paid_at', { ascending: true, nullsFirst: true })
+      .limit(20),
+    admin.from('generation_orders')
+      .select('id')
+      .eq('status', 'processing')
+      .is('latest_task_id', null)
+      .lt('updated_at', staleCutoff)
+      .order('updated_at', { ascending: true })
+      .limit(20),
+  ])
+
+  if (paidError) throw new Error(paidError.message)
+  if (orphanedError) throw new Error(orphanedError.message)
+
+  if (orphanedProcessing?.length) {
+    const ids = orphanedProcessing.map(row => String(row.id))
+    const { error } = await admin.from('generation_orders').update({
+      status: 'failed',
+      updated_at: new Date().toISOString(),
+    }).in('id', ids).eq('status', 'processing').is('latest_task_id', null)
+    if (error) throw new Error(error.message)
+  }
+
+  const results = await Promise.allSettled(
+    (paidOrders || []).map(row => startPaidGenerationOrder(String(row.id), 'paid')),
+  )
+
+  results.forEach((result, index) => {
+    if (result.status === 'rejected') {
+      console.error('[generation purchase] paid-order recovery failed', {
+        orderId: String((paidOrders || [])[index]?.id || ''),
+        error: result.reason,
+      })
+    }
+  })
+
+  return {
+    paidScanned: (paidOrders || []).length,
+    orphanedProcessing: (orphanedProcessing || []).length,
+    failed: results.filter(result => result.status === 'rejected').length,
+  }
+}
+
 export const createGenerationPurchase = createServerFn({ method: 'POST' })
   .inputValidator((input: CreateGenerationInput) => input)
   .handler(async ({ data }) => {
@@ -448,6 +502,22 @@ export const getGenerationPurchase = createServerFn({ method: 'POST' })
       .maybeSingle()
 
     if (error || !order) throw new Error('GENERATION_ORDER_NOT_FOUND')
+
+    if (order.status === 'paid') {
+      await startPaidGenerationOrder(order.id, 'paid')
+      const { data: refreshed, error: refreshedError } = await getSupabaseAdminClient()
+        .from('generation_orders')
+        .select('id,status,resolution,aspect_ratio,duration_seconds,amount_usd,currency,latest_task_id,retry_count,refund_ticket_id,refund_error,created_at,updated_at')
+        .eq('id', data.orderId)
+        .eq('user_id', user.id)
+        .maybeSingle()
+      if (refreshedError || !refreshed) throw new Error('GENERATION_ORDER_NOT_FOUND')
+      return {
+        ...refreshed,
+        amount_usd: Number(refreshed.amount_usd),
+      }
+    }
+
     return {
       ...order,
       amount_usd: Number(order.amount_usd),
