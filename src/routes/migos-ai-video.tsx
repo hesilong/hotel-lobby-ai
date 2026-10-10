@@ -24,11 +24,11 @@ const faqItems = [
   },
   {
     q: 'Is a subscription required?',
-    a: 'No. The site uses one-time credit packs with no automatic renewal.',
+    a: 'No. The site charges per generated video: $4.99 for 480p, $9.90 for 720p, or $19.90 for 1080p. There is no automatic renewal.',
   },
   {
     q: 'What happens if generation fails?',
-    a: 'Failed generations return the reserved credits.',
+    a: 'A technical generation failure can be retried for free on the same paid order. You can also request a refund after a failed attempt.',
   },
   {
     q: 'Is this an official Migos product?',
@@ -183,7 +183,7 @@ function MigosAiPage() {
 
           <article>
             <h3>What happens if generation fails?</h3>
-            <p>Hotel Lobby AI uses credits rather than requiring a recurring subscription. If a generation fails during provider or processing stages, the reserved credits are returned. Completed results can be played in the Results panel and downloaded directly as an MP4 file.</p>
+            <p>Hotel Lobby AI charges per generated video rather than requiring a recurring subscription. If a technical generation fails, the same paid order can be retried for free, or you can request a refund after a failed attempt. Completed results can be played in the Results panel and downloaded directly as an MP4 file.</p>
           </article>
         </div>
       </section>
