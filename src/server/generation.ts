@@ -47,6 +47,7 @@ export type GenerationTask = {
   generation_order_status?: 'pending_payment' | 'paid' | 'processing' | 'failed' | 'fulfilled' | 'refund_requested' | 'refunded' | null
   generation_price_usd?: number | null
   refund_error?: string | null
+  refund_ticket_id?: string | null
 }
 
 const mockEnabled = () => process.env.MOCK_GENERATION === 'true'
@@ -314,7 +315,7 @@ export const listGenerationTasks = createServerFn({ method: 'GET' }).handler(asy
   if (!orderIds.length) return tasks
 
   const { data: orders, error: orderError } = await admin.from('generation_orders')
-    .select('id,status,amount_usd,refund_error')
+    .select('id,status,amount_usd,refund_error,refund_ticket_id')
     .eq('user_id', user.id)
     .in('id', orderIds)
   if (orderError) throw new Error(orderError.message)
@@ -327,6 +328,7 @@ export const listGenerationTasks = createServerFn({ method: 'GET' }).handler(asy
       generation_order_status: order?.status || null,
       generation_price_usd: order ? Number(order.amount_usd) : null,
       refund_error: order?.refund_error || null,
+      refund_ticket_id: order?.refund_ticket_id || null,
     } as GenerationTask
   })
 })
@@ -346,7 +348,7 @@ export const refreshGenerationTask = createServerFn({ method: 'POST' })
     if (!task.generation_order_id) return task as GenerationTask
 
     const { data: order, error: orderError } = await admin.from('generation_orders')
-      .select('status,amount_usd,refund_error')
+      .select('status,amount_usd,refund_error,refund_ticket_id')
       .eq('id', task.generation_order_id)
       .eq('user_id', user.id)
       .maybeSingle()
@@ -357,5 +359,6 @@ export const refreshGenerationTask = createServerFn({ method: 'POST' })
       generation_order_status: order?.status || null,
       generation_price_usd: order ? Number(order.amount_usd) : null,
       refund_error: order?.refund_error || null,
+      refund_ticket_id: order?.refund_ticket_id || null,
     } as GenerationTask
   })
