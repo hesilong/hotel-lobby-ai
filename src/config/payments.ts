@@ -1,4 +1,5 @@
 import { CREDIT_PACKS, PLANS, type BillingCycle, type CreditPackKey } from './products'
+import type { GenerationResolution } from './generation'
 
 export type PaymentProvider = 'creem' | 'waffo'
 
@@ -30,4 +31,11 @@ export function waffoPlan(productId: string) {
     }
   }
   return null
+}
+
+
+export function generationProductId(provider: PaymentProvider, resolution: GenerationResolution) {
+  if (provider !== 'waffo') return ''
+  const suffix = resolution.toUpperCase()
+  return process.env[`WAFFO_GENERATION_${suffix}_PRODUCT_ID`]?.trim() || ''
 }
