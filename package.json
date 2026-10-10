@@ -4,7 +4,7 @@
   "version": "0.2.2",
   "type": "module",
   "scripts": {
-    "test:payments": "node --test tests/waffo-payments.test.mjs",
+    "test:payments": "node --test tests/waffo-payments.test.mjs tests/generation-purchases.test.mjs",
     "dev": "vite dev",
     "build": "vite build && tsc --noEmit",
     "preview": "vite preview",
