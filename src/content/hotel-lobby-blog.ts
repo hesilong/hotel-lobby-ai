@@ -60,7 +60,7 @@ export const HOTEL_LOBBY_BLOG: BlogArticle[] = [
       {
         heading: '4. Pick export quality',
         paragraphs: [
-          'Hotel Lobby AI offers 480p, 720p, and 1080p. Higher resolutions use more credits, so 480p is useful for inexpensive tests while 720p or 1080p make more sense for results you plan to keep or publish.',
+          'Hotel Lobby AI offers 480p, 720p, and 1080p as separate pay-per-video options. 480p costs $4.99, 720p costs $9.90, and 1080p costs $19.90, so you can choose the quality and price before checkout.',
           'Every generation is 15 seconds and includes the preset Hotel Lobby motion and soundtrack.',
         ],
       },
@@ -68,7 +68,7 @@ export const HOTEL_LOBBY_BLOG: BlogArticle[] = [
         heading: '5. Generate, preview, and download',
         paragraphs: [
           'After the task is accepted, generation continues in the Results area. You can leave the page while the task is processing and return to your generation history later.',
-          'When the result is complete, play it in the browser and download the MP4 directly. If generation fails during processing, the reserved credits are returned.',
+          'When the result is complete, play it in the browser and download the MP4 directly. If a technical generation fails, retry the same paid order for free or request a refund after the failed attempt.',
         ],
       },
     ],
@@ -208,55 +208,55 @@ export const HOTEL_LOBBY_BLOG: BlogArticle[] = [
         heading: 'Retry before assuming the source pair cannot work',
         paragraphs: [
           'Generative video is not deterministic. Two generations from the same inputs can differ, so one imperfect result does not always mean the source images are unusable.',
-          'If a generation fails technically rather than simply looking imperfect, the reserved credits are returned.',
+          'If a generation fails technically rather than simply looking imperfect, the same paid order can be retried for free. A refund can also be requested after the failed attempt.',
         ],
       },
     ],
   },
   {
     slug: 'is-hotel-lobby-ai-free',
-    title: 'Is Hotel Lobby AI Free? Credits, Pricing, and Failed Generations',
-    description: 'Understand how Hotel Lobby AI credits work, whether a subscription is required, what one-time credit packs mean, and what happens to credits when generation fails.',
+    title: 'Is Hotel Lobby AI Free? Pricing, Retries, and Refunds',
+    description: 'Understand Hotel Lobby AI pay-per-video pricing, whether a subscription is required, how free retries work after technical failures, and when you can request a refund.',
     eyebrow: 'Pricing explained',
     published: '2026-10-10',
     updated: '2026-10-10',
     image: 'pets',
     intro: [
-      'Hotel Lobby AI does not require a recurring subscription. The generator uses one-time credit packs, so you buy credits when you want to create more videos instead of starting a monthly or yearly plan.',
-      'The number of credits used depends on the export quality you choose. Higher-resolution generations cost more credits than lower-resolution tests.',
+      'Hotel Lobby AI does not require a recurring subscription. Each checkout pays for one 15-second video at the quality you choose: $4.99 for 480p, $9.90 for 720p, or $19.90 for 1080p.',
+      'The price is shown directly in the workbench before checkout, so there is no separate credit balance or pack to calculate.',
     ],
     sections: [
       {
         heading: 'Do I need a subscription?',
         paragraphs: [
-          'No. New purchases are one-time credit packs with no automatic renewal. Buying a pack adds credits to your account without starting a recurring plan.',
-          'Credits purchased as packs are currently valid for 180 days.',
+          'No. New purchases are one-time payments for a single generated video, with no automatic renewal.',
+          'A paid order stays tied to the same source images, performer placement, format, and quality until it either succeeds or you request a refund after a technical failure.',
         ],
       },
       {
-        heading: 'Why does quality change the credit cost?',
+        heading: 'How much does each quality cost?',
         paragraphs: [
-          '480p, 720p, and 1080p require different amounts of generation resources, so the credit cost increases with export quality.',
-          'The workbench shows the exact credit cost before you click Generate, along with your current balance.',
+          '480p costs $4.99 per 15-second video, 720p costs $9.90, and 1080p costs $19.90. Higher-resolution generation uses more model resources, so the price increases with quality.',
+          'The workbench shows the exact one-time price before you click Generate, and Waffo handles the secure checkout.',
         ],
       },
       {
         heading: 'What happens if generation fails?',
         paragraphs: [
-          'If a generation fails during provider or processing stages, the reserved credits are returned. A storage-copy failure after the provider successfully generates a usable result does not turn the generation into a failed task; the provider result can remain available as a fallback.',
+          'If a generation fails during provider or processing stages, you can retry that same paid order for free as many times as needed. After a failed attempt, you can also request a refund. A storage-copy failure after the provider already produced a usable result does not turn the generation into a failed task; the provider result can remain available as a fallback.',
         ],
       },
       {
         heading: 'What should I buy for a first test?',
         paragraphs: [
           'If you are testing a new pair of source photos, start with the smallest pack that covers the generation you want to run. You can always add another one-time pack later.',
-          'There is no reason to buy a recurring subscription just to try the Hotel Lobby workflow.',
+          'There is no recurring subscription to buy for the Hotel Lobby workflow.',
         ],
       },
       {
         heading: 'Where can I see current prices?',
         paragraphs: [
-          'Current credit-pack prices and the credit cost for each export quality are shown on the Pricing page and in the generator itself.',
+          'Current per-video prices are shown on the Pricing page and directly in the generator before checkout.',
         ],
       },
     ],
