@@ -705,3 +705,21 @@ body{background:#f7f8fb;color:#17191f}
   .blog-inline-cta,.blog-price-note{display:block;padding:16px}
   .blog-inline-cta a,.blog-price-note a{display:inline-block;margin-top:12px}
 }
+
+
+/* Pay-per-video purchase and refund states */
+.generation-price-summary{background:#fffaf7;border-color:#f1dfd4}
+.generation-price-summary b{font-size:12px}
+.result-failure-actions{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:4px}
+.result-refund,.history-refund{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid rgba(255,255,255,.18);background:transparent;color:#fff;border-radius:9px;padding:8px 11px;font-weight:750;font-size:12px;cursor:pointer}
+.result-refund:hover:not(:disabled){background:rgba(255,255,255,.08)}
+.result-refund:disabled,.history-refund:disabled{opacity:.5;cursor:default}
+.result-refund-error{max-width:330px;color:#fecaca!important;font-size:10px!important;line-height:1.45!important}
+.history-refund{height:30px;padding:0 9px;border-color:#d7dce4;background:#fff;color:#2d333c;font-size:9px;font-weight:800}
+.history-refund:hover:not(:disabled){background:#f6f7f9;border-color:#cbd1da}
+.pricing-buy-link{text-decoration:none}
+.pricing-grid-generation .pricing-card{min-height:455px}
+@media(max-width:620px){
+  .result-failure-actions{flex-direction:column;width:100%}
+  .result-failure-actions .result-retry,.result-failure-actions .result-refund{width:100%;justify-content:center}
+}
