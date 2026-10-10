@@ -37,11 +37,11 @@ const faqItems = [
   },
   {
     q: 'Do I need a subscription?',
-    a: 'No. Hotel Lobby AI uses one-time credit packs with no automatic renewal. You only buy more credits when you want to create more videos.',
+    a: 'No. Hotel Lobby AI is pay-per-video with no automatic renewal. Choose 480p for $4.99, 720p for $9.90, or 1080p for $19.90.',
   },
   {
     q: 'What happens if a generation fails?',
-    a: 'Failed generations return the reserved credits. Provider or processing failures do not consume the credits for a completed result.',
+    a: 'A technical generation failure does not require another payment. You can retry the same paid order for free as many times as needed, or request a refund after a failed attempt.',
   },
   {
     q: 'Can I download the generated video?',
