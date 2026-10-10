@@ -546,6 +546,7 @@ function friendlyError(message: string) {
   if (message.includes('WAFFO_GENERATION_PRODUCT_NOT_CONFIGURED')) return 'This video quality is not connected to checkout yet.'
   if (message.includes('DIRECT_GENERATION_REQUIRES_WAFFO')) return 'Secure checkout is temporarily unavailable.'
   if (message.includes('REFUND_NOT_AVAILABLE')) return 'A refund is only available after a failed paid generation.'
+  if (message.includes('REFUND_SUPPORT_REQUIRED')) return 'The previous refund request could not complete. Please contact support for this payment.'
   if (message.includes('PAYMENT_NOT_READY')) return 'Payment confirmation is still syncing. Please try again in a moment.'
   if (message.includes('AUTH_REQUIRED')) return 'Please sign in and try again.'
   return message
