@@ -541,6 +541,7 @@ export const requestGenerationRefund = createServerFn({ method: 'POST' })
     if (!order || order.user_id !== user.id) throw new Error('GENERATION_ORDER_NOT_FOUND')
     if (order.status === 'refunded') return { status: 'refunded' as const, ticketId: order.refund_ticket_id }
     if (order.status === 'refund_requested') return { status: 'refund_requested' as const, ticketId: order.refund_ticket_id }
+    if (order.refund_ticket_id && order.refund_error) throw new Error('REFUND_SUPPORT_REQUIRED')
     if (task.status !== 'failed' || order.status !== 'failed' || order.latest_task_id !== task.id) {
       throw new Error('REFUND_NOT_AVAILABLE')
     }
