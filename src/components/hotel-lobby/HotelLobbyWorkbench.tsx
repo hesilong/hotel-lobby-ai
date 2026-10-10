@@ -353,8 +353,14 @@ export function HotelLobbyWorkbench() {
     setError('')
 
     try {
-      const task = await retryGenerationTask({ data: { taskId } })
-      setTasks(current => [task as GenerationTask, ...current])
+      const task = await retryGenerationTask({ data: { taskId } }) as GenerationTask
+      setTasks(current => [
+        task,
+        ...current.filter(item =>
+          item.id !== taskId &&
+          (!task.generation_order_id || item.generation_order_id !== task.generation_order_id)
+        ),
+      ])
     } catch (e) {
       setError(friendlyError(e instanceof Error ? e.message : 'Retry failed'))
     } finally {
