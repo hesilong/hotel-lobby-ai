@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Loader2, Plus, X, Zap } from 'lucide-react'
+import { ArrowLeftRight, Loader2, Plus, X, Zap } from 'lucide-react'
 import { getHotelLobbyGenerationTemplate, HOTEL_LOBBY_SCENES } from '@/config/hotel-lobby'
 import type { GenerationAspectRatio, GenerationResolution } from '@/config/generation'
 import { HOTEL_LOBBY_GENERATION_CONFIG } from '@/config/hotel-lobby-generation'
@@ -25,11 +25,10 @@ const RECOVERY_KEY = 'hotel_lobby_generation_recovery_v1'
 export function HotelLobbyWorkbench() {
   const [personA, setPersonA] = useState<ImageAssetState>(emptyImage)
   const [personB, setPersonB] = useState<ImageAssetState>(emptyImage)
-  const [selectedSceneId, setSelectedSceneId] = useState(HOTEL_LOBBY_SCENES[0].id)
-  const [duration, setDuration] = useState<number>(HOTEL_LOBBY_GENERATION_CONFIG.defaultDuration)
+  const duration = HOTEL_LOBBY_GENERATION_CONFIG.defaultDuration
   const [resolution, setResolution] = useState<GenerationResolution>(HOTEL_LOBBY_GENERATION_CONFIG.defaultResolution)
   const [aspectRatio, setAspectRatio] = useState<GenerationAspectRatio>(HOTEL_LOBBY_GENERATION_CONFIG.defaultAspectRatio)
-  const [generateAudio, setGenerateAudio] = useState<boolean>(HOTEL_LOBBY_GENERATION_CONFIG.defaultGenerateAudio)
+  const generateAudio = HOTEL_LOBBY_GENERATION_CONFIG.defaultGenerateAudio
   const [authOpen, setAuthOpen] = useState(false)
   const [pricingOpen, setPricingOpen] = useState(false)
   const [authed, setAuthed] = useState(false)
@@ -44,12 +43,14 @@ export function HotelLobbyWorkbench() {
   const personBRequest = useRef<string | null>(null)
   const assetErrorTimer = useRef<number | null>(null)
 
-  const selectedScene = HOTEL_LOBBY_SCENES.find(scene => scene.id === selectedSceneId) || HOTEL_LOBBY_SCENES[0]
+  const selectedScene = HOTEL_LOBBY_SCENES[0]
   const fixedTemplate = getHotelLobbyGenerationTemplate(duration)
   const cost = HOTEL_LOBBY_GENERATION_CONFIG.calculateCredits(duration, resolution)
   const isSubmitting = submitStage !== 'idle'
   const imagesReady = personA.status === 'approved' && personB.status === 'approved'
-  const canGenerate = Boolean(imagesReady && selectedScene && !isSubmitting)
+  const canGenerate = Boolean(imagesReady && !isSubmitting)
+  const swapBusy = [personA.status, personB.status].some(status => status === 'uploading' || status === 'moderating')
+  const canSwap = Boolean(!swapBusy && (personA.previewUrl || personB.previewUrl))
 
   const publishCredits = (value: number | null) => {
     setCredits(value)
@@ -259,6 +260,14 @@ export function HotelLobbyWorkbench() {
     })
   }
 
+  const swapPerformers = () => {
+    if (!canSwap) return
+    setError('')
+    setAssetError('')
+    setPersonA(personB)
+    setPersonB(personA)
+  }
+
   const runGeneration = async (data: CreateGenerationInput) => {
     setSubmitStage('moderating')
     window.sessionStorage.setItem(RECOVERY_KEY, JSON.stringify(data))
@@ -390,13 +399,31 @@ export function HotelLobbyWorkbench() {
   return <div className="workbench-shell">
     <div className="generator-layout">
       <div className="workbench generator-workbench">
-        <div className="asset-row">
+        <div className="generator-section-heading">
+          <span className="generator-step">01</span>
+          <div>
+            <strong>Add your performers</strong>
+            <small>Upload one clear photo for each side.</small>
+          </div>
+        </div>
+
+        <div className="performer-pair">
           <ImageUpload
             label="Left Performer"
             state={personA}
             onPick={(file) => void prepareImage(file, 'A')}
             onClear={() => clearImage('A')}
           />
+          <button
+            type="button"
+            className="performer-swap"
+            disabled={!canSwap}
+            onClick={swapPerformers}
+            title="Swap left and right performers"
+            aria-label="Swap left and right performers"
+          >
+            <ArrowLeftRight size={17} />
+          </button>
           <ImageUpload
             label="Right Performer"
             state={personB}
@@ -408,67 +435,74 @@ export function HotelLobbyWorkbench() {
 
         {assetError && <div className="asset-error" role="alert">{assetError}</div>}
 
-        <div className="scene-picker">
-          <div className="scene-picker-head">
-            <div>
-              <span>Choose a scene</span>
-              <small>The performance motion is preset automatically.</small>
-            </div>
-            {HOTEL_LOBBY_GENERATION_CONFIG.capabilities.audio && (
-              <label className="soundtrack-toggle">
-                <span>Soundtrack</span>
-                <input
-                  type="checkbox"
-                  checked={generateAudio}
-                  onChange={e => setGenerateAudio(e.target.checked)}
-                />
-                <i aria-hidden="true"/>
-              </label>
-            )}
+        <div className="generator-divider" />
+
+        <div className="generator-section-heading output-heading">
+          <span className="generator-step">02</span>
+          <div>
+            <strong>Choose your output</strong>
+            <small>Hotel Lobby motion is preset for a consistent result.</small>
           </div>
-          <div className="scene-grid">
-            {HOTEL_LOBBY_SCENES.map(scene => (
+        </div>
+
+        <div className="fixed-output-meta" aria-label="Included output settings">
+          <span><b>15 sec</b> video</span>
+          <span>Template motion</span>
+          <span>Soundtrack included</span>
+        </div>
+
+        <div className="output-control">
+          <div className="output-control-head">
+            <span>Format</span>
+            <small>Choose where you plan to post</small>
+          </div>
+          <div className="format-options">
+            {(['9:16', '16:9'] as GenerationAspectRatio[]).map(value => (
               <button
-                key={scene.id}
+                key={value}
                 type="button"
-                className={`scene-card ${scene.id === selectedScene.id ? 'active' : ''}`}
-                aria-pressed={scene.id === selectedScene.id}
-                onClick={() => setSelectedSceneId(scene.id)}
+                className={`format-option ${aspectRatio === value ? 'active' : ''}`}
+                aria-pressed={aspectRatio === value}
+                onClick={() => setAspectRatio(value)}
               >
-                <strong>{scene.name}</strong>
-                <span>{scene.description}</span>
+                <strong>{value === '9:16' ? 'Vertical' : 'Landscape'}</strong>
+                <span>{value}</span>
               </button>
             ))}
           </div>
         </div>
 
+        <div className="output-control">
+          <div className="output-control-head">
+            <span>Quality</span>
+            <small>Higher quality uses more credits</small>
+          </div>
+          <div className="quality-options">
+            {HOTEL_LOBBY_GENERATION_CONFIG.resolutions.map(value => {
+              const optionCost = HOTEL_LOBBY_GENERATION_CONFIG.calculateCredits(duration, value)
+              const label = value === '480p' ? 'Lite' : value === '720p' ? 'Standard' : 'Pro'
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  className={`quality-option ${resolution === value ? 'active' : ''}`}
+                  aria-pressed={resolution === value}
+                  onClick={() => setResolution(value)}
+                >
+                  <strong>{value.toUpperCase()}</strong>
+                  <span>{label}</span>
+                  <small>{optionCost} credits</small>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
         {error && <div className="generation-error">{error}</div>}
 
-        <div className="parameter-grid">
-          <label>
-            <span>Duration</span>
-            <select value={duration} onChange={e=>setDuration(Number(e.target.value))}>
-              {HOTEL_LOBBY_GENERATION_CONFIG.durations.map(value => (
-                <option key={value} value={value}>{value} seconds</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>Resolution</span>
-            <select value={resolution} onChange={e=>setResolution(e.target.value as GenerationResolution)}>
-              {HOTEL_LOBBY_GENERATION_CONFIG.resolutions.map(value => (
-                <option key={value} value={value}>{value.toUpperCase()}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>Orientation</span>
-            <select value={aspectRatio} onChange={e=>setAspectRatio(e.target.value as GenerationAspectRatio)}>
-              {HOTEL_LOBBY_GENERATION_CONFIG.aspectRatios.map(value => (
-                <option key={value} value={value}>{aspectRatioLabel(value)}</option>
-              ))}
-            </select>
-          </label>
+        <div className="generation-summary">
+          <span>Balance <b>{credits === null ? '—' : credits} credits</b></span>
+          <span>This generation <b>{cost} credits</b></span>
         </div>
 
         <button disabled={!canGenerate} className="generate generator-submit" onClick={() => void onGenerate()}>
@@ -476,8 +510,14 @@ export function HotelLobbyWorkbench() {
           {submitStage === 'moderating' ? 'Checking…' :
            submitStage === 'starting' ? 'Starting…' :
            submitStage === 'syncing' ? 'Syncing credits…' :
-           `Generate · ${cost} credits`}
+           `Generate Hotel Lobby Video · ${cost} credits`}
         </button>
+
+        <div className="generator-trust-row">
+          <span>No subscription required</span>
+          <span>Failed generations return credits</span>
+          <span>Direct MP4 download</span>
+        </div>
 
         <p className="generator-safety-note">
           For human performers, only upload images of adults whose likeness you have permission to use. Pets are supported. NSFW content, minors, deceptive impersonation, and unauthorized likeness use are prohibited.{' '}
@@ -512,14 +552,8 @@ export function HotelLobbyWorkbench() {
   </div>
 }
 
-function aspectRatioLabel(value: GenerationAspectRatio) {
-  if (value === '16:9') return 'Landscape · 16:9'
-  if (value === '9:16') return 'Portrait · 9:16'
-  return 'Square · 1:1'
-}
-
 function friendlyError(message: string) {
-  if (message.includes('PROMPT_REJECTED')) return 'This scene cannot be generated. Please choose another scene and try again.'
+  if (message.includes('PROMPT_REJECTED')) return 'This request can’t be generated. Please try again with different source photos.'
   if (message.includes('MODERATION_UNAVAILABLE')) return 'Safety check is temporarily unavailable. Please try again shortly.'
   if (message.includes('REFERENCE_IMAGES_NOT_READY') || message.includes('IMAGE_A_NOT_READY') || message.includes('IMAGE_B_NOT_READY')) {
     return 'Please choose your two reference images again.'
