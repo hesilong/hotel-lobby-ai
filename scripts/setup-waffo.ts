@@ -89,8 +89,6 @@ if (process.env.WAFFO_WEBHOOK_URL) {
       id: cache.webhookId,
       url: process.env.WAFFO_WEBHOOK_URL,
       events: [...webhookEvents],
-    }, {
-      idempotencyKey: `hotel-lobby-test-${storeId}-webhook-update-v2`,
     })
   } else {
     const { webhook } = await client.webhooks.add({
