@@ -232,8 +232,14 @@ export function ResultsGallery({
                   ) : task.status === 'failed' ? (
                     <div className="history-thumb history-thumb-state">
                       <AlertCircle size={24}/>
-                      <strong>Generation failed</strong>
-                      {task.failure_message && <span>{task.failure_message}</span>}
+                      <strong>
+                        {task.generation_order_status === 'refunded'
+                          ? 'Refunded'
+                          : task.generation_order_status === 'refund_requested'
+                            ? 'Refund requested'
+                            : 'Generation failed'}
+                      </strong>
+                      {task.failure_message && task.generation_order_status !== 'refunded' && <span>{task.failure_message}</span>}
                     </div>
                   ) : (
                     <div className="history-thumb history-thumb-state">
@@ -332,6 +338,8 @@ function HistoryParam({ label, value }: { label: string; value: string }) {
 }
 
 function taskStatus(task: GenerationTask) {
+  if (task.generation_order_status === 'refunded') return { key: 'completed', label: 'Refunded' }
+  if (task.generation_order_status === 'refund_requested') return { key: 'generating', label: 'Refund requested' }
   if (task.status === 'completed') return { key: 'completed', label: 'Completed' }
   if (task.status === 'failed') return { key: 'failed', label: 'Failed' }
   return { key: 'generating', label: 'Generating' }
