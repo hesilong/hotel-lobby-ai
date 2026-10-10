@@ -8,7 +8,7 @@ export const Route = createFileRoute('/pricing')({
   head: () => ({
     meta: [
       { title: `Pricing – ${SITE_CONFIG.name}` },
-      { name: 'description', content: `Buy one-time ${SITE_CONFIG.name} credits with no subscription or automatic renewal.` },
+      { name: 'description', content: `Pay per Hotel Lobby AI video: $4.99 for 480p, $9.90 for 720p, or $19.90 for 1080p. No subscription required.` },
       { name: 'robots', content: 'index,follow' },
     ],
     links: [{ rel: 'canonical', href: siteUrl('/pricing') }],
@@ -20,7 +20,7 @@ function PricingPage() {
   return <main>
     <SiteHeader />
     <section className="pricing-page">
-      <PricingPanel returnPath="/pricing" />
+      <PricingPanel />
     </section>
     <SiteFooter />
   </main>
