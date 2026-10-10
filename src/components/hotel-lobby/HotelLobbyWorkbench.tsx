@@ -354,7 +354,7 @@ export function HotelLobbyWorkbench() {
 
     try {
       const task = await retryGenerationTask({ data: { taskId } })
-      setTasks(current => [task, ...current])
+      setTasks(current => [task as GenerationTask, ...current])
     } catch (e) {
       setError(friendlyError(e instanceof Error ? e.message : 'Retry failed'))
     } finally {
