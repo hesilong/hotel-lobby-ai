@@ -120,7 +120,11 @@ export function HotelLobbyWorkbench() {
   }, [])
 
   useEffect(() => {
-    if (!authed || !tasks.some(task => task.status === 'pending' || task.status === 'processing')) return
+    if (!authed || !tasks.some(task =>
+      task.status === 'pending' ||
+      task.status === 'processing' ||
+      task.generation_order_status === 'refund_requested'
+    )) return
     const timer = window.setInterval(() => void refreshActiveTasks(), 3000)
     return () => window.clearInterval(timer)
   }, [authed, tasks])
@@ -204,7 +208,11 @@ export function HotelLobbyWorkbench() {
   }, [authed, purchaseOrderId])
 
   const refreshActiveTasks = async () => {
-    const active = tasks.filter(task => task.status === 'pending' || task.status === 'processing')
+    const active = tasks.filter(task =>
+      task.status === 'pending' ||
+      task.status === 'processing' ||
+      task.generation_order_status === 'refund_requested'
+    )
     if (!active.length) return
     const updates = await Promise.all(
       active.map(task => refreshGenerationTask({ data: { taskId: task.id } }).catch(() => task)),
