@@ -83,6 +83,7 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
         <nav className="header-nav">
           <a href="/#templates">Templates</a>
           <a href="/#how-it-works">How it works</a>
+          <a href="/blog">Blog</a>
           <a href="/migos-ai-video">Migos AI</a>
           <a href="/pricing">Pricing</a>
         </nav>
