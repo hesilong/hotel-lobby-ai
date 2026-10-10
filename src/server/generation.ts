@@ -7,6 +7,7 @@ import type { GenerationAspectRatio, GenerationResolution } from '@/config/gener
 import { HOTEL_LOBBY_GENERATION_CONFIG } from '@/config/hotel-lobby-generation'
 import { submitKieSeedanceVideo } from '@/server/kie'
 import { verifyPreparedAssets } from '@/server/storage'
+import { retryPaidGenerationOrderForUser } from '@/server/generation-purchases'
 
 export type CreateGenerationInput = {
   imageAAssetId?: string | null
@@ -42,6 +43,10 @@ export type GenerationTask = {
   aspect_ratio?: GenerationAspectRatio
   generate_audio?: boolean
   prompt?: string
+  generation_order_id?: string | null
+  generation_order_status?: 'pending_payment' | 'paid' | 'processing' | 'failed' | 'fulfilled' | 'refund_requested' | 'refunded' | null
+  generation_price_usd?: number | null
+  refund_error?: string | null
 }
 
 const mockEnabled = () => process.env.MOCK_GENERATION === 'true'
@@ -266,13 +271,17 @@ export const retryGenerationTask = createServerFn({ method: 'POST' })
     const user = await authUser()
     const admin = getSupabaseAdminClient()
     const { data: previous, error } = await admin.from('generation_tasks')
-      .select('id,user_id,status,image_a_url,image_b_url,image_a_asset_id,image_b_asset_id,reference_template_id,reference_video_url,reference_video_asset_id,prompt,duration_seconds,resolution,aspect_ratio,generate_audio')
+      .select('id,user_id,status,image_a_url,image_b_url,image_a_asset_id,image_b_asset_id,reference_template_id,reference_video_url,reference_video_asset_id,prompt,duration_seconds,resolution,aspect_ratio,generate_audio,generation_order_id')
       .eq('id', data.taskId)
       .eq('user_id', user.id)
       .maybeSingle()
 
     if (error || !previous) throw new Error('TASK_NOT_FOUND')
     if (previous.status !== 'failed') throw new Error('TASK_NOT_RETRYABLE')
+
+    if (previous.generation_order_id) {
+      return retryPaidGenerationOrderForUser(user.id, previous.id)
+    }
 
     return submitGenerationForUser(user.id, {
       imageAAssetId: previous.image_a_asset_id,
@@ -294,12 +303,32 @@ export const listGenerationTasks = createServerFn({ method: 'GET' }).handler(asy
   const user = await authUser()
   const admin = getSupabaseAdminClient()
   const { data, error } = await admin.from('generation_tasks')
-    .select('id,status,result_url,provider_result_url,storage_status,failure_message,created_at,provider_task_id,provider,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio,prompt')
+    .select('id,status,result_url,provider_result_url,storage_status,failure_message,created_at,provider_task_id,provider,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio,prompt,generation_order_id')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(20)
   if (error) throw new Error(error.message)
-  return (data || []) as GenerationTask[]
+
+  const tasks = (data || []) as GenerationTask[]
+  const orderIds = Array.from(new Set(tasks.map(task => task.generation_order_id).filter(Boolean))) as string[]
+  if (!orderIds.length) return tasks
+
+  const { data: orders, error: orderError } = await admin.from('generation_orders')
+    .select('id,status,amount_usd,refund_error')
+    .eq('user_id', user.id)
+    .in('id', orderIds)
+  if (orderError) throw new Error(orderError.message)
+
+  const orderMap = new Map((orders || []).map(order => [String(order.id), order]))
+  return tasks.map(task => {
+    const order = task.generation_order_id ? orderMap.get(task.generation_order_id) : null
+    return {
+      ...task,
+      generation_order_status: order?.status || null,
+      generation_price_usd: order ? Number(order.amount_usd) : null,
+      refund_error: order?.refund_error || null,
+    } as GenerationTask
+  })
 })
 
 export const refreshGenerationTask = createServerFn({ method: 'POST' })
@@ -308,11 +337,25 @@ export const refreshGenerationTask = createServerFn({ method: 'POST' })
     const user = await authUser()
     const admin = getSupabaseAdminClient()
     const { data: task, error } = await admin.from('generation_tasks')
-      .select('id,user_id,status,provider,provider_task_id,result_url,provider_result_url,storage_status,failure_message,created_at,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio,prompt')
+      .select('id,user_id,status,provider,provider_task_id,result_url,provider_result_url,storage_status,failure_message,created_at,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio,prompt,generation_order_id')
       .eq('id', data.taskId)
       .eq('user_id', user.id)
       .maybeSingle()
 
     if (error || !task) throw new Error('TASK_NOT_FOUND')
-    return task as GenerationTask
+    if (!task.generation_order_id) return task as GenerationTask
+
+    const { data: order, error: orderError } = await admin.from('generation_orders')
+      .select('status,amount_usd,refund_error')
+      .eq('id', task.generation_order_id)
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (orderError) throw new Error(orderError.message)
+
+    return {
+      ...task,
+      generation_order_status: order?.status || null,
+      generation_price_usd: order ? Number(order.amount_usd) : null,
+      refund_error: order?.refund_error || null,
+    } as GenerationTask
   })
