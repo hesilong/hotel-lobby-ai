@@ -307,7 +307,7 @@ export const listGenerationTasks = createServerFn({ method: 'GET' }).handler(asy
     .select('id,status,result_url,provider_result_url,storage_status,failure_message,created_at,provider_task_id,provider,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio,prompt,generation_order_id')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
-    .limit(20)
+    .limit(100)
   if (error) throw new Error(error.message)
 
   const tasks = (data || []) as GenerationTask[]
@@ -315,22 +315,29 @@ export const listGenerationTasks = createServerFn({ method: 'GET' }).handler(asy
   if (!orderIds.length) return tasks
 
   const { data: orders, error: orderError } = await admin.from('generation_orders')
-    .select('id,status,amount_usd,refund_error,refund_ticket_id')
+    .select('id,status,amount_usd,refund_error,refund_ticket_id,latest_task_id')
     .eq('user_id', user.id)
     .in('id', orderIds)
   if (orderError) throw new Error(orderError.message)
 
   const orderMap = new Map((orders || []).map(order => [String(order.id), order]))
-  return tasks.map(task => {
-    const order = task.generation_order_id ? orderMap.get(task.generation_order_id) : null
-    return {
-      ...task,
-      generation_order_status: order?.status || null,
-      generation_price_usd: order ? Number(order.amount_usd) : null,
-      refund_error: order?.refund_error || null,
-      refund_ticket_id: order?.refund_ticket_id || null,
-    } as GenerationTask
-  })
+  return tasks
+    .filter(task => {
+      if (!task.generation_order_id) return true
+      const order = orderMap.get(task.generation_order_id)
+      return !order?.latest_task_id || String(order.latest_task_id) === task.id
+    })
+    .map(task => {
+      const order = task.generation_order_id ? orderMap.get(task.generation_order_id) : null
+      return {
+        ...task,
+        generation_order_status: order?.status || null,
+        generation_price_usd: order ? Number(order.amount_usd) : null,
+        refund_error: order?.refund_error || null,
+        refund_ticket_id: order?.refund_ticket_id || null,
+      } as GenerationTask
+    })
+    .slice(0, 20)
 })
 
 export const refreshGenerationTask = createServerFn({ method: 'POST' })
