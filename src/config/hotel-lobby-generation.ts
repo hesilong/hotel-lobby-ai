@@ -9,7 +9,7 @@ export const HOTEL_LOBBY_GENERATION_CONFIG = {
   durations: [5, 10, 15, 20, 25, 30],
   resolutions: ['480p', '720p', '1080p'],
   aspectRatios: ['16:9', '9:16', '1:1'],
-  defaultDuration: 5,
+  defaultDuration: 15,
   defaultResolution: '480p',
   defaultAspectRatio: '9:16',
   defaultGenerateAudio: true,
