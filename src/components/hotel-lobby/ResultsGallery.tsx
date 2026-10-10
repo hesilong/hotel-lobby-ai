@@ -109,7 +109,8 @@ export function ResultsGallery({
             const refunding = refundingTaskId === task.id
             const paidFailure = Boolean(task.generation_order_id)
             const canRetryPaid = !paidFailure || task.generation_order_status === 'failed'
-            const canRefund = paidFailure && task.generation_order_status === 'failed'
+            const refundNeedsSupport = Boolean(task.refund_ticket_id && task.refund_error)
+            const canRefund = paidFailure && task.generation_order_status === 'failed' && !refundNeedsSupport
             const refundRequested = task.generation_order_status === 'refund_requested'
             const refunded = task.generation_order_status === 'refunded'
 
@@ -135,7 +136,9 @@ export function ResultsGallery({
                       : refundRequested
                         ? 'Your refund request was submitted to Waffo.'
                         : paidFailure
-                          ? 'Your payment is protected. Retry this generation for free, or request a refund.'
+                          ? refundNeedsSupport
+                            ? 'Your payment is still protected. Retry for free, or contact support so we can resolve the failed refund request.'
+                            : 'Your payment is protected. Retry this generation for free, or request a refund.'
                           : task.failure_message || 'Please try again.'}
                   </span>
                   {task.refund_error && <span className="result-refund-error">Refund request failed: {task.refund_error}</span>}
@@ -197,7 +200,8 @@ export function ResultsGallery({
               const completed = task.status === 'completed' && Boolean(task.result_url)
               const paidFailure = Boolean(task.generation_order_id)
               const canRetryPaid = !paidFailure || task.generation_order_status === 'failed'
-              const canRefund = paidFailure && task.generation_order_status === 'failed'
+              const refundNeedsSupport = Boolean(task.refund_ticket_id && task.refund_error)
+              const canRefund = paidFailure && task.generation_order_status === 'failed' && !refundNeedsSupport
               const status = taskStatus(task)
 
               return <article key={task.id} className="history-card">
@@ -278,6 +282,7 @@ export function ResultsGallery({
                         {refunding ? 'Requesting…' : 'Refund'}
                       </button>
                     )}
+                    {refundNeedsSupport && <a className="history-refund" href="/terms-of-service#reporting">Support</a>}
                     {task.generation_order_status === 'refund_requested' && <span className="history-chip">Refund requested</span>}
                     {task.generation_order_status === 'refunded' && <span className="history-chip">Refunded</span>}
                   </div>
