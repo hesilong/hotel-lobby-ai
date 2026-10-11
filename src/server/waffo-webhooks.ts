@@ -32,12 +32,25 @@ export async function processWaffoEvent(event: WebhookEvent) {
   const { data: subscription, error: subError } = await admin.from('subscriptions').select('*')
     .eq('waffo_order_id', data.orderId).eq('waffo_environment', event.mode).maybeSingle()
   if (subError) throw new Error(subError.message)
-  const intentId = data.orderMetadata?.checkoutIntentId || data.orderMerchantExternalId
-  const { data: intent, error: intentError } = intentId
-    ? await admin.from('waffo_checkout_intents').select('*').eq('id', intentId)
-      .eq('environment', event.mode).eq('store_id', event.storeId).maybeSingle()
-    : { data: null, error: null }
-  if (intentError) throw new Error(intentError.message)
+  const metadataIntentId = data.orderMetadata?.checkoutIntentId
+  const externalId = data.orderMerchantExternalId
+
+  // New generation checkouts use intentId as orderMerchantExternalId. Older
+  // generation checkouts used generationOrderId there, so resolve both forms.
+  let intent: any = null
+  if (metadataIntentId || externalId) {
+    const candidateId = metadataIntentId || externalId
+    const { data: candidate, error: intentError } = await admin
+      .from('waffo_checkout_intents')
+      .select('*')
+      .eq('id', candidateId)
+      .eq('environment', event.mode)
+      .eq('store_id', event.storeId)
+      .maybeSingle()
+    if (intentError) throw new Error(intentError.message)
+    intent = candidate
+  }
+
   let generationOrder: any = null
   if (intent?.purchase_type === 'generation' && intent.generation_order_id) {
     const { data: order, error: orderError } = await admin.from('generation_orders').select('*')
@@ -46,7 +59,33 @@ export async function processWaffoEvent(event: WebhookEvent) {
       .maybeSingle()
     if (orderError) throw new Error(orderError.message)
     generationOrder = order
-  } else if (data.orderId) {
+  }
+
+  // Backward compatibility for checkouts created before generation checkout
+  // switched orderMerchantExternalId from generationOrderId to intentId.
+  if (!generationOrder && externalId) {
+    const { data: order, error: orderError } = await admin.from('generation_orders').select('*')
+      .eq('id', externalId)
+      .eq('waffo_environment', event.mode)
+      .maybeSingle()
+    if (orderError) throw new Error(orderError.message)
+    generationOrder = order
+
+    if (generationOrder && !intent) {
+      const { data: legacyIntent, error: legacyIntentError } = await admin
+        .from('waffo_checkout_intents')
+        .select('*')
+        .eq('generation_order_id', generationOrder.id)
+        .eq('environment', event.mode)
+        .eq('store_id', event.storeId)
+        .eq('product_id', generationOrder.waffo_product_id)
+        .maybeSingle()
+      if (legacyIntentError) throw new Error(legacyIntentError.message)
+      intent = legacyIntent
+    }
+  }
+
+  if (!generationOrder && data.orderId) {
     const { data: order, error: orderError } = await admin.from('generation_orders').select('*')
       .eq('waffo_order_id', data.orderId)
       .eq('waffo_environment', event.mode)
@@ -55,7 +94,11 @@ export async function processWaffoEvent(event: WebhookEvent) {
     generationOrder = order
   }
 
-  const userId = subscription?.user_id || intent?.user_id || generationOrder?.user_id
+  const userId =
+    subscription?.user_id ||
+    intent?.user_id ||
+    generationOrder?.user_id ||
+    data.merchantProvidedBuyerIdentity
   if (!userId) throw new Error('WAFFO_ORDER_OWNER_NOT_FOUND')
   if ((intent && intent.user_id !== userId) || (generationOrder && generationOrder.user_id !== userId) ||
       (data.merchantProvidedBuyerIdentity && data.merchantProvidedBuyerIdentity !== userId)) {

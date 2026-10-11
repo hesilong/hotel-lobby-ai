@@ -102,7 +102,9 @@ export async function createWaffoGenerationCheckout(params: {
       resolution: params.resolution,
       source: 'hotel-lobby-ai',
     },
-    orderMerchantExternalId: params.generationOrderId,
+    // Keep the merchant external ID aligned with the webhook inbox lookup.
+    // generationOrderId remains in signed checkout metadata and in the intent row.
+    orderMerchantExternalId: intentId,
     buyerIdentity: params.user.id,
     buyerEmail: params.user.email,
     withTrial: false,
