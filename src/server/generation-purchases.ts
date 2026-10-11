@@ -45,11 +45,16 @@ type GenerationOrderRow = {
   refund_error: string | null
   latest_task_id: string | null
   retry_count: number
+  notify_on_complete: boolean
+  notification_status: 'pending' | 'sending' | 'sent' | 'failed' | 'disabled'
+  notification_attempts: number
+  notification_sent_at: string | null
+  notification_error: string | null
   created_at: string
   updated_at: string
 }
 
-const ORDER_SELECT = 'id,user_id,status,resolution,aspect_ratio,duration_seconds,generate_audio,amount_usd,currency,image_a_url,image_b_url,image_a_asset_id,image_b_asset_id,reference_template_id,reference_video_url,prompt,waffo_product_id,waffo_order_id,waffo_payment_id,waffo_environment,charged_amount,refund_ticket_id,refund_error,latest_task_id,retry_count,created_at,updated_at' as const
+const ORDER_SELECT = 'id,user_id,status,resolution,aspect_ratio,duration_seconds,generate_audio,amount_usd,currency,image_a_url,image_b_url,image_a_asset_id,image_b_asset_id,reference_template_id,reference_video_url,prompt,waffo_product_id,waffo_order_id,waffo_payment_id,waffo_environment,charged_amount,refund_ticket_id,refund_error,latest_task_id,retry_count,notify_on_complete,notification_status,notification_attempts,notification_sent_at,notification_error,created_at,updated_at' as const
 
 const mockEnabled = () => process.env.MOCK_GENERATION === 'true'
 
@@ -444,6 +449,8 @@ export const createGenerationPurchase = createServerFn({ method: 'POST' })
       reference_video_url: data.referenceVideoUrl,
       prompt: data.prompt.trim(),
       waffo_product_id: productId,
+      notify_on_complete: data.notifyOnComplete !== false,
+      notification_status: data.notifyOnComplete === false ? 'disabled' : 'pending',
     }).select('id').single()
 
     if (error || !order) throw new Error(error?.message || 'GENERATION_ORDER_CREATE_FAILED')

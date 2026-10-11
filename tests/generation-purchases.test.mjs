@@ -19,6 +19,7 @@ async function database() {
     '0005_waffo_payments.sql',
     '0009_generation_purchases.sql',
     '0010_soundtrack_delivery.sql',
+    '0011_generation_notifications.sql',
   ]) {
     const sql = await readFile(new URL(`../supabase/migrations/${name}`, import.meta.url), 'utf8')
     await db.exec(sql.replace('create extension if not exists pgcrypto;', ''))
@@ -186,6 +187,25 @@ test('a Waffo order can only bind to one generation purchase in an environment',
       createPaidOrder(db, { userId, imageA, imageB }),
       /unique|duplicate|constraint/i,
     )
+  } finally {
+    await db.close()
+  }
+})
+
+
+test('generation orders enable ready-email notifications by default', async () => {
+  const { db, userId, imageA, imageB } = await database()
+  try {
+    const orderId = await createPaidOrder(db, { userId, imageA, imageB })
+    const row = (await db.query(
+      'select notify_on_complete,notification_status,notification_attempts,notification_sent_at from generation_orders where id=$1',
+      [orderId],
+    )).rows[0]
+
+    assert.equal(row.notify_on_complete, true)
+    assert.equal(row.notification_status, 'pending')
+    assert.equal(row.notification_attempts, 0)
+    assert.equal(row.notification_sent_at, null)
   } finally {
     await db.close()
   }

@@ -25,6 +25,7 @@ export type CreateGenerationInput = {
   resolution: GenerationResolution
   aspectRatio: GenerationAspectRatio
   generateAudio: boolean
+  notifyOnComplete?: boolean
 }
 
 export type GenerationTask = {
