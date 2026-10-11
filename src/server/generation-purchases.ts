@@ -49,35 +49,7 @@ type GenerationOrderRow = {
   updated_at: string
 }
 
-const ORDER_SELECT = [
-  'id',
-  'user_id',
-  'status',
-  'resolution',
-  'aspect_ratio',
-  'duration_seconds',
-  'generate_audio',
-  'amount_usd',
-  'currency',
-  'image_a_url',
-  'image_b_url',
-  'image_a_asset_id',
-  'image_b_asset_id',
-  'reference_template_id',
-  'reference_video_url',
-  'prompt',
-  'waffo_product_id',
-  'waffo_order_id',
-  'waffo_payment_id',
-  'waffo_environment',
-  'charged_amount',
-  'refund_ticket_id',
-  'refund_error',
-  'latest_task_id',
-  'retry_count',
-  'created_at',
-  'updated_at',
-].join(',')
+const ORDER_SELECT = 'id,user_id,status,resolution,aspect_ratio,duration_seconds,generate_audio,amount_usd,currency,image_a_url,image_b_url,image_a_asset_id,image_b_asset_id,reference_template_id,reference_video_url,prompt,waffo_product_id,waffo_order_id,waffo_payment_id,waffo_environment,charged_amount,refund_ticket_id,refund_error,latest_task_id,retry_count,created_at,updated_at' as const
 
 const mockEnabled = () => process.env.MOCK_GENERATION === 'true'
 
