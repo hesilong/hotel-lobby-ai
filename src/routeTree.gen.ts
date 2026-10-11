@@ -10,10 +10,16 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BestPhotosForHotelLobbyAiRouteImport } from './routes/best-photos-for-hotel-lobby-ai'
+import { Route as BlogRouteImport } from './routes/blog'
+import { Route as HowToFixFaceDriftHotelLobbyAiRouteImport } from './routes/how-to-fix-face-drift-hotel-lobby-ai'
+import { Route as HowToMakeHotelLobbyAiVideoRouteImport } from './routes/how-to-make-hotel-lobby-ai-video'
+import { Route as IsHotelLobbyAiFreeRouteImport } from './routes/is-hotel-lobby-ai-free'
 import { Route as MigosAiVideoRouteImport } from './routes/migos-ai-video'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as TermsOfServiceRouteImport } from './routes/terms-of-service'
+import { Route as WhatIsHotelLobbyAiTrendRouteImport } from './routes/what-is-hotel-lobby-ai-trend'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as ApiCreemWebhookRouteImport } from './routes/api.creem.webhook'
 import { Route as ApiDownloadTaskIdRouteImport } from './routes/api.download.$taskId'
@@ -23,6 +29,34 @@ import { Route as ApiWaffoWebhookRouteImport } from './routes/api.waffo.webhook'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BestPhotosForHotelLobbyAiRoute =
+  BestPhotosForHotelLobbyAiRouteImport.update({
+    id: '/best-photos-for-hotel-lobby-ai',
+    path: '/best-photos-for-hotel-lobby-ai',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const BlogRoute = BlogRouteImport.update({
+  id: '/blog',
+  path: '/blog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HowToFixFaceDriftHotelLobbyAiRoute =
+  HowToFixFaceDriftHotelLobbyAiRouteImport.update({
+    id: '/how-to-fix-face-drift-hotel-lobby-ai',
+    path: '/how-to-fix-face-drift-hotel-lobby-ai',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const HowToMakeHotelLobbyAiVideoRoute =
+  HowToMakeHotelLobbyAiVideoRouteImport.update({
+    id: '/how-to-make-hotel-lobby-ai-video',
+    path: '/how-to-make-hotel-lobby-ai-video',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const IsHotelLobbyAiFreeRoute = IsHotelLobbyAiFreeRouteImport.update({
+  id: '/is-hotel-lobby-ai-free',
+  path: '/is-hotel-lobby-ai-free',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MigosAiVideoRoute = MigosAiVideoRouteImport.update({
@@ -43,6 +77,11 @@ const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
 const TermsOfServiceRoute = TermsOfServiceRouteImport.update({
   id: '/terms-of-service',
   path: '/terms-of-service',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WhatIsHotelLobbyAiTrendRoute = WhatIsHotelLobbyAiTrendRouteImport.update({
+  id: '/what-is-hotel-lobby-ai-trend',
+  path: '/what-is-hotel-lobby-ai-trend',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
@@ -73,10 +112,16 @@ const ApiWaffoWebhookRoute = ApiWaffoWebhookRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/best-photos-for-hotel-lobby-ai': typeof BestPhotosForHotelLobbyAiRoute
+  '/blog': typeof BlogRoute
+  '/how-to-fix-face-drift-hotel-lobby-ai': typeof HowToFixFaceDriftHotelLobbyAiRoute
+  '/how-to-make-hotel-lobby-ai-video': typeof HowToMakeHotelLobbyAiVideoRoute
+  '/is-hotel-lobby-ai-free': typeof IsHotelLobbyAiFreeRoute
   '/migos-ai-video': typeof MigosAiVideoRoute
   '/pricing': typeof PricingRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/terms-of-service': typeof TermsOfServiceRoute
+  '/what-is-hotel-lobby-ai-trend': typeof WhatIsHotelLobbyAiTrendRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/api/creem/webhook': typeof ApiCreemWebhookRoute
   '/api/download/$taskId': typeof ApiDownloadTaskIdRoute
@@ -85,10 +130,16 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/best-photos-for-hotel-lobby-ai': typeof BestPhotosForHotelLobbyAiRoute
+  '/blog': typeof BlogRoute
+  '/how-to-fix-face-drift-hotel-lobby-ai': typeof HowToFixFaceDriftHotelLobbyAiRoute
+  '/how-to-make-hotel-lobby-ai-video': typeof HowToMakeHotelLobbyAiVideoRoute
+  '/is-hotel-lobby-ai-free': typeof IsHotelLobbyAiFreeRoute
   '/migos-ai-video': typeof MigosAiVideoRoute
   '/pricing': typeof PricingRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/terms-of-service': typeof TermsOfServiceRoute
+  '/what-is-hotel-lobby-ai-trend': typeof WhatIsHotelLobbyAiTrendRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/api/creem/webhook': typeof ApiCreemWebhookRoute
   '/api/download/$taskId': typeof ApiDownloadTaskIdRoute
@@ -98,10 +149,16 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/best-photos-for-hotel-lobby-ai': typeof BestPhotosForHotelLobbyAiRoute
+  '/blog': typeof BlogRoute
+  '/how-to-fix-face-drift-hotel-lobby-ai': typeof HowToFixFaceDriftHotelLobbyAiRoute
+  '/how-to-make-hotel-lobby-ai-video': typeof HowToMakeHotelLobbyAiVideoRoute
+  '/is-hotel-lobby-ai-free': typeof IsHotelLobbyAiFreeRoute
   '/migos-ai-video': typeof MigosAiVideoRoute
   '/pricing': typeof PricingRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/terms-of-service': typeof TermsOfServiceRoute
+  '/what-is-hotel-lobby-ai-trend': typeof WhatIsHotelLobbyAiTrendRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/api/creem/webhook': typeof ApiCreemWebhookRoute
   '/api/download/$taskId': typeof ApiDownloadTaskIdRoute
@@ -112,10 +169,16 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/best-photos-for-hotel-lobby-ai'
+    | '/blog'
+    | '/how-to-fix-face-drift-hotel-lobby-ai'
+    | '/how-to-make-hotel-lobby-ai-video'
+    | '/is-hotel-lobby-ai-free'
     | '/migos-ai-video'
     | '/pricing'
     | '/privacy-policy'
     | '/terms-of-service'
+    | '/what-is-hotel-lobby-ai-trend'
     | '/auth/callback'
     | '/api/creem/webhook'
     | '/api/download/$taskId'
@@ -124,10 +187,16 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/best-photos-for-hotel-lobby-ai'
+    | '/blog'
+    | '/how-to-fix-face-drift-hotel-lobby-ai'
+    | '/how-to-make-hotel-lobby-ai-video'
+    | '/is-hotel-lobby-ai-free'
     | '/migos-ai-video'
     | '/pricing'
     | '/privacy-policy'
     | '/terms-of-service'
+    | '/what-is-hotel-lobby-ai-trend'
     | '/auth/callback'
     | '/api/creem/webhook'
     | '/api/download/$taskId'
@@ -136,10 +205,16 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/best-photos-for-hotel-lobby-ai'
+    | '/blog'
+    | '/how-to-fix-face-drift-hotel-lobby-ai'
+    | '/how-to-make-hotel-lobby-ai-video'
+    | '/is-hotel-lobby-ai-free'
     | '/migos-ai-video'
     | '/pricing'
     | '/privacy-policy'
     | '/terms-of-service'
+    | '/what-is-hotel-lobby-ai-trend'
     | '/auth/callback'
     | '/api/creem/webhook'
     | '/api/download/$taskId'
@@ -149,10 +224,16 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BestPhotosForHotelLobbyAiRoute: typeof BestPhotosForHotelLobbyAiRoute
+  BlogRoute: typeof BlogRoute
+  HowToFixFaceDriftHotelLobbyAiRoute: typeof HowToFixFaceDriftHotelLobbyAiRoute
+  HowToMakeHotelLobbyAiVideoRoute: typeof HowToMakeHotelLobbyAiVideoRoute
+  IsHotelLobbyAiFreeRoute: typeof IsHotelLobbyAiFreeRoute
   MigosAiVideoRoute: typeof MigosAiVideoRoute
   PricingRoute: typeof PricingRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   TermsOfServiceRoute: typeof TermsOfServiceRoute
+  WhatIsHotelLobbyAiTrendRoute: typeof WhatIsHotelLobbyAiTrendRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   ApiCreemWebhookRoute: typeof ApiCreemWebhookRoute
   ApiDownloadTaskIdRoute: typeof ApiDownloadTaskIdRoute
@@ -167,6 +248,41 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/best-photos-for-hotel-lobby-ai': {
+      id: '/best-photos-for-hotel-lobby-ai'
+      path: '/best-photos-for-hotel-lobby-ai'
+      fullPath: '/best-photos-for-hotel-lobby-ai'
+      preLoaderRoute: typeof BestPhotosForHotelLobbyAiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog': {
+      id: '/blog'
+      path: '/blog'
+      fullPath: '/blog'
+      preLoaderRoute: typeof BlogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/how-to-fix-face-drift-hotel-lobby-ai': {
+      id: '/how-to-fix-face-drift-hotel-lobby-ai'
+      path: '/how-to-fix-face-drift-hotel-lobby-ai'
+      fullPath: '/how-to-fix-face-drift-hotel-lobby-ai'
+      preLoaderRoute: typeof HowToFixFaceDriftHotelLobbyAiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/how-to-make-hotel-lobby-ai-video': {
+      id: '/how-to-make-hotel-lobby-ai-video'
+      path: '/how-to-make-hotel-lobby-ai-video'
+      fullPath: '/how-to-make-hotel-lobby-ai-video'
+      preLoaderRoute: typeof HowToMakeHotelLobbyAiVideoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/is-hotel-lobby-ai-free': {
+      id: '/is-hotel-lobby-ai-free'
+      path: '/is-hotel-lobby-ai-free'
+      fullPath: '/is-hotel-lobby-ai-free'
+      preLoaderRoute: typeof IsHotelLobbyAiFreeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/migos-ai-video': {
@@ -195,6 +311,13 @@ declare module '@tanstack/react-router' {
       path: '/terms-of-service'
       fullPath: '/terms-of-service'
       preLoaderRoute: typeof TermsOfServiceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/what-is-hotel-lobby-ai-trend': {
+      id: '/what-is-hotel-lobby-ai-trend'
+      path: '/what-is-hotel-lobby-ai-trend'
+      fullPath: '/what-is-hotel-lobby-ai-trend'
+      preLoaderRoute: typeof WhatIsHotelLobbyAiTrendRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/callback': {
@@ -237,10 +360,16 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BestPhotosForHotelLobbyAiRoute: BestPhotosForHotelLobbyAiRoute,
+  BlogRoute: BlogRoute,
+  HowToFixFaceDriftHotelLobbyAiRoute: HowToFixFaceDriftHotelLobbyAiRoute,
+  HowToMakeHotelLobbyAiVideoRoute: HowToMakeHotelLobbyAiVideoRoute,
+  IsHotelLobbyAiFreeRoute: IsHotelLobbyAiFreeRoute,
   MigosAiVideoRoute: MigosAiVideoRoute,
   PricingRoute: PricingRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
   TermsOfServiceRoute: TermsOfServiceRoute,
+  WhatIsHotelLobbyAiTrendRoute: WhatIsHotelLobbyAiTrendRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   ApiCreemWebhookRoute: ApiCreemWebhookRoute,
   ApiDownloadTaskIdRoute: ApiDownloadTaskIdRoute,
