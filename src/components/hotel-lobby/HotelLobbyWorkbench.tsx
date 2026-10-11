@@ -125,6 +125,9 @@ export function HotelLobbyWorkbench() {
       task.status === 'processing' ||
       task.audio_status === 'pending' ||
       task.audio_status === 'processing' ||
+      (task.status === 'completed' &&
+        task.audio_status === 'mixed' &&
+        task.storage_status === 'pending') ||
       task.generation_order_status === 'refund_requested'
     )) return
     const timer = window.setInterval(() => void refreshActiveTasks(), 3000)
@@ -215,6 +218,9 @@ export function HotelLobbyWorkbench() {
       task.status === 'processing' ||
       task.audio_status === 'pending' ||
       task.audio_status === 'processing' ||
+      (task.status === 'completed' &&
+        task.audio_status === 'mixed' &&
+        task.storage_status === 'pending') ||
       task.generation_order_status === 'refund_requested'
     )
     if (!active.length) return

@@ -125,7 +125,15 @@ export function ResultsGallery({
             const soundtrackPending =
               task.status === 'completed' &&
               (task.audio_status === 'pending' || task.audio_status === 'processing')
-            const completed = task.status === 'completed' && Boolean(task.result_url) && !soundtrackPending
+            const deliveryPending =
+              task.status === 'completed' &&
+              task.audio_status === 'mixed' &&
+              task.storage_status === 'pending'
+            const completed =
+              task.status === 'completed' &&
+              Boolean(task.result_url) &&
+              !soundtrackPending &&
+              !deliveryPending
 
             const mediaLayout = resultMediaLayout(task)
 
@@ -194,8 +202,20 @@ export function ResultsGallery({
               </> : <>
                 <div className="result-state">
                   <Loader2 className="spin" size={25}/>
-                  <strong>{soundtrackPending ? 'Adding soundtrack…' : 'Generating…'}</strong>
-                  <span>{soundtrackPending ? 'Your video is ready. We’re finishing the soundtrack.' : 'This result updates automatically.'}</span>
+                  <strong>{
+                    soundtrackPending
+                      ? 'Adding soundtrack…'
+                      : deliveryPending
+                        ? 'Finalizing video…'
+                        : 'Generating…'
+                  }</strong>
+                  <span>{
+                    soundtrackPending
+                      ? 'Your video is ready. We’re finishing the soundtrack.'
+                      : deliveryPending
+                        ? 'Soundtrack added. We’re preparing the final download.'
+                        : 'This result updates automatically.'
+                  }</span>
                 </div>
               </>}
             </article>
@@ -226,7 +246,15 @@ export function ResultsGallery({
               const soundtrackPending =
                 task.status === 'completed' &&
                 (task.audio_status === 'pending' || task.audio_status === 'processing')
-              const completed = task.status === 'completed' && Boolean(task.result_url) && !soundtrackPending
+              const deliveryPending =
+                task.status === 'completed' &&
+                task.audio_status === 'mixed' &&
+                task.storage_status === 'pending'
+              const completed =
+                task.status === 'completed' &&
+                Boolean(task.result_url) &&
+                !soundtrackPending &&
+                !deliveryPending
               const paidFailure = Boolean(task.generation_order_id)
               const canRetryPaid = !paidFailure || task.generation_order_status === 'failed'
               const refundNeedsSupport = Boolean(task.refund_ticket_id && task.refund_error)
@@ -271,7 +299,13 @@ export function ResultsGallery({
                   ) : (
                     <div className="history-thumb history-thumb-state">
                       <Loader2 className="spin" size={24}/>
-                      <strong>{soundtrackPending ? 'Adding soundtrack…' : 'Generating…'}</strong>
+                      <strong>{
+                        soundtrackPending
+                          ? 'Adding soundtrack…'
+                          : deliveryPending
+                            ? 'Finalizing video…'
+                            : 'Generating…'
+                      }</strong>
                     </div>
                   )}
                   <span className={`history-status history-status-${status.key}`}>{status.label}</span>
@@ -375,6 +409,13 @@ function taskStatus(task: GenerationTask) {
   if (task.generation_order_status === 'refund_requested') return { key: 'generating', label: 'Refund requested' }
   if (task.audio_status === 'pending' || task.audio_status === 'processing') {
     return { key: 'generating', label: 'Adding soundtrack' }
+  }
+  if (
+    task.status === 'completed' &&
+    task.audio_status === 'mixed' &&
+    task.storage_status === 'pending'
+  ) {
+    return { key: 'generating', label: 'Finalizing video' }
   }
   if (task.status === 'completed') return { key: 'completed', label: 'Completed' }
   if (task.status === 'failed') return { key: 'failed', label: 'Failed' }

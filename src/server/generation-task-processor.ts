@@ -459,11 +459,11 @@ async function finalizeCompletedTask(
   bindings: GenerationWorkerBindings,
 ) {
   let deliverable = task
-
-  if (
+  const wasSoundtrackPending =
     task.generate_audio &&
     (task.audio_status === 'pending' || task.audio_status === 'processing')
-  ) {
+
+  if (wasSoundtrackPending) {
     deliverable = await mixCompletedTaskAudio(task)
   }
 
@@ -471,6 +471,13 @@ async function finalizeCompletedTask(
     deliverable.audio_status === 'pending' ||
     deliverable.audio_status === 'processing'
   ) {
+    return deliverable
+  }
+
+  // When CloudConvert just moved the task to mixed, return immediately so the
+  // browser can observe that state. R2 persistence happens on the next
+  // lifecycle tick instead of keeping the same request open.
+  if (wasSoundtrackPending && deliverable.audio_status === 'mixed') {
     return deliverable
   }
 
