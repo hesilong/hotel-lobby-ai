@@ -153,16 +153,6 @@ export function ResultsGallery({
                     <Download size={17}/>
                   </a>
                 </div>
-                <div className="result-complete-footer">
-                  <div className="result-complete-meta">
-                    <span>{task.resolution?.toUpperCase() || 'Video'}</span>
-                    <span>{task.duration_seconds ? `${task.duration_seconds}s` : '15s'}</span>
-                    {task.aspect_ratio && <span>{task.aspect_ratio}</span>}
-                  </div>
-                  <a className="result-download-button" href={`/api/download/${task.id}`} download>
-                    <Download size={15}/> Download video
-                  </a>
-                </div>
               </> : task.status === 'failed' ? <>
                 <div className="result-state">
                   <AlertCircle size={24}/>
