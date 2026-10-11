@@ -964,13 +964,6 @@ body{background:#f7f8fb;color:#17191f}
 .quality-option.active small{
   color:#e25309;
 }
-.generation-summary{
-  margin-top:18px;
-  padding:10px 12px;
-  border-color:#e8eaee;
-  border-radius:11px;
-  background:#fcfcfd;
-}
 .generator-submit{
   min-height:50px;
   margin-top:14px;
