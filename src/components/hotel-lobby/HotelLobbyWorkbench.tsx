@@ -90,6 +90,26 @@ export function HotelLobbyWorkbench() {
     checkoutLockRef.current = false
   }
 
+  const checkoutReturnState = (orderId: string) => {
+    const checkout = paymentWindowRef.current
+    if (!checkout || checkout.closed || typeof window === 'undefined') return null
+
+    try {
+      const url = new URL(checkout.location.href)
+      if (url.origin !== window.location.origin) return null
+
+      const returnedOrderId = url.searchParams.get('generation_order')
+      const successfulReturn =
+        url.searchParams.get('purchase_return') === '1' &&
+        returnedOrderId === orderId
+
+      return successfulReturn ? 'success' as const : 'cancelled' as const
+    } catch {
+      // Reading location throws while the checkout is still cross-origin on Waffo.
+      return null
+    }
+  }
+
   useEffect(() => {
     const supabase = getSupabaseBrowserClient()
     void supabase.auth.getSession().then(({ data }) => {
@@ -156,6 +176,23 @@ export function HotelLobbyWorkbench() {
         const order = await getGenerationPurchase({ data: { orderId: purchaseOrderId } })
 
         if (order.status === 'pending_payment' || order.status === 'paid') {
+          const returnState =
+            order.status === 'pending_payment'
+              ? checkoutReturnState(purchaseOrderId)
+              : null
+
+          // A canceled Waffo checkout can navigate the checkout tab back to our
+          // homepage without closing that tab. In that case the order remains
+          // pending_payment forever because no payment webhook is emitted.
+          // Release the local draft immediately so the buyer can try again.
+          if (returnState === 'cancelled') {
+            paymentWindowRef.current?.close()
+            paymentWindowRef.current = null
+            clearPurchaseRecovery()
+            setSubmitStage('idle')
+            return
+          }
+
           if (order.status === 'pending_payment' && paymentWindowRef.current?.closed) {
             closedPendingChecks += 1
             // Give Waffo/webhook delivery a short grace period after the buyer
