@@ -127,7 +127,7 @@ export function ResultsGallery({
 
             return <article key={task.id} className="result-card">
               {completed ? <>
-                <video src={task.result_url} controls playsInline preload="metadata"/>
+                <video src={task.result_url!} controls playsInline preload="metadata"/>
                 <a
                   className="result-download"
                   href={`/api/download/${task.id}`}
