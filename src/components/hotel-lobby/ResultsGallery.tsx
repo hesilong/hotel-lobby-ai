@@ -77,8 +77,8 @@ export function ResultsGallery({
           <div className="results-demo-topline">
             <span className="results-demo-badge">Example</span>
             <div className="results-demo-meta">
-              <span>Preview</span>
-              <span>480P</span>
+              <span>Demo</span>
+              <span>5s preview</span>
             </div>
           </div>
 

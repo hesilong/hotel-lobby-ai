@@ -490,7 +490,7 @@ export function HotelLobbyWorkbench() {
         </div>
 
         <div className="fixed-output-meta" aria-label="Included output settings">
-          <span><b>15 sec</b> video</span>
+          <span><b>15 sec</b><i>video</i></span>
           <span>Template motion</span>
           <span>Soundtrack included</span>
         </div>
@@ -529,13 +529,16 @@ export function HotelLobbyWorkbench() {
                 <button
                   key={value}
                   type="button"
-                  className={`quality-option ${resolution === value ? 'active' : ''}`}
+                  className={`quality-option ${resolution === value ? 'active' : ''}${option.recommended ? ' recommended' : ''}`}
                   aria-pressed={resolution === value}
                   disabled={isSubmitting}
                   onClick={() => setResolution(value)}
                 >
-                  <strong>{value.toUpperCase()}</strong>
-                  <span>{option.name}{option.recommended ? ' · Recommended' : ''}</span>
+                  <div className="quality-option-head">
+                    <strong>{value.toUpperCase()}</strong>
+                    {option.recommended && <em>Recommended</em>}
+                  </div>
+                  <span>{option.name}</span>
                   <small>{generationPriceLabel(value)}</small>
                 </button>
               )
