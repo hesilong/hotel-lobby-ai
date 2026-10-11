@@ -300,21 +300,59 @@ export function HotelLobbyWorkbench() {
       task.audio_status === 'processing' ||
       (task.status === 'completed' &&
         task.audio_status === 'mixed' &&
-        task.storage_status === 'pending') ||
+        (task.storage_status === 'pending' || task.storage_status === 'fallback')) ||
       task.generation_order_status === 'refund_requested'
     )
     if (!active.length) return
-    const updates = await Promise.all(
+
+    let advancedMock = false
+
+    await Promise.all(
       active.map(async task => {
         if (import.meta.env.DEV && task.provider === 'mock') {
-          await fetch(`/api/dev/mock-generation/${encodeURIComponent(task.id)}/process`, {
-            method: 'POST',
-          }).catch(() => null)
+          try {
+            await fetch(`/api/dev/mock-generation/${encodeURIComponent(task.id)}/process`, {
+              method: 'POST',
+            })
+            advancedMock = true
+          } catch (error) {
+            console.warn('[generation] local mock advance request failed', {
+              taskId: task.id,
+              error,
+            })
+          }
         }
-        return refreshGenerationTask({ data: { taskId: task.id } }).catch(() => task)
       }),
     )
-    const map = new Map(updates.map(task => [task.id, task]))
+
+    // Mock processing mutates several lifecycle fields at once (audio/storage/
+    // result URL). Reload the canonical task list after advancing it so the UI
+    // cannot remain stuck on a stale pre-persist snapshot.
+    if (advancedMock) {
+      await loadTasks()
+      return
+    }
+
+    const updates = await Promise.all(
+      active.map(async task => {
+        try {
+          return await refreshGenerationTask({ data: { taskId: task.id } })
+        } catch (error) {
+          console.warn('[generation] task refresh failed', {
+            taskId: task.id,
+            error,
+          })
+          return null
+        }
+      }),
+    )
+
+    const map = new Map(
+      updates
+        .filter((task): task is GenerationTask => Boolean(task))
+        .map(task => [task.id, task]),
+    )
+    if (!map.size) return
     setTasks(current => current.map(task => map.get(task.id) || task))
   }
 
