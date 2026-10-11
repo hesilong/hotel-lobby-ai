@@ -249,14 +249,19 @@ export async function retryWaffoEvents() {
   for (const row of data || []) {
     try {
       await processWaffoEvent(row.payload as WebhookEvent)
-    } catch {
+    } catch (error) {
       const attempts = Number(row.attempts || 0) + 1
+      const message = error instanceof Error ? error.message : 'PROCESSING_FAILED'
       const { error: updateError } = await admin.from('waffo_webhook_events').update({
-        status: 'failed', error: 'PROCESSING_FAILED', attempts,
+        status: 'failed', error: message.slice(0, 1000), attempts,
         next_attempt_at: new Date(Date.now() + Math.min(1800, 2 ** Math.min(attempts, 10)) * 1000).toISOString(),
       }).eq('delivery_id', row.delivery_id).neq('status', 'processed')
       if (updateError) console.error('[Waffo] inbox status update failed', row.delivery_id)
-      console.error('[Waffo] event processing failed; retained for retry', row.delivery_id)
+      console.error('[Waffo] event processing failed; retained for retry', {
+        deliveryId: row.delivery_id,
+        attempts,
+        message,
+      })
     }
   }
 }

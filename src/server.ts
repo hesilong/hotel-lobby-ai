@@ -4,6 +4,7 @@ import {
   reconcileGenerationTasks,
   type GenerationWorkerBindings,
 } from './server/generation-task-processor'
+import { retryWaffoEvents } from './server/waffo-webhooks'
 
 type JsonObject = Record<string, unknown>
 type WorkerEnv = GenerationWorkerBindings
@@ -74,13 +75,22 @@ export default {
     ctx: ExecutionContext,
   ) {
     ctx.waitUntil(
-      reconcileGenerationTasks(workerEnv)
-        .then(result => {
-          console.info('[generation] cron reconcile complete', result)
-        })
-        .catch(error => {
-          console.error('[generation] cron reconcile failed', error)
-        }),
+      Promise.allSettled([
+        reconcileGenerationTasks(workerEnv),
+        retryWaffoEvents(),
+      ]).then(([generation, payments]) => {
+        if (generation.status === 'fulfilled') {
+          console.info('[generation] cron reconcile complete', generation.value)
+        } else {
+          console.error('[generation] cron reconcile failed', generation.reason)
+        }
+
+        if (payments.status === 'fulfilled') {
+          console.info('[Waffo] cron inbox retry complete')
+        } else {
+          console.error('[Waffo] cron inbox retry failed', payments.reason)
+        }
+      }),
     )
   },
 }
