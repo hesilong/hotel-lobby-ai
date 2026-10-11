@@ -246,6 +246,7 @@ async function markAudioFallback(
       audio_status: 'fallback',
       audio_job_id: null,
       audio_result_url: null,
+      audio_attempts: Number(task.audio_attempts || 0),
       audio_last_error: message,
       audio_updated_at: now,
       result_url: fallbackUrl,
@@ -432,8 +433,7 @@ async function finalizeCompletedTask(
 
   if (
     task.generate_audio &&
-    task.audio_status !== 'mixed' &&
-    task.audio_status !== 'fallback'
+    (task.audio_status === 'pending' || task.audio_status === 'processing')
   ) {
     deliverable = await mixCompletedTaskAudio(task)
   }
