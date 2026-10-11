@@ -41,7 +41,7 @@ export function HotelLobbyWorkbench() {
   const [authOpen, setAuthOpen] = useState(false)
   const [authed, setAuthed] = useState(false)
   const [pendingGenerate, setPendingGenerate] = useState(false)
-  const [submitStage, setSubmitStage] = useState<'idle' | 'checking' | 'checkout' | 'waiting'>('idle')
+  const [submitStage, setSubmitStage] = useState<'idle' | 'checking' | 'checkout' | 'waiting' | 'payment-check'>('idle')
   const [purchaseOrderId, setPurchaseOrderId] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [assetError, setAssetError] = useState('')
@@ -165,10 +165,65 @@ export function HotelLobbyWorkbench() {
   }, [authed])
 
   useEffect(() => {
+    if (!authed || !purchaseOrderId || typeof window === 'undefined') return
+
+    let stopped = false
+    let recovering = false
+
+    const resolveClosedCheckout = async () => {
+      const checkout = paymentWindowRef.current
+      if (!checkout || !checkout.closed || recovering || stopped) return
+
+      recovering = true
+      paymentWindowRef.current = null
+      setSubmitStage('payment-check')
+
+      // Closing the checkout can race with a successful payment webhook.
+      // Give the backend a short grace period before treating the checkout
+      // as abandoned.
+      for (let attempt = 0; attempt < 6 && !stopped; attempt += 1) {
+        try {
+          const order = await getGenerationPurchase({ data: { orderId: purchaseOrderId } })
+
+          if (order.status !== 'pending_payment') {
+            await loadTasks()
+            clearPurchaseRecovery()
+            setSubmitStage('idle')
+            return
+          }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : ''
+          if (message.includes('GENERATION_ORDER_NOT_FOUND')) {
+            clearPurchaseRecovery()
+            setSubmitStage('idle')
+            return
+          }
+        }
+
+        await new Promise(resolve => window.setTimeout(resolve, 800))
+      }
+
+      if (!stopped) {
+        clearPurchaseRecovery()
+        setSubmitStage('idle')
+      }
+    }
+
+    const timer = window.setInterval(() => void resolveClosedCheckout(), 400)
+    const onFocus = () => void resolveClosedCheckout()
+    window.addEventListener('focus', onFocus)
+
+    return () => {
+      stopped = true
+      window.clearInterval(timer)
+      window.removeEventListener('focus', onFocus)
+    }
+  }, [authed, purchaseOrderId])
+
+  useEffect(() => {
     if (!authed || !purchaseOrderId) return
 
     let stopped = false
-    let closedPendingChecks = 0
     let detachedPendingChecks = 0
     const poll = async () => {
       if (stopped) return
@@ -191,19 +246,6 @@ export function HotelLobbyWorkbench() {
             clearPurchaseRecovery()
             setSubmitStage('idle')
             return
-          }
-
-          if (order.status === 'pending_payment' && paymentWindowRef.current?.closed) {
-            closedPendingChecks += 1
-            // Give Waffo/webhook delivery a short grace period after the buyer
-            // closes the checkout tab; payment confirmation can arrive slightly later.
-            if (closedPendingChecks >= 10) {
-              clearPurchaseRecovery()
-              setSubmitStage('idle')
-              return
-            }
-          } else {
-            closedPendingChecks = 0
           }
 
           if (order.status === 'pending_payment' && !paymentWindowRef.current) {
@@ -598,6 +640,7 @@ export function HotelLobbyWorkbench() {
           {submitStage === 'checking' ? 'Checking your images…' :
            submitStage === 'checkout' ? 'Opening secure checkout…' :
            submitStage === 'waiting' ? 'Waiting for payment…' :
+           submitStage === 'payment-check' ? 'Checking payment…' :
            `Generate for ${priceLabel}`}
         </button>
 
