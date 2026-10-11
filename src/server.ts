@@ -1,6 +1,7 @@
 import handler from '@tanstack/react-start/server-entry'
 import {
   processGenerationByProviderTaskId,
+  processGenerationTask,
   reconcileGenerationTasks,
   type GenerationWorkerBindings,
 } from './server/generation-task-processor'
@@ -63,6 +64,29 @@ async function handleKieCallback(
 export default {
   async fetch(request: Request, workerEnv: WorkerEnv, ctx: ExecutionContext) {
     const url = new URL(request.url)
+
+    if (
+      request.method === 'POST' &&
+      process.env.NODE_ENV !== 'production' &&
+      process.env.MOCK_GENERATION === 'true'
+    ) {
+      const match = url.pathname.match(/^\/api\/dev\/mock-generation\/([^/]+)\/process$/)
+      if (match) {
+        const taskId = decodeURIComponent(match[1])
+        const result = await processGenerationTask(taskId, workerEnv)
+        if (!result || result.provider !== 'mock') {
+          return Response.json({ ok: false, error: 'MOCK_TASK_NOT_FOUND' }, { status: 404 })
+        }
+        return Response.json({
+          ok: true,
+          taskId: result.id,
+          status: result.status,
+          audioStatus: result.audio_status,
+          storageStatus: result.storage_status,
+        })
+      }
+    }
+
     if (request.method === 'POST' && url.pathname === '/api/kie/callback') {
       return handleKieCallback(request, workerEnv, ctx)
     }

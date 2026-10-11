@@ -219,7 +219,14 @@ export function HotelLobbyWorkbench() {
     )
     if (!active.length) return
     const updates = await Promise.all(
-      active.map(task => refreshGenerationTask({ data: { taskId: task.id } }).catch(() => task)),
+      active.map(async task => {
+        if (import.meta.env.DEV && task.provider === 'mock') {
+          await fetch(`/api/dev/mock-generation/${encodeURIComponent(task.id)}/process`, {
+            method: 'POST',
+          }).catch(() => null)
+        }
+        return refreshGenerationTask({ data: { taskId: task.id } }).catch(() => task)
+      }),
     )
     const map = new Map(updates.map(task => [task.id, task]))
     setTasks(current => current.map(task => map.get(task.id) || task))
