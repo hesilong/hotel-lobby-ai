@@ -1053,8 +1053,8 @@ body{background:#f7f8fb;color:#17191f}
   font-size:8px;
 }
 .results-demo-performers{
-  grid-template-columns:minmax(0,158px) 24px minmax(0,158px)!important;
-  gap:14px!important;
+  grid-template-columns:minmax(0,200px) 26px minmax(0,200px)!important;
+  gap:16px!important;
   margin-top:auto;
 }
 .results-demo-image{
@@ -1075,8 +1075,8 @@ body{background:#f7f8fb;color:#17191f}
   font-weight:850;
 }
 .results-demo-plus{
-  width:24px;
-  height:24px;
+  width:26px;
+  height:26px;
   border:1px solid #e5e8ed;
   background:#f8f9fa;
   color:#989da6;
