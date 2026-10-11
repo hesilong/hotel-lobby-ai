@@ -76,10 +76,6 @@ export function ResultsGallery({
         <div className="results-demo">
           <div className="results-demo-topline">
             <span className="results-demo-badge">Example</span>
-            <div className="results-demo-meta">
-              <span>Demo</span>
-              <span>5s preview</span>
-            </div>
           </div>
 
           <div className="results-demo-performers">

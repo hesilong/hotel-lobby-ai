@@ -1053,12 +1053,13 @@ body{background:#f7f8fb;color:#17191f}
   font-size:8px;
 }
 .results-demo-performers{
-  grid-template-columns:minmax(0,200px) 26px minmax(0,200px)!important;
-  gap:16px!important;
+  grid-template-columns:minmax(0,240px) 28px minmax(0,240px)!important;
+  gap:18px!important;
   margin-top:auto;
 }
 .results-demo-image{
   aspect-ratio:4/3;
+  min-height:172px;
   border:1px solid #e4e7ec;
   border-radius:13px;
   background:#f6f7f9;
@@ -1162,4 +1163,8 @@ body{background:#f7f8fb;color:#17191f}
   .results-demo-video{
     max-width:none;
   }
+}
+
+.results-demo-topline{
+  justify-content:flex-start;
 }
