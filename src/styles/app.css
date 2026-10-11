@@ -596,6 +596,47 @@ body{background:#f7f8fb;color:#17191f}
 .quality-option small{display:block;margin-top:9px;color:#9a9fa8;font-size:9px;font-weight:750}
 .quality-option.active small{color:#d9550d}
 
+.generation-email-notify{
+  display:flex;
+  align-items:flex-start;
+  gap:9px;
+  margin-top:14px;
+  padding:10px 11px;
+  border:1px solid #e4e7ec;
+  border-radius:11px;
+  background:#fbfbfc;
+  color:#4c535e;
+  cursor:pointer;
+}
+.generation-email-notify.disabled{opacity:.62;cursor:default}
+.generation-email-notify input{
+  width:14px;
+  height:14px;
+  margin:1px 0 0;
+  flex:0 0 auto;
+  accent-color:#f25d0d;
+}
+.generation-email-notify>svg{
+  flex:0 0 auto;
+  margin-top:1px;
+  color:#727985;
+}
+.generation-email-notify>span{
+  display:flex;
+  min-width:0;
+  flex-direction:column;
+  gap:2px;
+}
+.generation-email-notify strong{
+  color:#323740;
+  font-size:10px;
+  line-height:1.3;
+}
+.generation-email-notify small{
+  color:#8b919b;
+  font-size:8px;
+  line-height:1.4;
+}
 .generator-trust-row{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:12px;color:#777e88;font-size:9px;font-weight:750;text-align:center}
 .generator-trust-row span{display:inline-flex;align-items:center}
 .generator-trust-row span:not(:last-child)::after{content:"·";margin-left:8px;color:#c0c4ca}

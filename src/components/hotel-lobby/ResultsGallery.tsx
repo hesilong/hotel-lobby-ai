@@ -202,20 +202,8 @@ export function ResultsGallery({
               </> : <>
                 <div className="result-state">
                   <Loader2 className="spin" size={25}/>
-                  <strong>{
-                    soundtrackPending
-                      ? 'Adding soundtrack…'
-                      : deliveryPending
-                        ? 'Finalizing video…'
-                        : 'Generating…'
-                  }</strong>
-                  <span>{
-                    soundtrackPending
-                      ? 'Your video is ready. We’re finishing the soundtrack.'
-                      : deliveryPending
-                        ? 'Soundtrack added. We’re preparing the final download.'
-                        : 'This result updates automatically.'
-                  }</span>
+                  <strong>Generating your video…</strong>
+                  <span>This usually takes a few minutes.</span>
                 </div>
               </>}
             </article>
@@ -299,13 +287,7 @@ export function ResultsGallery({
                   ) : (
                     <div className="history-thumb history-thumb-state">
                       <Loader2 className="spin" size={24}/>
-                      <strong>{
-                        soundtrackPending
-                          ? 'Adding soundtrack…'
-                          : deliveryPending
-                            ? 'Finalizing video…'
-                            : 'Generating…'
-                      }</strong>
+                      <strong>Generating your video…</strong>
                     </div>
                   )}
                   <span className={`history-status history-status-${status.key}`}>{status.label}</span>
@@ -407,15 +389,16 @@ function HistoryParam({ label, value }: { label: string; value: string }) {
 function taskStatus(task: GenerationTask) {
   if (task.generation_order_status === 'refunded') return { key: 'completed', label: 'Refunded' }
   if (task.generation_order_status === 'refund_requested') return { key: 'generating', label: 'Refund requested' }
-  if (task.audio_status === 'pending' || task.audio_status === 'processing') {
-    return { key: 'generating', label: 'Adding soundtrack' }
-  }
   if (
-    task.status === 'completed' &&
-    task.audio_status === 'mixed' &&
-    task.storage_status === 'pending'
+    task.audio_status === 'pending' ||
+    task.audio_status === 'processing' ||
+    (
+      task.status === 'completed' &&
+      task.audio_status === 'mixed' &&
+      task.storage_status === 'pending'
+    )
   ) {
-    return { key: 'generating', label: 'Finalizing video' }
+    return { key: 'generating', label: 'Generating' }
   }
   if (task.status === 'completed') return { key: 'completed', label: 'Completed' }
   if (task.status === 'failed') return { key: 'failed', label: 'Failed' }

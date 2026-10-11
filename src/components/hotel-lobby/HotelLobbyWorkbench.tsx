@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeftRight, Loader2, Plus, X, Zap } from 'lucide-react'
+import { ArrowLeftRight, Loader2, Mail, Plus, X, Zap } from 'lucide-react'
 import { getHotelLobbyGenerationTemplate, HOTEL_LOBBY_SCENES } from '@/config/hotel-lobby'
 import type { GenerationAspectRatio, GenerationResolution } from '@/config/generation'
 import { HOTEL_LOBBY_GENERATION_CONFIG } from '@/config/hotel-lobby-generation'
@@ -35,6 +35,7 @@ export function HotelLobbyWorkbench() {
   const duration = HOTEL_LOBBY_GENERATION_CONFIG.defaultDuration
   const [resolution, setResolution] = useState<GenerationResolution>(HOTEL_LOBBY_GENERATION_CONFIG.defaultResolution)
   const [aspectRatio, setAspectRatio] = useState<GenerationAspectRatio>(HOTEL_LOBBY_GENERATION_CONFIG.defaultAspectRatio)
+  const [notifyOnComplete, setNotifyOnComplete] = useState(true)
   const generateAudio = HOTEL_LOBBY_GENERATION_CONFIG.defaultIncludeSoundtrack
 
   const [authOpen, setAuthOpen] = useState(false)
@@ -354,6 +355,7 @@ export function HotelLobbyWorkbench() {
       resolution,
       aspectRatio,
       generateAudio,
+      notifyOnComplete,
     }
   }
 
@@ -561,6 +563,20 @@ export function HotelLobbyWorkbench() {
            submitStage === 'waiting' ? 'Waiting for payment…' :
            `Generate for ${priceLabel}`}
         </button>
+
+        <label className={`generation-email-notify ${isSubmitting ? 'disabled' : ''}`}>
+          <input
+            type="checkbox"
+            checked={notifyOnComplete}
+            disabled={isSubmitting}
+            onChange={event => setNotifyOnComplete(event.target.checked)}
+          />
+          <Mail size={15}/>
+          <span>
+            <strong>Email me when it’s ready</strong>
+            <small>You can close this page after generation starts.</small>
+          </span>
+        </label>
 
         <div className="generator-trust-row">
           <span>No subscription</span>
