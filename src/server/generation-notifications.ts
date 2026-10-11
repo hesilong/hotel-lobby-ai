@@ -239,6 +239,24 @@ export async function reconcileGenerationNotifications() {
   if (!resendApiKey()) return { scanned: 0, sent: 0 }
 
   const admin = getSupabaseAdminClient()
+  const staleSendingCutoff = new Date(Date.now() - 5 * 60_000).toISOString()
+
+  // A Worker can stop after claiming an email but before recording the result.
+  // Recover those stale claims; Resend's idempotency key keeps the retry safe.
+  const { error: staleError } = await admin
+    .from('generation_orders')
+    .update({
+      notification_status: 'failed',
+      notification_error: 'NOTIFICATION_SEND_INTERRUPTED',
+      notification_updated_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('notification_status', 'sending')
+    .is('notification_sent_at', null)
+    .lt('notification_updated_at', staleSendingCutoff)
+
+  if (staleError) throw new Error(staleError.message)
+
   const { data: orders, error } = await admin
     .from('generation_orders')
     .select('id,user_id,latest_task_id')
