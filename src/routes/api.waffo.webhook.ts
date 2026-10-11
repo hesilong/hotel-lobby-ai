@@ -3,7 +3,7 @@ import { verifyWebhook, type WebhookEventData } from '@waffo/pancake-ts'
 import { waitUntil } from 'cloudflare:workers'
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { waffoEnvironment } from '@/server/waffo'
-import { retryWaffoEvents, validateWaffoEnvelope } from '@/server/waffo-webhooks'
+import { processWaffoEvent, retryWaffoEvents, validateWaffoEnvelope } from '@/server/waffo-webhooks'
 
 export const Route = createFileRoute('/api/waffo/webhook')({
   server: { handlers: {
@@ -23,8 +23,23 @@ export const Route = createFileRoute('/api/waffo/webhook')({
         payload: event, status: 'pending',
       }, { onConflict: 'delivery_id', ignoreDuplicates: true })
       if (error) return new Response('Unable to persist webhook', { status: 503 })
-      // Acknowledge only after durable storage, then fulfill outside the response.
-      waitUntil(retryWaffoEvents().catch(() => console.error('[Waffo] inbox retry failed')))
+      // The event is durable now. Process this delivery immediately so local
+      // TanStack dev does not depend on Cloudflare waitUntil semantics. If the
+      // immediate attempt fails, keep the inbox row pending/failed and let the
+      // normal retry worker/Cron recover it.
+      try {
+        await processWaffoEvent(event)
+      } catch (processError) {
+        console.error('[Waffo] immediate event processing failed; retained for retry', {
+          deliveryId: event.id,
+          error: processError,
+        })
+        waitUntil(
+          retryWaffoEvents().catch(retryError =>
+            console.error('[Waffo] inbox retry failed', retryError),
+          ),
+        )
+      }
       return new Response('OK')
     },
   } },
