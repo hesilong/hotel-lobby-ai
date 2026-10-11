@@ -50,9 +50,9 @@ async function createPaidOrder(db, { userId, imageA, imageB, resolution = '720p'
       $1,'paid',$2,'9:16',15,true,$3,'USD',
       'https://cdn.example/a.jpg','https://cdn.example/b.jpg',$4,$5,
       'hotel-lobby-15','https://cdn.example/reference.mp4','preset prompt','PROD_generation',
-      'ORD_generation','PAY_generation','test',$3,now()
+      'ORD_generation','PAY_generation','test',$6,now()
     ) returning id
-  `, [userId, resolution, amount, imageA, imageB])).rows[0]
+  `, [userId, resolution, amount, imageA, imageB, amount])).rows[0]
   return row.id
 }
 
