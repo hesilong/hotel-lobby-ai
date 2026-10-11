@@ -198,9 +198,8 @@ async function submitGenerationForUser(userId: string, data: CreateGenerationInp
       duration: data.duration,
       resolution: data.resolution,
       aspectRatio: data.aspectRatio,
-      // Product soundtrack is added after provider success. Keep provider audio
-      // disabled to avoid upstream music/copyright rejection.
-      generateAudio: false,
+      // Product soundtrack is added after provider success.
+      generateAudio: HOTEL_LOBBY_GENERATION_CONFIG.providerGenerateAudio,
       callBackUrl: kieCallbackUrl(),
     })
     await admin.from('generation_tasks').update({

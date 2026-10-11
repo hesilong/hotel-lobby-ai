@@ -263,9 +263,8 @@ export async function startPaidGenerationOrder(
       duration: input.duration,
       resolution: input.resolution,
       aspectRatio: input.aspectRatio,
-      // The paid product still includes a soundtrack, but it is mixed after
-      // provider success so KIE never generates copyrighted/imitative audio.
-      generateAudio: false,
+      // The paid product soundtrack is mixed after provider success.
+      generateAudio: HOTEL_LOBBY_GENERATION_CONFIG.providerGenerateAudio,
       callBackUrl: kieCallbackUrl(),
     })
 

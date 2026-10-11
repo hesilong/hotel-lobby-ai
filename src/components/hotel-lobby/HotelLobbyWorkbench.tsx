@@ -35,7 +35,7 @@ export function HotelLobbyWorkbench() {
   const duration = HOTEL_LOBBY_GENERATION_CONFIG.defaultDuration
   const [resolution, setResolution] = useState<GenerationResolution>(HOTEL_LOBBY_GENERATION_CONFIG.defaultResolution)
   const [aspectRatio, setAspectRatio] = useState<GenerationAspectRatio>(HOTEL_LOBBY_GENERATION_CONFIG.defaultAspectRatio)
-  const generateAudio = HOTEL_LOBBY_GENERATION_CONFIG.defaultGenerateAudio
+  const generateAudio = HOTEL_LOBBY_GENERATION_CONFIG.defaultIncludeSoundtrack
 
   const [authOpen, setAuthOpen] = useState(false)
   const [authed, setAuthed] = useState(false)
@@ -547,11 +547,6 @@ export function HotelLobbyWorkbench() {
         </div>
 
         {error && <div className="generation-error">{error}</div>}
-
-        <div className="generation-summary generation-price-summary">
-          <span>15-second video</span>
-          <span>One-time payment <b>{priceLabel}</b></span>
-        </div>
 
         <button disabled={!canGenerate} className="generate generator-submit" onClick={() => void onGenerate()}>
           {isSubmitting ? <Loader2 size={16} className="spin"/> : <Zap size={16} fill="currentColor"/>}
