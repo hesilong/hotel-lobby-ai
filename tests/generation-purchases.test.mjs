@@ -18,6 +18,7 @@ async function database() {
     '0003_prepared_assets.sql',
     '0005_waffo_payments.sql',
     '0009_generation_purchases.sql',
+    '0010_soundtrack_delivery.sql',
   ]) {
     const sql = await readFile(new URL(`../supabase/migrations/${name}`, import.meta.url), 'utf8')
     await db.exec(sql.replace('create extension if not exists pgcrypto;', ''))

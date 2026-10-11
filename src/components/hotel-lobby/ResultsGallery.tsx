@@ -30,7 +30,13 @@ export function ResultsGallery({
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const visibleTasks = latestOnly ? tasks.slice(0, 1) : tasks
   const selectedTask = useMemo(
-    () => tasks.find(task => task.id === selectedTaskId && task.status === 'completed' && task.result_url) || null,
+    () => tasks.find(task =>
+      task.id === selectedTaskId &&
+      task.status === 'completed' &&
+      task.result_url &&
+      task.audio_status !== 'pending' &&
+      task.audio_status !== 'processing'
+    ) || null,
     [tasks, selectedTaskId],
   )
 
@@ -114,9 +120,13 @@ export function ResultsGallery({
             const canRefund = paidFailure && task.generation_order_status === 'failed' && !refundNeedsSupport
             const refundRequested = task.generation_order_status === 'refund_requested'
             const refunded = task.generation_order_status === 'refunded'
+            const soundtrackPending =
+              task.status === 'completed' &&
+              (task.audio_status === 'pending' || task.audio_status === 'processing')
+            const completed = task.status === 'completed' && Boolean(task.result_url) && !soundtrackPending
 
             return <article key={task.id} className="result-card">
-              {task.status === 'completed' && task.result_url ? <>
+              {completed ? <>
                 <video src={task.result_url} controls playsInline preload="metadata"/>
                 <a
                   className="result-download"
@@ -172,8 +182,8 @@ export function ResultsGallery({
               </> : <>
                 <div className="result-state">
                   <Loader2 className="spin" size={25}/>
-                  <strong>Generating…</strong>
-                  <span>This result updates automatically.</span>
+                  <strong>{soundtrackPending ? 'Adding soundtrack…' : 'Generating…'}</strong>
+                  <span>{soundtrackPending ? 'Your video is ready. We’re finishing the soundtrack.' : 'This result updates automatically.'}</span>
                 </div>
               </>}
             </article>
@@ -201,7 +211,10 @@ export function ResultsGallery({
             {tasks.map(task => {
               const retrying = retryingTaskId === task.id
               const refunding = refundingTaskId === task.id
-              const completed = task.status === 'completed' && Boolean(task.result_url)
+              const soundtrackPending =
+                task.status === 'completed' &&
+                (task.audio_status === 'pending' || task.audio_status === 'processing')
+              const completed = task.status === 'completed' && Boolean(task.result_url) && !soundtrackPending
               const paidFailure = Boolean(task.generation_order_id)
               const canRetryPaid = !paidFailure || task.generation_order_status === 'failed'
               const refundNeedsSupport = Boolean(task.refund_ticket_id && task.refund_error)
@@ -246,7 +259,7 @@ export function ResultsGallery({
                   ) : (
                     <div className="history-thumb history-thumb-state">
                       <Loader2 className="spin" size={24}/>
-                      <strong>Generating…</strong>
+                      <strong>{soundtrackPending ? 'Adding soundtrack…' : 'Generating…'}</strong>
                     </div>
                   )}
                   <span className={`history-status history-status-${status.key}`}>{status.label}</span>
@@ -317,7 +330,13 @@ export function ResultsGallery({
               <video key={selectedTask.id} src={selectedTask.result_url!} controls autoPlay playsInline preload="metadata"/>
               <div className="history-viewer-footer">
                 <span>
-                  {selectedTask.generate_audio ? 'Soundtrack included' : 'Soundtrack off'}
+                  {selectedTask.audio_status === 'mixed'
+                    ? 'Soundtrack included'
+                    : selectedTask.audio_status === 'fallback'
+                      ? 'Soundtrack unavailable'
+                      : selectedTask.generate_audio
+                        ? 'Soundtrack included'
+                        : 'Soundtrack off'}
                   {selectedTask.generation_price_usd ? ` · ${selectedTask.generation_price_usd.toFixed(2)} paid` : ''}
                 </span>
                 <a href={`/api/download/${selectedTask.id}`} download>
@@ -342,6 +361,9 @@ function HistoryParam({ label, value }: { label: string; value: string }) {
 function taskStatus(task: GenerationTask) {
   if (task.generation_order_status === 'refunded') return { key: 'completed', label: 'Refunded' }
   if (task.generation_order_status === 'refund_requested') return { key: 'generating', label: 'Refund requested' }
+  if (task.audio_status === 'pending' || task.audio_status === 'processing') {
+    return { key: 'generating', label: 'Adding soundtrack' }
+  }
   if (task.status === 'completed') return { key: 'completed', label: 'Completed' }
   if (task.status === 'failed') return { key: 'failed', label: 'Failed' }
   return { key: 'generating', label: 'Generating' }

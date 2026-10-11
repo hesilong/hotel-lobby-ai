@@ -162,7 +162,7 @@ export async function startPaidGenerationOrder(
   if (current.status !== expectedStatus) {
     if (current.latest_task_id) {
       const { data: existing } = await admin.from('generation_tasks')
-        .select('id,status,result_url,provider_result_url,storage_status,failure_message,created_at,provider_task_id,provider,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio,prompt,generation_order_id')
+        .select('id,status,result_url,provider_result_url,storage_status,audio_status,audio_job_id,audio_result_url,audio_last_error,failure_message,created_at,provider_task_id,provider,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio,prompt,generation_order_id')
         .eq('id', current.latest_task_id)
         .maybeSingle()
       return (existing as GenerationTask | null) || null
@@ -263,7 +263,9 @@ export async function startPaidGenerationOrder(
       duration: input.duration,
       resolution: input.resolution,
       aspectRatio: input.aspectRatio,
-      generateAudio: input.generateAudio,
+      // The paid product still includes a soundtrack, but it is mixed after
+      // provider success so KIE never generates copyrighted/imitative audio.
+      generateAudio: false,
       callBackUrl: kieCallbackUrl(),
     })
 

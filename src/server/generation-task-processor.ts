@@ -1,6 +1,12 @@
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { refundCredits } from '@/server/credits'
 import { getKieTask } from '@/server/kie'
+import {
+  cloudConvertAudioConfigured,
+  createCloudConvertAudioJob,
+  getCloudConvertAudioJob,
+  waitForCloudConvertAudioJob,
+} from '@/server/cloudconvert'
 import { persistGeneratedVideo } from '@/server/storage'
 import { mediaUrl } from '@/config/site'
 import { reconcileGenerationPurchaseOrders } from '@/server/generation-purchases'
@@ -11,6 +17,7 @@ export type GenerationWorkerBindings = {
 
 type TaskStatus = 'pending' | 'processing' | 'completed' | 'failed'
 type StorageStatus = 'pending' | 'persisted' | 'fallback'
+type AudioStatus = 'not_requested' | 'pending' | 'processing' | 'mixed' | 'fallback'
 
 type GenerationTaskRow = {
   id: string
@@ -24,6 +31,12 @@ type GenerationTaskRow = {
   storage_attempts: number
   storage_last_error: string | null
   storage_updated_at: string | null
+  audio_status: AudioStatus
+  audio_job_id: string | null
+  audio_result_url: string | null
+  audio_attempts: number
+  audio_last_error: string | null
+  audio_updated_at: string | null
   failure_message: string | null
   created_at: string
   updated_at: string
@@ -49,6 +62,12 @@ const TASK_SELECT = [
   'storage_attempts',
   'storage_last_error',
   'storage_updated_at',
+  'audio_status',
+  'audio_job_id',
+  'audio_result_url',
+  'audio_attempts',
+  'audio_last_error',
+  'audio_updated_at',
   'failure_message',
   'created_at',
   'updated_at',
@@ -146,8 +165,12 @@ async function persistCompletedTask(
   bindings: GenerationWorkerBindings,
 ): Promise<GenerationTaskRow> {
   if (task.storage_status === 'persisted') return task
+  if (task.audio_status === 'pending' || task.audio_status === 'processing') return task
 
-  const sourceUrl = task.provider_result_url || task.result_url
+  const sourceUrl =
+    task.audio_status === 'mixed' && task.audio_result_url
+      ? task.audio_result_url
+      : task.provider_result_url || task.result_url
   if (!sourceUrl) return task
 
   const admin = getSupabaseAdminClient()
@@ -188,11 +211,10 @@ async function persistCompletedTask(
       console.warn('[generation] result persistence fallback', logPayload)
     }
 
-    const fallbackUrl = task.provider_result_url || task.result_url
     const { data, error: updateError } = await admin
       .from('generation_tasks')
       .update({
-        result_url: fallbackUrl,
+        result_url: sourceUrl,
         storage_status: 'fallback',
         storage_attempts: attempts,
         storage_last_error: message,
@@ -208,6 +230,222 @@ async function persistCompletedTask(
     if (updateError) throw new Error(updateError.message)
     return (data as GenerationTaskRow | null) || (await readTask(task.id)) || task
   }
+}
+
+async function markAudioFallback(
+  task: GenerationTaskRow,
+  message: string,
+): Promise<GenerationTaskRow> {
+  const admin = getSupabaseAdminClient()
+  const now = new Date().toISOString()
+  const fallbackUrl = task.provider_result_url || task.result_url
+
+  const { data, error } = await admin
+    .from('generation_tasks')
+    .update({
+      audio_status: 'fallback',
+      audio_job_id: null,
+      audio_result_url: null,
+      audio_last_error: message,
+      audio_updated_at: now,
+      result_url: fallbackUrl,
+      updated_at: now,
+    })
+    .eq('id', task.id)
+    .eq('status', 'completed')
+    .select(TASK_SELECT)
+    .maybeSingle()
+
+  if (error) throw new Error(error.message)
+  console.warn('[generation] soundtrack fallback', { taskId: task.id, message })
+  return (data as GenerationTaskRow | null) || (await readTask(task.id)) || task
+}
+
+async function recordAudioAttemptFailure(
+  task: GenerationTaskRow,
+  attempts: number,
+  message: string,
+): Promise<GenerationTaskRow> {
+  if (
+    attempts >= 3 ||
+    message === 'CLOUDCONVERT_API_KEY_MISSING' ||
+    message === 'CLOUDCONVERT_SOUNDTRACK_URL_MISSING' ||
+    message === 'CLOUDCONVERT_SOUNDTRACK_URL_INVALID'
+  ) {
+    return markAudioFallback({ ...task, audio_attempts: attempts }, message)
+  }
+
+  const admin = getSupabaseAdminClient()
+  const now = new Date().toISOString()
+  const { data, error } = await admin
+    .from('generation_tasks')
+    .update({
+      audio_status: 'pending',
+      audio_job_id: null,
+      audio_result_url: null,
+      audio_attempts: attempts,
+      audio_last_error: message,
+      audio_updated_at: now,
+      updated_at: now,
+    })
+    .eq('id', task.id)
+    .eq('status', 'completed')
+    .select(TASK_SELECT)
+    .maybeSingle()
+
+  if (error) throw new Error(error.message)
+  console.warn('[generation] soundtrack attempt failed; queued for retry', {
+    taskId: task.id,
+    attempts,
+    message,
+  })
+  return (data as GenerationTaskRow | null) || (await readTask(task.id)) || task
+}
+
+function cloudConvertWaitTimeoutMs() {
+  const raw = Number(process.env.CLOUDCONVERT_WAIT_TIMEOUT_MS || 25_000)
+  if (!Number.isFinite(raw)) return 25_000
+  return Math.max(5_000, Math.min(45_000, Math.trunc(raw)))
+}
+
+async function mixCompletedTaskAudio(
+  task: GenerationTaskRow,
+): Promise<GenerationTaskRow> {
+  if (!task.generate_audio) return task
+  if (task.audio_status === 'mixed' || task.audio_status === 'fallback') return task
+
+  const sourceUrl = task.provider_result_url || task.result_url
+  if (!sourceUrl) return task
+
+  if (!cloudConvertAudioConfigured()) {
+    return markAudioFallback(task, 'CLOUDCONVERT_NOT_CONFIGURED')
+  }
+
+  const admin = getSupabaseAdminClient()
+  let current = task
+  let createdNow = false
+
+  if (!current.audio_job_id) {
+    const attempts = Number(current.audio_attempts || 0) + 1
+    try {
+      const job = await createCloudConvertAudioJob({
+        taskId: current.id,
+        videoUrl: sourceUrl,
+      })
+      createdNow = true
+      const now = new Date().toISOString()
+
+      const { data, error } = await admin
+        .from('generation_tasks')
+        .update({
+          audio_status: 'processing',
+          audio_job_id: job.id,
+          audio_attempts: attempts,
+          audio_last_error: null,
+          audio_updated_at: now,
+          updated_at: now,
+        })
+        .eq('id', current.id)
+        .eq('status', 'completed')
+        .select(TASK_SELECT)
+        .maybeSingle()
+
+      if (error) throw new Error(error.message)
+      current = (data as GenerationTaskRow | null) || (await readTask(current.id)) || current
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'CLOUDCONVERT_CREATE_FAILED'
+      return recordAudioAttemptFailure(current, attempts, message)
+    }
+  }
+
+  if (!current.audio_job_id) return current
+
+  try {
+    const job = createdNow
+      ? await waitForCloudConvertAudioJob(current.audio_job_id, cloudConvertWaitTimeoutMs())
+      : await getCloudConvertAudioJob(current.audio_job_id)
+
+    if (job.status === 'waiting' || job.status === 'processing') return current
+
+    if (job.status === 'error' || !job.resultUrl) {
+      return recordAudioAttemptFailure(
+        current,
+        Number(current.audio_attempts || 1),
+        job.error || 'CLOUDCONVERT_RESULT_MISSING',
+      )
+    }
+
+    const now = new Date().toISOString()
+    const { data, error } = await admin
+      .from('generation_tasks')
+      .update({
+        audio_status: 'mixed',
+        audio_result_url: job.resultUrl,
+        audio_last_error: null,
+        audio_updated_at: now,
+        result_url: job.resultUrl,
+        updated_at: now,
+      })
+      .eq('id', current.id)
+      .eq('status', 'completed')
+      .select(TASK_SELECT)
+      .maybeSingle()
+
+    if (error) throw new Error(error.message)
+    console.info('[generation] soundtrack mixed', {
+      taskId: current.id,
+      cloudConvertJobId: current.audio_job_id,
+    })
+    return (data as GenerationTaskRow | null) || (await readTask(current.id)) || current
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'CLOUDCONVERT_STATUS_FAILED'
+    if (message === 'CLOUDCONVERT_WAIT_TIMEOUT') return current
+
+    const now = new Date().toISOString()
+    const { data, error: updateError } = await admin
+      .from('generation_tasks')
+      .update({
+        audio_last_error: message,
+        audio_updated_at: now,
+        updated_at: now,
+      })
+      .eq('id', current.id)
+      .eq('status', 'completed')
+      .select(TASK_SELECT)
+      .maybeSingle()
+
+    if (updateError) throw new Error(updateError.message)
+    console.warn('[generation] soundtrack status check failed; will retry', {
+      taskId: current.id,
+      cloudConvertJobId: current.audio_job_id,
+      message,
+    })
+    return (data as GenerationTaskRow | null) || current
+  }
+}
+
+async function finalizeCompletedTask(
+  task: GenerationTaskRow,
+  bindings: GenerationWorkerBindings,
+) {
+  let deliverable = task
+
+  if (
+    task.generate_audio &&
+    task.audio_status !== 'mixed' &&
+    task.audio_status !== 'fallback'
+  ) {
+    deliverable = await mixCompletedTaskAudio(task)
+  }
+
+  if (
+    deliverable.audio_status === 'pending' ||
+    deliverable.audio_status === 'processing'
+  ) {
+    return deliverable
+  }
+
+  return persistCompletedTask(deliverable, bindings)
 }
 
 async function completeProviderTask(
@@ -227,6 +465,12 @@ async function completeProviderTask(
       storage_status: 'pending',
       storage_last_error: null,
       storage_updated_at: now,
+      audio_status: task.generate_audio ? 'pending' : 'not_requested',
+      audio_job_id: null,
+      audio_result_url: null,
+      audio_attempts: 0,
+      audio_last_error: null,
+      audio_updated_at: now,
       failure_code: null,
       failure_message: null,
       updated_at: now,
@@ -260,7 +504,7 @@ async function completeProviderTask(
     if (orderError) throw new Error(orderError.message)
   }
 
-  return persistCompletedTask(completed, bindings)
+  return finalizeCompletedTask(completed, bindings)
 }
 
 async function failProviderTask(
@@ -330,8 +574,12 @@ export async function processGenerationTask(
 
   if (task.status === 'completed') {
     await syncPaidOrderTerminalState(task)
-    if (task.storage_status === 'persisted') return task
-    return persistCompletedTask(task, bindings)
+    if (
+      task.storage_status === 'persisted' &&
+      task.audio_status !== 'pending' &&
+      task.audio_status !== 'processing'
+    ) return task
+    return finalizeCompletedTask(task, bindings)
   }
 
   if (task.provider === 'mock') {

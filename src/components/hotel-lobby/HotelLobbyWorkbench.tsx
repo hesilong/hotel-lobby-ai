@@ -123,6 +123,8 @@ export function HotelLobbyWorkbench() {
     if (!authed || !tasks.some(task =>
       task.status === 'pending' ||
       task.status === 'processing' ||
+      task.audio_status === 'pending' ||
+      task.audio_status === 'processing' ||
       task.generation_order_status === 'refund_requested'
     )) return
     const timer = window.setInterval(() => void refreshActiveTasks(), 3000)
@@ -211,6 +213,8 @@ export function HotelLobbyWorkbench() {
     const active = tasks.filter(task =>
       task.status === 'pending' ||
       task.status === 'processing' ||
+      task.audio_status === 'pending' ||
+      task.audio_status === 'processing' ||
       task.generation_order_status === 'refund_requested'
     )
     if (!active.length) return
