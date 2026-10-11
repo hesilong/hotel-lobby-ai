@@ -28,12 +28,13 @@ async function database() {
 
   const imageA = '00000000-0000-4000-8000-000000000201'
   const imageB = '00000000-0000-4000-8000-000000000202'
+  const ownerKey = `user:${userId}`
   await db.query(`
     insert into uploaded_assets(id,owner_key,user_id,kind,object_key,public_url,mime_type,status)
     values
-      ($1,$3,$3,'image','uploads/a.jpg','https://cdn.example/a.jpg','image/jpeg','approved'),
-      ($2,$3,$3,'image','uploads/b.jpg','https://cdn.example/b.jpg','image/jpeg','approved')
-  `, [imageA, imageB, userId])
+      ($1,$3,$4,'image','uploads/a.jpg','https://cdn.example/a.jpg','image/jpeg','approved'),
+      ($2,$3,$4,'image','uploads/b.jpg','https://cdn.example/b.jpg','image/jpeg','approved')
+  `, [imageA, imageB, ownerKey, userId])
 
   return { db, userId, imageA, imageB }
 }
