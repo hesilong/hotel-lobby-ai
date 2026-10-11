@@ -9,6 +9,10 @@ import {
 import { persistGeneratedVideo } from '@/server/storage'
 import { mediaUrl } from '@/config/site'
 import { reconcileGenerationPurchaseOrders } from '@/server/generation-purchases'
+import {
+  maybeSendGenerationReadyNotification,
+  reconcileGenerationNotifications,
+} from '@/server/generation-notifications'
 
 export type GenerationWorkerBindings = {
   AI_MEDIA_BUCKET: R2Bucket
@@ -481,7 +485,13 @@ async function finalizeCompletedTask(
     return deliverable
   }
 
-  return persistCompletedTask(deliverable, bindings)
+  const persisted = await persistCompletedTask(deliverable, bindings)
+
+  if (persisted.storage_status === 'persisted') {
+    await maybeSendGenerationReadyNotification(persisted)
+  }
+
+  return persisted
 }
 
 async function completeProviderTask(
@@ -614,7 +624,10 @@ export async function processGenerationTask(
       task.storage_status === 'persisted' &&
       task.audio_status !== 'pending' &&
       task.audio_status !== 'processing'
-    ) return task
+    ) {
+      await maybeSendGenerationReadyNotification(task)
+      return task
+    }
     return finalizeCompletedTask(task, bindings)
   }
 
@@ -738,11 +751,19 @@ export async function reconcileGenerationTasks(bindings: GenerationWorkerBinding
   })
 
   const purchaseRecovery = await reconcileGenerationPurchaseOrders()
+  const notificationRecovery = await reconcileGenerationNotifications()
 
   return {
-    scanned: ids.length + (unbound || []).length + purchaseRecovery.paidScanned + purchaseRecovery.orphanedProcessing,
+    scanned:
+      ids.length +
+      (unbound || []).length +
+      purchaseRecovery.paidScanned +
+      purchaseRecovery.orphanedProcessing +
+      notificationRecovery.scanned,
     unboundScanned: (unbound || []).length,
     paidOrdersScanned: purchaseRecovery.paidScanned,
+    notificationsScanned: notificationRecovery.scanned,
+    notificationsSent: notificationRecovery.sent,
     failed: results.filter(result => result.status === 'rejected').length +
       unboundResults.filter(result => result.status === 'rejected').length +
       purchaseRecovery.failed,
