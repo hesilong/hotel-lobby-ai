@@ -11,6 +11,12 @@ const DEMO = {
   video: `${DEMO_BASE}/hotel-lobby-ai-480p-5.mp4`,
 }
 
+function resultMediaLayout(task: GenerationTask) {
+  if (task.aspect_ratio === '9:16') return 'portrait'
+  if (task.aspect_ratio === '1:1') return 'square'
+  return 'landscape'
+}
+
 export function ResultsGallery({
   tasks,
   onRetry,
@@ -125,18 +131,38 @@ export function ResultsGallery({
               (task.audio_status === 'pending' || task.audio_status === 'processing')
             const completed = task.status === 'completed' && Boolean(task.result_url) && !soundtrackPending
 
-            return <article key={task.id} className="result-card">
+            const mediaLayout = resultMediaLayout(task)
+
+            return <article
+              key={task.id}
+              className={`result-card${completed ? ` result-card-completed result-card-${mediaLayout}` : ''}`}
+            >
               {completed ? <>
-                <video src={task.result_url!} controls playsInline preload="metadata"/>
-                <a
-                  className="result-download"
-                  href={`/api/download/${task.id}`}
-                  download
-                  aria-label="Download video"
-                  title="Download video"
+                <div
+                  className={`result-media result-media-${mediaLayout}`}
+                  data-ratio={task.aspect_ratio || undefined}
                 >
-                  <Download size={17}/>
-                </a>
+                  <video src={task.result_url!} controls playsInline preload="metadata"/>
+                  <a
+                    className="result-download"
+                    href={`/api/download/${task.id}`}
+                    download
+                    aria-label="Download video"
+                    title="Download video"
+                  >
+                    <Download size={17}/>
+                  </a>
+                </div>
+                <div className="result-complete-footer">
+                  <div className="result-complete-meta">
+                    <span>{task.resolution?.toUpperCase() || 'Video'}</span>
+                    <span>{task.duration_seconds ? `${task.duration_seconds}s` : '15s'}</span>
+                    {task.aspect_ratio && <span>{task.aspect_ratio}</span>}
+                  </div>
+                  <a className="result-download-button" href={`/api/download/${task.id}`} download>
+                    <Download size={15}/> Download video
+                  </a>
+                </div>
               </> : task.status === 'failed' ? <>
                 <div className="result-state">
                   <AlertCircle size={24}/>

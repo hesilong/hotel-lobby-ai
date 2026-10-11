@@ -730,3 +730,115 @@ body{background:#f7f8fb;color:#17191f}
 .image-slot-disabled .asset-tile{cursor:default}
 .image-slot-disabled .remove-asset{cursor:default}
 .format-option:disabled,.quality-option:disabled{cursor:default;opacity:.72;transform:none}
+
+
+/* Ratio-aware generated result player */
+.generator-results .result-card.result-card-completed{
+  height:auto;
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-start;
+  gap:12px;
+  padding:16px;
+  overflow:visible;
+  background:#f7f8fa;
+  border-color:#e5e8ed;
+}
+.generator-results .result-media{
+  position:relative;
+  width:100%;
+  overflow:hidden;
+  border-radius:16px;
+  background:#000;
+  box-shadow:0 10px 30px rgba(28,34,45,.14);
+}
+.generator-results .result-media-portrait{
+  width:min(100%,360px);
+  aspect-ratio:9/16;
+}
+.generator-results .result-media-landscape{
+  width:100%;
+  aspect-ratio:16/9;
+}
+.generator-results .result-media-square{
+  width:min(100%,520px);
+  aspect-ratio:1/1;
+}
+.generator-results .result-card.result-card-completed .result-media video{
+  display:block;
+  width:100%;
+  height:100%;
+  min-height:0;
+  max-height:none;
+  object-fit:contain;
+  background:#000;
+}
+.generator-results .result-media .result-download{
+  right:10px;
+  top:10px;
+}
+.result-complete-footer{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:0 2px 2px;
+}
+.result-complete-meta{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex-wrap:wrap;
+}
+.result-complete-meta span{
+  display:inline-flex;
+  align-items:center;
+  min-height:27px;
+  padding:0 9px;
+  border:1px solid #dfe3e9;
+  border-radius:999px;
+  background:#fff;
+  color:#555c67;
+  font-size:10px;
+  font-weight:800;
+}
+.result-download-button{
+  min-height:36px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  padding:0 13px;
+  border:1px solid #d7dce4;
+  border-radius:10px;
+  background:#fff;
+  color:#282e37;
+  text-decoration:none;
+  font-size:11px;
+  font-weight:850;
+  box-shadow:0 2px 7px rgba(28,34,45,.05);
+}
+.result-download-button:hover{
+  border-color:#c8cdd6;
+  background:#fdfdfd;
+  box-shadow:0 4px 12px rgba(28,34,45,.08);
+}
+@media(max-width:620px){
+  .generator-results .result-card.result-card-completed{
+    padding:10px;
+    gap:10px;
+  }
+  .generator-results .result-media-portrait{
+    width:min(100%,330px);
+  }
+  .result-complete-footer{
+    align-items:stretch;
+    flex-direction:column;
+  }
+  .result-download-button{
+    width:100%;
+  }
+}
