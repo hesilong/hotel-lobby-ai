@@ -5,7 +5,6 @@ import {
   cloudConvertAudioConfigured,
   createCloudConvertAudioJob,
   getCloudConvertAudioJob,
-  waitForCloudConvertAudioJob,
 } from '@/server/cloudconvert'
 import { persistGeneratedVideo } from '@/server/storage'
 import { mediaUrl } from '@/config/site'
@@ -303,12 +302,6 @@ async function recordAudioAttemptFailure(
   return (data as GenerationTaskRow | null) || (await readTask(task.id)) || task
 }
 
-function cloudConvertWaitTimeoutMs() {
-  const raw = Number(process.env.CLOUDCONVERT_WAIT_TIMEOUT_MS || 25_000)
-  if (!Number.isFinite(raw)) return 25_000
-  return Math.max(5_000, Math.min(45_000, Math.trunc(raw)))
-}
-
 async function mixCompletedTaskAudio(
   task: GenerationTaskRow,
 ): Promise<GenerationTaskRow> {
@@ -324,7 +317,6 @@ async function mixCompletedTaskAudio(
 
   const admin = getSupabaseAdminClient()
   let current = task
-  let createdNow = false
 
   if (!current.audio_job_id) {
     const attempts = Number(current.audio_attempts || 0) + 1
@@ -333,7 +325,6 @@ async function mixCompletedTaskAudio(
         taskId: current.id,
         videoUrl: sourceUrl,
       })
-      createdNow = true
       const now = new Date().toISOString()
 
       const { data, error } = await admin
@@ -353,6 +344,10 @@ async function mixCompletedTaskAudio(
 
       if (error) throw new Error(error.message)
       current = (data as GenerationTaskRow | null) || (await readTask(current.id)) || current
+
+      // Do not block this request waiting for CloudConvert. The browser poll,
+      // KIE callback recovery, or Cron will pick up the processing job.
+      return current
     } catch (error) {
       const message = error instanceof Error ? error.message : 'CLOUDCONVERT_CREATE_FAILED'
       return recordAudioAttemptFailure(current, attempts, message)
@@ -362,9 +357,7 @@ async function mixCompletedTaskAudio(
   if (!current.audio_job_id) return current
 
   try {
-    const job = createdNow
-      ? await waitForCloudConvertAudioJob(current.audio_job_id, cloudConvertWaitTimeoutMs())
-      : await getCloudConvertAudioJob(current.audio_job_id)
+    const job = await getCloudConvertAudioJob(current.audio_job_id)
 
     if (job.status === 'waiting' || job.status === 'processing') return current
 
@@ -400,8 +393,6 @@ async function mixCompletedTaskAudio(
     return (data as GenerationTaskRow | null) || (await readTask(current.id)) || current
   } catch (error) {
     const message = error instanceof Error ? error.message : 'CLOUDCONVERT_STATUS_FAILED'
-    if (message === 'CLOUDCONVERT_WAIT_TIMEOUT') return current
-
     const now = new Date().toISOString()
     const { data, error: updateError } = await admin
       .from('generation_tasks')

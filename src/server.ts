@@ -73,17 +73,23 @@ export default {
       const match = url.pathname.match(/^\/api\/dev\/mock-generation\/([^/]+)\/process$/)
       if (match) {
         const taskId = decodeURIComponent(match[1])
-        const result = await processGenerationTask(taskId, workerEnv)
-        if (!result || result.provider !== 'mock') {
-          return Response.json({ ok: false, error: 'MOCK_TASK_NOT_FOUND' }, { status: 404 })
+        try {
+          const result = await processGenerationTask(taskId, workerEnv)
+          if (!result || result.provider !== 'mock') {
+            return Response.json({ ok: false, error: 'MOCK_TASK_NOT_FOUND' }, { status: 404 })
+          }
+          return Response.json({
+            ok: true,
+            taskId: result.id,
+            status: result.status,
+            audioStatus: result.audio_status,
+            storageStatus: result.storage_status,
+          })
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'MOCK_PROCESS_FAILED'
+          console.error('[generation] local mock processing failed', { taskId, message })
+          return Response.json({ ok: false, error: message }, { status: 500 })
         }
-        return Response.json({
-          ok: true,
-          taskId: result.id,
-          status: result.status,
-          audioStatus: result.audio_status,
-          storageStatus: result.storage_status,
-        })
       }
     }
 

@@ -10,7 +10,6 @@ export type CloudConvertAudioJob = {
 }
 
 const API_BASE = 'https://api.cloudconvert.com/v2'
-const SYNC_API_BASE = 'https://sync.api.cloudconvert.com/v2'
 
 const obj = (value: unknown): JsonObject =>
   value && typeof value === 'object' && !Array.isArray(value)
@@ -163,22 +162,3 @@ export async function getCloudConvertAudioJob(jobId: string) {
   ))
 }
 
-export async function waitForCloudConvertAudioJob(
-  jobId: string,
-  timeoutMs = 25_000,
-) {
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), timeoutMs)
-
-  try {
-    return parseJob(await request(
-      `${SYNC_API_BASE}/jobs/${encodeURIComponent(jobId)}`,
-      { method: 'GET', signal: controller.signal },
-    ))
-  } catch (error) {
-    if (controller.signal.aborted) throw new Error('CLOUDCONVERT_WAIT_TIMEOUT')
-    throw error
-  } finally {
-    clearTimeout(timeout)
-  }
-}
