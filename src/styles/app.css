@@ -596,10 +596,6 @@ body{background:#f7f8fb;color:#17191f}
 .quality-option small{display:block;margin-top:9px;color:#9a9fa8;font-size:9px;font-weight:750}
 .quality-option.active small{color:#d9550d}
 
-.generation-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:17px;padding:11px 12px;border:1px solid #e6e9ee;border-radius:12px;background:#fafbfc;color:#777e89;font-size:10px}
-.generation-summary span{display:flex;align-items:center;gap:5px}
-.generation-summary b{color:#2d333c;font-size:10px}
-
 .generator-trust-row{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:12px;color:#777e88;font-size:9px;font-weight:750;text-align:center}
 .generator-trust-row span{display:inline-flex;align-items:center}
 .generator-trust-row span:not(:last-child)::after{content:"·";margin-left:8px;color:#c0c4ca}
@@ -611,7 +607,6 @@ body{background:#f7f8fb;color:#17191f}
   .fixed-output-meta{padding-left:0}
   .quality-options{gap:6px}
   .quality-option{min-height:74px;padding:10px 8px}
-  .generation-summary{align-items:flex-start;flex-direction:column;gap:5px}
   .generator-trust-row{gap:5px}
   .generator-trust-row span:not(:last-child)::after{margin-left:5px}
 }
@@ -708,8 +703,6 @@ body{background:#f7f8fb;color:#17191f}
 
 
 /* Pay-per-video purchase and refund states */
-.generation-price-summary{background:#fffaf7;border-color:#f1dfd4}
-.generation-price-summary b{font-size:12px}
 .result-failure-actions{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:4px}
 .result-refund,.history-refund{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid rgba(255,255,255,.18);background:transparent;color:#fff;border-radius:9px;padding:8px 11px;font-weight:750;font-size:12px;cursor:pointer}
 .result-refund:hover:not(:disabled){background:rgba(255,255,255,.08)}
