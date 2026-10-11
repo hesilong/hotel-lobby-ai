@@ -17,7 +17,8 @@ export type GenerationConfig<TTemplate = unknown> = {
   defaultDuration: number
   defaultResolution: GenerationResolution
   defaultAspectRatio: GenerationAspectRatio
-  defaultGenerateAudio: boolean
+  defaultIncludeSoundtrack: boolean
+  providerGenerateAudio: boolean
   capabilities: GenerationCapabilities
   templates?: readonly TTemplate[]
   calculateCredits: (duration: number, resolution: GenerationResolution) => number

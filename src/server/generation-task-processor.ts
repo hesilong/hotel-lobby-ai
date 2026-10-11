@@ -191,6 +191,7 @@ async function persistCompletedTask(
         storage_attempts: attempts,
         storage_last_error: null,
         storage_updated_at: attemptedAt,
+        audio_result_url: task.audio_status === 'mixed' ? null : task.audio_result_url,
         updated_at: attemptedAt,
       })
       .eq('id', task.id)
@@ -210,14 +211,43 @@ async function persistCompletedTask(
       console.warn('[generation] result persistence fallback', logPayload)
     }
 
+    const fallbackUrl = task.provider_result_url || task.result_url
+    const mixedAudioSource =
+      task.audio_status === 'mixed' &&
+      Boolean(task.audio_result_url) &&
+      task.audio_result_url === sourceUrl
+    const exportUnavailable =
+      mixedAudioSource &&
+      /^RESULT_DOWNLOAD_FAILED_(401|403|404|410)$/.test(message)
+    const audioAttempts = Number(task.audio_attempts || 0)
+
+    const audioRecovery = exportUnavailable
+      ? audioAttempts >= 3
+        ? {
+            audio_status: 'fallback' as const,
+            audio_job_id: null,
+            audio_result_url: null,
+            audio_last_error: message,
+            audio_updated_at: attemptedAt,
+          }
+        : {
+            audio_status: 'pending' as const,
+            audio_job_id: null,
+            audio_result_url: null,
+            audio_last_error: message,
+            audio_updated_at: attemptedAt,
+          }
+      : {}
+
     const { data, error: updateError } = await admin
       .from('generation_tasks')
       .update({
-        result_url: sourceUrl,
+        result_url: fallbackUrl,
         storage_status: 'fallback',
         storage_attempts: attempts,
         storage_last_error: message,
         storage_updated_at: attemptedAt,
+        ...audioRecovery,
         updated_at: attemptedAt,
       })
       .eq('id', task.id)
@@ -227,6 +257,15 @@ async function persistCompletedTask(
       .maybeSingle()
 
     if (updateError) throw new Error(updateError.message)
+
+    if (exportUnavailable) {
+      console.warn('[generation] CloudConvert export unavailable; soundtrack will be retried', {
+        taskId: task.id,
+        audioAttempts,
+        audioStatus: audioAttempts >= 3 ? 'fallback' : 'pending',
+      })
+    }
+
     return (data as GenerationTaskRow | null) || (await readTask(task.id)) || task
   }
 }
@@ -377,7 +416,6 @@ async function mixCompletedTaskAudio(
         audio_result_url: job.resultUrl,
         audio_last_error: null,
         audio_updated_at: now,
-        result_url: job.resultUrl,
         updated_at: now,
       })
       .eq('id', current.id)
