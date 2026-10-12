@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { verifyWebhook, type WebhookEventData } from '@waffo/pancake-ts'
 import { waitUntil } from 'cloudflare:workers'
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
-import { waffoEnvironment } from '@/server/waffo'
+import { waffoEnvironment } from '@/providers/waffo'
 import { processWaffoEvent, validateWaffoEnvelope } from '@/server/waffo-webhooks'
 
 export const Route = createFileRoute('/api/waffo/webhook')({

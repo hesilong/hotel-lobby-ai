@@ -2,7 +2,7 @@ import type { WebhookEvent } from '@waffo/pancake-ts'
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { CREDIT_PACKS } from '@/config/products'
 import { waffoPlan } from '@/config/payments'
-import { waffoClient, waffoEnvironment, waffoStoreId } from './waffo'
+import { waffoClient, waffoEnvironment, waffoStoreId } from '@/providers/waffo'
 import { startPaidGenerationOrder } from '@/server/generation-purchases'
 
 export function validateWaffoEnvelope(event: WebhookEvent) {

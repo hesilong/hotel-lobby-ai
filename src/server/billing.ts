@@ -4,7 +4,7 @@ import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { CREDIT_PACKS, PLANS, planProductId, publicPricingCatalog, type BillingCycle, type CreditPackKey } from '@/config/products'
 import { reconcileYearlySubscriptionCredits } from '@/server/credits'
 import { paymentProvider, paymentProductId } from '@/config/payments'
-import { createWaffoCheckout, waffoClient } from '@/server/waffo'
+import { createWaffoCheckout, waffoClient } from '@/providers/waffo'
 import { retryWaffoEvents } from '@/server/waffo-webhooks'
 
 const creemBase = () => {

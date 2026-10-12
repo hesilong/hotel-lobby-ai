@@ -3,11 +3,11 @@ import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { assertPromptAllowed } from '@/server/moderation'
 import { verifyPreparedAssets } from '@/server/storage'
-import { submitKieSeedanceVideo } from '@/server/kie'
+import { submitKieSeedanceVideo } from '@/providers/kie'
 import { HOTEL_LOBBY_GENERATION_CONFIG } from '@/config/hotel-lobby-generation'
 import { generationPriceUsd } from '@/config/generation-purchase'
 import { generationProductId, paymentProvider } from '@/config/payments'
-import { createWaffoGenerationCheckout, requestWaffoGenerationRefund } from '@/server/waffo'
+import { createWaffoGenerationCheckout, requestWaffoGenerationRefund } from '@/providers/waffo'
 import type { CreateGenerationInput, GenerationTask } from '@/server/generation'
 
 export type GenerationOrderStatus =

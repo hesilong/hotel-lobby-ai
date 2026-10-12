@@ -5,7 +5,7 @@ import { assertPromptAllowed } from '@/server/moderation'
 import { deductCredits, refundCredits, reconcileYearlySubscriptionCredits } from '@/server/credits'
 import type { GenerationAspectRatio, GenerationResolution } from '@/config/generation'
 import { HOTEL_LOBBY_GENERATION_CONFIG } from '@/config/hotel-lobby-generation'
-import { submitKieSeedanceVideo } from '@/server/kie'
+import { submitKieSeedanceVideo } from '@/providers/kie'
 import { verifyPreparedAssets } from '@/server/storage'
 import { retryPaidGenerationOrderForUser } from '@/server/generation-purchases'
 

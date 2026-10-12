@@ -1,11 +1,11 @@
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { refundCredits } from '@/server/credits'
-import { getKieTask } from '@/server/kie'
+import { getKieTask } from '@/providers/kie'
 import {
   cloudConvertAudioConfigured,
   createCloudConvertAudioJob,
   getCloudConvertAudioJob,
-} from '@/server/cloudconvert'
+} from '@/providers/cloudconvert'
 import { persistGeneratedVideo } from '@/server/storage'
 import { mediaUrl } from '@/config/site'
 import { reconcileGenerationPurchaseOrders } from '@/server/generation-purchases'
