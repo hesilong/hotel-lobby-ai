@@ -10,6 +10,8 @@ import { ResultsGallery } from '@/components/hotel-lobby/ResultsGallery'
 import { createUploadUrl, finalizeUploadedAsset } from '@/server/storage'
 import { listGenerationTasks, refreshGenerationTask, retryGenerationTask, type CreateGenerationInput, type GenerationTask } from '@/server/generation'
 import { createGenerationPurchase, getGenerationPurchase, requestGenerationRefund } from '@/server/generation-purchases'
+import { useI18n } from '@/i18n/useI18n'
+import type { Messages } from '@/i18n/messages'
 
 type ImageAssetState = {
   previewUrl: string | null
@@ -30,6 +32,8 @@ const emptyImage: ImageAssetState = {
 const PURCHASE_RECOVERY_KEY = 'hotel_lobby_generation_purchase_v1'
 
 export function HotelLobbyWorkbench() {
+  const { messages } = useI18n()
+  const m = messages.workbench
   const [personA, setPersonA] = useState<ImageAssetState>(emptyImage)
   const [personB, setPersonB] = useState<ImageAssetState>(emptyImage)
   const duration = HOTEL_LOBBY_GENERATION_CONFIG.defaultDuration
@@ -418,10 +422,10 @@ export function HotelLobbyWorkbench() {
       const message = e instanceof Error ? e.message : 'IMAGE_MODERATION_UNAVAILABLE'
       showAssetError(
         message.includes('IMAGE_REJECTED')
-          ? 'This image can’t be used. Please choose another image.'
+          ? m.imageRejected
           : message.includes('UNSUPPORTED_FILE_TYPE')
-            ? 'Please choose a JPG, PNG, or WebP image.'
-            : 'We couldn’t verify this image right now. Please try again shortly.',
+            ? m.unsupportedImage
+            : m.moderationUnavailable,
       )
     }
   }
@@ -485,7 +489,7 @@ export function HotelLobbyWorkbench() {
     const paymentTab = window.open('about:blank', '_blank')
     if (!paymentTab) {
       checkoutLockRef.current = false
-      setError('Please allow popups so we can open the secure Waffo checkout.')
+      setError(m.popupRequired)
       return
     }
     paymentTab.opener = null
@@ -506,7 +510,7 @@ export function HotelLobbyWorkbench() {
       paymentWindowRef.current = null
       checkoutLockRef.current = false
       setSubmitStage('idle')
-      setError(friendlyError(e instanceof Error ? e.message : 'Unable to start checkout'))
+      setError(friendlyError(e instanceof Error ? e.message : m.errors.checkoutFailed, m.errors))
     }
   }
 
@@ -535,7 +539,7 @@ export function HotelLobbyWorkbench() {
         ),
       ])
     } catch (e) {
-      setError(friendlyError(e instanceof Error ? e.message : 'Retry failed'))
+      setError(friendlyError(e instanceof Error ? e.message : m.errors.retryFailed, m.errors))
     } finally {
       setRetryingTaskId(null)
     }
@@ -551,7 +555,7 @@ export function HotelLobbyWorkbench() {
       const refreshed = await refreshGenerationTask({ data: { taskId } })
       setTasks(current => current.map(task => task.id === taskId ? refreshed : task))
     } catch (e) {
-      setError(friendlyError(e instanceof Error ? e.message : 'Refund request failed'))
+      setError(friendlyError(e instanceof Error ? e.message : m.errors.refundFailed, m.errors))
     } finally {
       setRefundingTaskId(null)
     }
@@ -569,38 +573,40 @@ export function HotelLobbyWorkbench() {
         <div className="generator-section-heading">
           <span className="generator-step">01</span>
           <div>
-            <strong>Add your performers</strong>
-            <small>Upload one clear photo for each side.</small>
+            <strong>{m.addPerformers}</strong>
+            <small>{m.addPerformersHelp}</small>
           </div>
         </div>
 
         <div className="performer-pair">
           <ImageUpload
-            label="Left Performer"
+            label={m.leftPerformer}
             state={personA}
             onPick={(file) => void prepareImage(file, 'A')}
             onClear={() => clearImage('A')}
             disabled={isSubmitting}
+            uploadingLabel={m.uploading}
           />
           <button
             type="button"
             className="performer-swap"
             disabled={!canSwap}
             onClick={swapPerformers}
-            title="Swap left and right performers"
-            aria-label="Swap left and right performers"
+            title={m.swapPerformers}
+            aria-label={m.swapPerformers}
           >
             <ArrowLeftRight size={17} />
           </button>
           <ImageUpload
-            label="Right Performer"
+            label={m.rightPerformer}
             state={personB}
             onPick={(file) => void prepareImage(file, 'B')}
             onClear={() => clearImage('B')}
             disabled={isSubmitting}
+            uploadingLabel={m.uploading}
           />
         </div>
-        <p className="performer-help">One clear person or pet per photo. Keep the face or muzzle visible and use an original, well-lit image.</p>
+        <p className="performer-help">{m.sourceHelp}</p>
 
         {assetError && <div className="asset-error" role="alert">{assetError}</div>}
 
@@ -609,21 +615,21 @@ export function HotelLobbyWorkbench() {
         <div className="generator-section-heading output-heading">
           <span className="generator-step">02</span>
           <div>
-            <strong>Choose your output</strong>
-            <small>Hotel Lobby motion is preset for a consistent result.</small>
+            <strong>{m.chooseOutput}</strong>
+            <small>{m.chooseOutputHelp}</small>
           </div>
         </div>
 
         <div className="fixed-output-meta" aria-label="Included output settings">
-          <span><b>15 sec</b><i>video</i></span>
-          <span>Template motion</span>
-          <span>Soundtrack included</span>
+          <span><b>{m.seconds}</b><i>{m.video}</i></span>
+          <span>{m.templateMotion}</span>
+          <span>{m.soundtrackIncluded}</span>
         </div>
 
         <div className="output-control">
           <div className="output-control-head">
-            <span>Format</span>
-            <small>Choose where you plan to post</small>
+            <span>{m.format}</span>
+            <small>{m.formatHelp}</small>
           </div>
           <div className="format-options">
             {(['9:16', '16:9'] as GenerationAspectRatio[]).map(value => (
@@ -635,7 +641,7 @@ export function HotelLobbyWorkbench() {
                 disabled={isSubmitting}
                 onClick={() => setAspectRatio(value)}
               >
-                <strong>{value === '9:16' ? 'Vertical' : 'Landscape'}</strong>
+                <strong>{value === '9:16' ? m.vertical : m.landscape}</strong>
                 <span>{value}</span>
               </button>
             ))}
@@ -644,8 +650,8 @@ export function HotelLobbyWorkbench() {
 
         <div className="output-control">
           <div className="output-control-head">
-            <span>Quality</span>
-            <small>One-time price per generated video</small>
+            <span>{m.quality}</span>
+            <small>{m.qualityHelp}</small>
           </div>
           <div className="quality-options">
             {HOTEL_LOBBY_GENERATION_CONFIG.resolutions.map(value => {
@@ -661,7 +667,7 @@ export function HotelLobbyWorkbench() {
                 >
                   <div className="quality-option-head">
                     <strong>{value.toUpperCase()}</strong>
-                    {option.recommended && <em>Recommended</em>}
+                    {option.recommended && <em>{m.recommended}</em>}
                   </div>
                   <span>{option.name}</span>
                   <small>{generationPriceLabel(value)}</small>
@@ -675,11 +681,11 @@ export function HotelLobbyWorkbench() {
 
         <button disabled={!canGenerate} className="generate generator-submit" onClick={() => void onGenerate()}>
           {isSubmitting ? <Loader2 size={16} className="spin"/> : <Zap size={16} fill="currentColor"/>}
-          {submitStage === 'checking' ? 'Checking your images…' :
-           submitStage === 'checkout' ? 'Opening secure checkout…' :
-           submitStage === 'waiting' ? 'Waiting for payment…' :
-           submitStage === 'payment-check' ? 'Checking payment…' :
-           `Generate for ${priceLabel}`}
+          {submitStage === 'checking' ? m.checkingImages :
+           submitStage === 'checkout' ? m.openingCheckout :
+           submitStage === 'waiting' ? m.waitingPayment :
+           submitStage === 'payment-check' ? m.checkingPayment :
+           m.generateFor(priceLabel)}
         </button>
 
         <label className={`generation-email-notify ${isSubmitting ? 'disabled' : ''}`}>
@@ -691,21 +697,21 @@ export function HotelLobbyWorkbench() {
           />
           <Mail size={15}/>
           <span>
-            <strong>Email me when it’s ready</strong>
-            <small>You can close this page after generation starts.</small>
+            <strong>{m.emailReady}</strong>
+            <small>{m.emailReadyHelp}</small>
           </span>
         </label>
 
         <div className="generator-trust-row">
-          <span>No subscription</span>
-          <span>Free retries if generation fails</span>
-          <span>Refund available after a failed attempt</span>
+          <span>{m.noSubscription}</span>
+          <span>{m.freeRetries}</span>
+          <span>{m.refundAvailable}</span>
         </div>
 
         <p className="generator-safety-note">
-          For human performers, only upload images of adults whose likeness you have permission to use. Pets are supported. NSFW content, minors, deceptive impersonation, and unauthorized likeness use are prohibited.{' '}
-          <a href="/terms-of-service#acceptable-use">Content policy</a>{' · '}
-          <a href="/terms-of-service#reporting">Report content</a>
+          {m.safetyPrefix}{' '}
+          <a href="/terms-of-service#acceptable-use">{m.contentPolicy}</a>{' · '}
+          <a href="/terms-of-service#reporting">{m.reportContent}</a>
         </p>
       </div>
 
@@ -732,19 +738,19 @@ export function HotelLobbyWorkbench() {
   </div>
 }
 
-function friendlyError(message: string) {
-  if (message.includes('PROMPT_REJECTED')) return 'This request can’t be generated. Please try again with different source photos.'
-  if (message.includes('MODERATION_UNAVAILABLE')) return 'Safety check is temporarily unavailable. Please try again shortly.'
+function friendlyError(message: string, errors: Messages['workbench']['errors']) {
+  if (message.includes('PROMPT_REJECTED')) return errors.promptRejected
+  if (message.includes('MODERATION_UNAVAILABLE')) return errors.safetyUnavailable
   if (message.includes('REFERENCE_IMAGES_NOT_READY') || message.includes('IMAGE_A_NOT_READY') || message.includes('IMAGE_B_NOT_READY')) {
-    return 'Please choose your two reference images again.'
+    return errors.imagesNotReady
   }
-  if (message.includes('REFERENCE_VIDEO_NOT_READY')) return 'The preset performance is temporarily unavailable. Please try again shortly.'
-  if (message.includes('WAFFO_GENERATION_PRODUCT_NOT_CONFIGURED')) return 'This video quality is not connected to checkout yet.'
-  if (message.includes('DIRECT_GENERATION_REQUIRES_WAFFO')) return 'Secure checkout is temporarily unavailable.'
-  if (message.includes('REFUND_NOT_AVAILABLE')) return 'A refund is only available after a failed paid generation.'
-  if (message.includes('REFUND_SUPPORT_REQUIRED')) return 'The previous refund request could not complete. Please contact support for this payment.'
-  if (message.includes('PAYMENT_NOT_READY')) return 'Payment confirmation is still syncing. Please try again in a moment.'
-  if (message.includes('AUTH_REQUIRED')) return 'Please sign in and try again.'
+  if (message.includes('REFERENCE_VIDEO_NOT_READY')) return errors.presetUnavailable
+  if (message.includes('WAFFO_GENERATION_PRODUCT_NOT_CONFIGURED')) return errors.checkoutNotConfigured
+  if (message.includes('DIRECT_GENERATION_REQUIRES_WAFFO')) return errors.checkoutUnavailable
+  if (message.includes('REFUND_NOT_AVAILABLE')) return errors.refundUnavailable
+  if (message.includes('REFUND_SUPPORT_REQUIRED')) return errors.refundSupport
+  if (message.includes('PAYMENT_NOT_READY')) return errors.paymentSyncing
+  if (message.includes('AUTH_REQUIRED')) return errors.authRequired
   return message
 }
 
@@ -754,19 +760,21 @@ function ImageUpload({
   onPick,
   onClear,
   disabled = false,
+  uploadingLabel = 'Uploading',
 }: {
   label: string
   state: ImageAssetState
   onPick: (file?: File) => void
   onClear: () => void
   disabled?: boolean
+  uploadingLabel?: string
 }) {
   return <label className={`image-slot ${disabled ? 'image-slot-disabled' : ''}`}>
     <span className="image-slot-label">{label}</span>
     <div className="asset-tile">
       {state.previewUrl ? <img src={state.previewUrl} alt=""/> : <Plus size={22}/>}
       {state.status === 'uploading' && (
-        <span className="asset-uploading" aria-label="Uploading">
+        <span className="asset-uploading" aria-label={uploadingLabel}>
           <Loader2 size={18} className="spin" />
         </span>
       )}

@@ -4,6 +4,7 @@ import { SiteHeader } from '@/components/layout/SiteHeader'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { HOTEL_LOBBY_FRIENDS_WEBP, HOTEL_LOBBY_STREETWEAR_WEBP } from '@/config/hotel-lobby-visuals'
 import { SITE_CONFIG, siteUrl } from '@/config/site'
+import { localizedAlternates } from '@/i18n/seo'
 
 const faqItems = [
   {
@@ -79,7 +80,10 @@ export const Route = createFileRoute('/migos-ai-video')({
       { name: 'twitter:description', content: 'Upload two photos and create a 15-second Hotel Lobby-style duo video with preset motion and soundtrack.' },
       { name: 'robots', content: 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1' },
     ],
-    links: [{ rel: 'canonical', href: siteUrl('/migos-ai-video') }],
+    links: [
+      { rel: 'canonical', href: siteUrl('/migos-ai-video') },
+      ...localizedAlternates('/migos-ai-video'),
+    ],
   }),
   component: MigosAiPage,
 })

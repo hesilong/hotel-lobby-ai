@@ -3,8 +3,12 @@ import { LogIn, LogOut, UserRound } from 'lucide-react'
 import { AuthModal } from '@/components/auth/AuthModal'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { SITE_CONFIG } from '@/config/site'
+import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher'
+import { useI18n } from '@/i18n/useI18n'
 
 export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
+  const { messages, localize } = useI18n()
+  const m = messages.header
   const [authed, setAuthed] = useState(false)
   const [email, setEmail] = useState<string | null>(null)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
@@ -54,26 +58,27 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
   return (
     <>
       <header className={overlay ? 'site-header site-header-overlay' : 'site-header'}>
-        <a className="brand" href="/">
+        <a className="brand" href={localize('/')}>
           <img className="brand-icon" src={SITE_CONFIG.faviconPath} alt="" aria-hidden="true"/>
           <span>{SITE_CONFIG.name}</span>
         </a>
 
         <nav className="header-nav">
-          <a href="/#how-it-works">How it works</a>
-          <a href="/blog">Blog</a>
-          <a href="/migos-ai-video">Migos AI</a>
-          <a href="/pricing">Pricing</a>
+          <a href={localize('/#how-it-works')}>{m.howItWorks}</a>
+          <a href="/blog">{m.blog}</a>
+          <a href={localize('/migos-ai-video')}>{m.migosAi}</a>
+          <a href={localize('/pricing')}>{m.pricing}</a>
         </nav>
 
         <div className="header-right">
+          <LanguageSwitcher />
           {authed ? (
             <div className="header-account-menu" ref={accountRef}>
               <button
                 type="button"
                 className="header-avatar"
                 onClick={() => setAccountOpen(open => !open)}
-                aria-label="Account"
+                aria-label={m.account}
                 aria-expanded={accountOpen}
               >
                 {avatarUrl
@@ -85,11 +90,11 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
                 <div className="header-account-popover">
                   <div className="header-account-email">
                     <UserRound size={14} />
-                    <span>{email || 'Account'}</span>
+                    <span>{email || m.account}</span>
                   </div>
                   <button type="button" className="header-signout" onClick={() => void signOut()}>
                     <LogOut size={14} />
-                    Sign out
+                    {m.signOut}
                   </button>
                 </div>
               )}
@@ -97,7 +102,7 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
           ) : (
             <button className="header-signin" onClick={() => setAuthOpen(true)}>
               <LogIn size={14} />
-              Sign in
+              {m.signIn}
             </button>
           )}
         </div>

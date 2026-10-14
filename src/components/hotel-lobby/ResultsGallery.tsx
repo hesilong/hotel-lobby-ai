@@ -3,6 +3,9 @@ import { AlertCircle, ArrowDown, Clock3, Download, Loader2, Play, RotateCcw, X }
 import type { GenerationTask } from '@/server/generation'
 import { REVIEW_MODE } from '@/config/feature-flags'
 import { SITE_CONFIG } from '@/config/site'
+import { dateLocaleForLocale, type Locale } from '@/i18n/config'
+import type { Messages } from '@/i18n/messages'
+import { useI18n } from '@/i18n/useI18n'
 
 const DEMO_BASE = 'https://cdn.hotel-lobby-ai.pro/demo/5'
 const DEMO = {
@@ -32,6 +35,8 @@ export function ResultsGallery({
   refundingTaskId?: string | null
   latestOnly?: boolean
 }) {
+  const { messages, locale } = useI18n()
+  const m = messages.results
   const [historyOpen, setHistoryOpen] = useState(false)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const visibleTasks = latestOnly ? tasks.slice(0, 1) : tasks
@@ -55,13 +60,13 @@ export function ResultsGallery({
     <section className="results">
       <div className="results-head">
         <div>
-          <h2>Generated video</h2>
-          <p>{tasks.length ? 'Your newest result appears here.' : 'Your result will appear here after generation.'}</p>
+          <h2>{m.generatedVideo}</h2>
+          <p>{tasks.length ? m.newestResult : m.resultAfterGeneration}</p>
         </div>
         {tasks.length > 0 && (
           <button type="button" className="results-history-button" onClick={openHistory}>
             <Clock3 size={14}/>
-            History <span>{tasks.length}</span>
+            {m.history} <span>{tasks.length}</span>
           </button>
         )}
       </div>
@@ -69,13 +74,13 @@ export function ResultsGallery({
       {!visibleTasks.length ? (
         REVIEW_MODE ? (
           <div className="results-empty results-empty-review">
-            <strong>Ready for your first generation</strong>
-            <span>Upload two performers, choose format and quality, and click Generate.</span>
+            <strong>{m.readyFirst}</strong>
+            <span>{m.readyFirstHelp}</span>
           </div>
         ) : (
         <div className="results-demo">
           <div className="results-demo-topline">
-            <span className="results-demo-badge">Example</span>
+            <span className="results-demo-badge">{m.example}</span>
           </div>
 
           <div className="results-demo-performers">
@@ -83,14 +88,14 @@ export function ResultsGallery({
               <div className="results-demo-image">
                 <img src={DEMO.leftImage} alt="Example left performer"/>
               </div>
-              <figcaption>Left</figcaption>
+              <figcaption>{m.left}</figcaption>
             </figure>
             <span className="results-demo-plus" aria-hidden="true">+</span>
             <figure>
               <div className="results-demo-image">
                 <img src={DEMO.rightImage} alt="Example right performer"/>
               </div>
-              <figcaption>Right</figcaption>
+              <figcaption>{m.right}</figcaption>
             </figure>
           </div>
 
@@ -151,8 +156,8 @@ export function ResultsGallery({
                     className="result-download"
                     href={`/api/download/${task.id}`}
                     download
-                    aria-label="Download video"
-                    title="Download video"
+                    aria-label={m.downloadVideo}
+                    title={m.downloadVideo}
                   >
                     <Download size={17}/>
                   </a>
@@ -160,19 +165,19 @@ export function ResultsGallery({
               </> : task.status === 'failed' ? <>
                 <div className="result-state">
                   <AlertCircle size={24}/>
-                  <strong>{refunded ? 'Refunded' : refundRequested ? 'Refund requested' : 'Generation failed'}</strong>
+                  <strong>{refunded ? m.refunded : refundRequested ? m.refundRequested : m.generationFailed}</strong>
                   <span>
                     {refunded
-                      ? 'This payment has been refunded.'
+                      ? m.paymentRefunded
                       : refundRequested
-                        ? 'Your refund request was submitted to Waffo.'
+                        ? m.refundSubmitted
                         : paidFailure
                           ? refundNeedsSupport
-                            ? 'Your payment is still protected. Retry for free, or contact support so we can resolve the failed refund request.'
-                            : 'Your payment is protected. Retry this generation for free, or request a refund.'
-                          : task.failure_message || 'Please try again.'}
+                            ? m.refundSupportMessage
+                            : m.paidFailureMessage
+                          : task.failure_message || m.tryAgain}
                   </span>
-                  {task.refund_error && <span className="result-refund-error">The payment provider could not complete the refund automatically.</span>}
+                  {task.refund_error && <span className="result-refund-error">{m.providerRefundFailed}</span>}
                   {!refundRequested && !refunded && (
                     <div className="result-failure-actions">
                       {onRetry && canRetryPaid && <button
@@ -182,7 +187,7 @@ export function ResultsGallery({
                         onClick={() => onRetry(task.id)}
                       >
                         {retrying ? <Loader2 className="spin" size={14}/> : <RotateCcw size={14}/>}
-                        {retrying ? 'Retrying…' : paidFailure ? 'Retry for free' : 'Retry'}
+                        {retrying ? m.retrying : paidFailure ? m.retryFree : m.retry}
                       </button>}
                       {onRefund && canRefund && <button
                         type="button"
@@ -192,18 +197,18 @@ export function ResultsGallery({
                       >
                         {refunding ? <Loader2 className="spin" size={14}/> : null}
                         {refunding
-                          ? 'Requesting…'
-                          : `Request refund${task.generation_price_usd ? ` · ${task.generation_price_usd.toFixed(2)}` : ''}`}
+                          ? m.requesting
+                          : `${m.requestRefund}${task.generation_price_usd ? ` · ${task.generation_price_usd.toFixed(2)}` : ''}`}
                       </button>}
-                      {refundNeedsSupport && <a className="result-refund" href={`mailto:${SITE_CONFIG.supportEmail}?subject=Refund%20support`}>Contact support</a>}
+                      {refundNeedsSupport && <a className="result-refund" href={`mailto:${SITE_CONFIG.supportEmail}?subject=Refund%20support`}>{m.contactSupport}</a>}
                     </div>
                   )}
                 </div>
               </> : <>
                 <div className="result-state">
                   <Loader2 className="spin" size={25}/>
-                  <strong>Generating your video…</strong>
-                  <span>This usually takes a few minutes.</span>
+                  <strong>{m.generatingVideo}</strong>
+                  <span>{m.takesMinutes}</span>
                 </div>
               </>}
             </article>
@@ -216,13 +221,13 @@ export function ResultsGallery({
       <div className="history-modal-backdrop" onMouseDown={event => {
         if (event.currentTarget === event.target) setHistoryOpen(false)
       }}>
-        <section className="history-modal" role="dialog" aria-modal="true" aria-label="Generation history">
+        <section className="history-modal" role="dialog" aria-modal="true" aria-label={m.generationHistory}>
           <div className="history-modal-head">
             <div>
-              <h2>Generation history</h2>
-              <p>{tasks.length} recent generation{tasks.length === 1 ? '' : 's'} · newest first</p>
+              <h2>{m.generationHistory}</h2>
+              <p>{m.recentGenerations(tasks.length)}</p>
             </div>
-            <button type="button" className="history-modal-close" onClick={() => setHistoryOpen(false)} aria-label="Close history">
+            <button type="button" className="history-modal-close" onClick={() => setHistoryOpen(false)} aria-label={m.closeHistory}>
               <X size={18}/>
             </button>
           </div>
@@ -247,7 +252,7 @@ export function ResultsGallery({
               const canRetryPaid = !paidFailure || task.generation_order_status === 'failed'
               const refundNeedsSupport = Boolean(task.refund_ticket_id && task.refund_error)
               const canRefund = paidFailure && task.generation_order_status === 'failed' && !refundNeedsSupport
-              const status = taskStatus(task)
+              const status = taskStatus(task, m)
 
               return <article key={task.id} className="history-card">
                 <div className="history-card-media">
@@ -256,7 +261,7 @@ export function ResultsGallery({
                       type="button"
                       className="history-thumb"
                       onClick={() => setSelectedTaskId(task.id)}
-                      aria-label="Play generated video"
+                      aria-label={m.playVideo}
                     >
                       <video
                         src={task.result_url!}
@@ -277,17 +282,17 @@ export function ResultsGallery({
                       <AlertCircle size={24}/>
                       <strong>
                         {task.generation_order_status === 'refunded'
-                          ? 'Refunded'
+                          ? m.refunded
                           : task.generation_order_status === 'refund_requested'
-                            ? 'Refund requested'
-                            : 'Generation failed'}
+                            ? m.refundRequested
+                            : m.generationFailed}
                       </strong>
                       {task.failure_message && task.generation_order_status !== 'refunded' && <span>{task.failure_message}</span>}
                     </div>
                   ) : (
                     <div className="history-thumb history-thumb-state">
                       <Loader2 className="spin" size={24}/>
-                      <strong>Generating your video…</strong>
+                      <strong>{m.generatingVideo}</strong>
                     </div>
                   )}
                   <span className={`history-status history-status-${status.key}`}>{status.label}</span>
@@ -296,7 +301,7 @@ export function ResultsGallery({
                 <div className="history-card-footer">
                   <div className="history-card-summary">
                     <strong>{sceneLabel(task)}</strong>
-                    <span>{formatTaskDate(task.created_at)}</span>
+                    <span>{formatTaskDate(task.created_at, locale)}</span>
                   </div>
 
                   <div className="history-card-tools">
@@ -308,7 +313,7 @@ export function ResultsGallery({
                       href={`/api/download/${task.id}`}
                       download
                     >
-                      <Download size={14}/> Download
+                      <Download size={14}/> {m.download}
                     </a>}
 
                     {task.status === 'failed' && task.generation_order_status !== 'refund_requested' && task.generation_order_status !== 'refunded' && onRetry && canRetryPaid && (
@@ -319,7 +324,7 @@ export function ResultsGallery({
                         onClick={() => onRetry(task.id)}
                       >
                         {retrying ? <Loader2 className="spin" size={14}/> : <RotateCcw size={14}/>}
-                        {retrying ? 'Retrying…' : paidFailure ? 'Retry free' : 'Retry'}
+                        {retrying ? m.retrying : paidFailure ? m.retryFree : m.retry}
                       </button>
                     )}
                     {task.status === 'failed' && onRefund && canRefund && (
@@ -330,12 +335,12 @@ export function ResultsGallery({
                         onClick={() => onRefund(task.id)}
                       >
                         {refunding ? <Loader2 className="spin" size={14}/> : null}
-                        {refunding ? 'Requesting…' : 'Refund'}
+                        {refunding ? m.requesting : m.refund}
                       </button>
                     )}
-                    {refundNeedsSupport && <a className="history-refund" href={`mailto:${SITE_CONFIG.supportEmail}?subject=Refund%20support`}>Support</a>}
-                    {task.generation_order_status === 'refund_requested' && <span className="history-chip">Refund requested</span>}
-                    {task.generation_order_status === 'refunded' && <span className="history-chip">Refunded</span>}
+                    {refundNeedsSupport && <a className="history-refund" href={`mailto:${SITE_CONFIG.supportEmail}?subject=Refund%20support`}>{m.support}</a>}
+                    {task.generation_order_status === 'refund_requested' && <span className="history-chip">{m.refundRequested}</span>}
+                    {task.generation_order_status === 'refunded' && <span className="history-chip">{m.refunded}</span>}
                   </div>
                 </div>
               </article>
@@ -347,28 +352,28 @@ export function ResultsGallery({
           <div className="history-viewer-backdrop" onMouseDown={event => {
             if (event.currentTarget === event.target) setSelectedTaskId(null)
           }}>
-            <section className="history-viewer" role="dialog" aria-modal="true" aria-label="Generated video preview">
+            <section className="history-viewer" role="dialog" aria-modal="true" aria-label={m.generatedPreview}>
               <div className="history-viewer-head">
                 <div>
                   <strong>{sceneLabel(selectedTask)}</strong>
-                  <span>{taskDetails(selectedTask)} · {formatTaskDate(selectedTask.created_at)}</span>
+                  <span>{taskDetails(selectedTask)} · {formatTaskDate(selectedTask.created_at, locale)}</span>
                 </div>
-                <button type="button" onClick={() => setSelectedTaskId(null)} aria-label="Close video preview"><X size={18}/></button>
+                <button type="button" onClick={() => setSelectedTaskId(null)} aria-label={m.closePreview}><X size={18}/></button>
               </div>
               <video key={selectedTask.id} src={selectedTask.result_url!} controls autoPlay playsInline preload="metadata"/>
               <div className="history-viewer-footer">
                 <span>
                   {selectedTask.audio_status === 'mixed'
-                    ? 'Soundtrack included'
+                    ? m.soundtrackIncluded
                     : selectedTask.audio_status === 'fallback'
-                      ? 'Soundtrack unavailable'
+                      ? m.soundtrackUnavailable
                       : selectedTask.generate_audio
-                        ? 'Soundtrack included'
-                        : 'Soundtrack off'}
-                  {selectedTask.generation_price_usd ? ` · ${selectedTask.generation_price_usd.toFixed(2)} paid` : ''}
+                        ? m.soundtrackIncluded
+                        : m.soundtrackOff}
+                  {selectedTask.generation_price_usd ? ` · ${selectedTask.generation_price_usd.toFixed(2)} ${m.paid}` : ''}
                 </span>
                 <a href={`/api/download/${selectedTask.id}`} download>
-                  <Download size={15}/> Download
+                  <Download size={15}/> {m.download}
                 </a>
               </div>
             </section>
@@ -386,9 +391,9 @@ function HistoryParam({ label, value }: { label: string; value: string }) {
   </div>
 }
 
-function taskStatus(task: GenerationTask) {
-  if (task.generation_order_status === 'refunded') return { key: 'completed', label: 'Refunded' }
-  if (task.generation_order_status === 'refund_requested') return { key: 'generating', label: 'Refund requested' }
+function taskStatus(task: GenerationTask, m: Messages['results']) {
+  if (task.generation_order_status === 'refunded') return { key: 'completed', label: m.refunded }
+  if (task.generation_order_status === 'refund_requested') return { key: 'generating', label: m.refundRequested }
   if (
     task.audio_status === 'pending' ||
     task.audio_status === 'processing' ||
@@ -398,11 +403,11 @@ function taskStatus(task: GenerationTask) {
       task.storage_status === 'pending'
     )
   ) {
-    return { key: 'generating', label: 'Generating' }
+    return { key: 'generating', label: m.generating }
   }
-  if (task.status === 'completed') return { key: 'completed', label: 'Completed' }
-  if (task.status === 'failed') return { key: 'failed', label: 'Failed' }
-  return { key: 'generating', label: 'Generating' }
+  if (task.status === 'completed') return { key: 'completed', label: m.completed }
+  if (task.status === 'failed') return { key: 'failed', label: m.failed }
+  return { key: 'generating', label: m.generating }
 }
 
 function sceneLabel(_task: GenerationTask) {
@@ -417,10 +422,10 @@ function taskDetails(task: GenerationTask) {
   return parts.join(' · ') || 'Hotel Lobby AI'
 }
 
-function formatTaskDate(value: string) {
+function formatTaskDate(value: string, locale: Locale) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return ''
-  return date.toLocaleString(undefined, {
+  return date.toLocaleString(dateLocaleForLocale(locale), {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',

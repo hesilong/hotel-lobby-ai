@@ -3,6 +3,7 @@ import { PricingPanel } from '@/components/billing/PricingPanel'
 import { SiteHeader } from '@/components/layout/SiteHeader'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { SITE_CONFIG, siteUrl } from '@/config/site'
+import { localizedAlternates } from '@/i18n/seo'
 
 export const Route = createFileRoute('/pricing')({
   head: () => ({
@@ -11,7 +12,10 @@ export const Route = createFileRoute('/pricing')({
       { name: 'description', content: `Pay per Hotel Lobby AI video: $4.99 for 480p, $9.90 for 720p, or $19.90 for 1080p. No subscription required.` },
       { name: 'robots', content: 'index,follow' },
     ],
-    links: [{ rel: 'canonical', href: siteUrl('/pricing') }],
+    links: [
+      { rel: 'canonical', href: siteUrl('/pricing') },
+      ...localizedAlternates('/pricing'),
+    ],
   }),
   component: PricingPage,
 })

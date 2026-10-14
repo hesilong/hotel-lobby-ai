@@ -1,12 +1,15 @@
 import { useState } from 'react'
 import { ArrowLeft, Loader2, Mail, X } from 'lucide-react'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
+import { useI18n } from '@/i18n/useI18n'
 
 function GoogleMark() {
   return <span className="google-mark" aria-hidden="true">G</span>
 }
 
 export function AuthModal({ open, onClose, onAuthed }: { open: boolean; onClose: () => void; onAuthed: () => void }) {
+  const { messages } = useI18n()
+  const m = messages.auth
   const [mode, setMode] = useState<'signin'|'signup'>('signin')
   const [emailFormOpen, setEmailFormOpen] = useState(false)
   const [email, setEmail] = useState('')
@@ -53,7 +56,7 @@ export function AuthModal({ open, onClose, onAuthed }: { open: boolean; onClose:
     setError('')
 
     if (mode === 'signup' && password !== confirmPassword) {
-      setError('Passwords do not match.')
+      setError(m.passwordsMismatch)
       return
     }
 
@@ -70,7 +73,7 @@ export function AuthModal({ open, onClose, onAuthed }: { open: boolean; onClose:
     }
 
     if (!result.data.session && mode === 'signup') {
-      setError('Check your email to confirm your account, then sign in.')
+      setError(m.confirmEmail)
       setMode('signin')
       setConfirmPassword('')
       return
@@ -108,37 +111,35 @@ export function AuthModal({ open, onClose, onAuthed }: { open: boolean; onClose:
 
   return <div className="modal-backdrop">
     <div className="auth-modal">
-      <button className="auth-close" onClick={closeModal} aria-label="Close"><X size={18}/></button>
-      <h3>{mode === 'signin' ? 'Sign in' : 'Create your account'}</h3>
-      <p>{mode === 'signin'
-        ? 'Sign in to continue with generation, billing, and your saved results.'
-        : 'Create an account to save results, manage credits, and generate videos.'}</p>
+      <button className="auth-close" onClick={closeModal} aria-label={m.close}><X size={18}/></button>
+      <h3>{mode === 'signin' ? m.signIn : m.createAccountTitle}</h3>
+      <p>{mode === 'signin' ? m.signInDescription : m.signUpDescription}</p>
 
       {showOptions ? <>
         <button className="auth-google" disabled={googleBusy || busy} onClick={() => void signInWithGoogle()}>
           {googleBusy ? <Loader2 className="spin" size={16}/> : <GoogleMark/>}
-          Continue with Google
+          {m.continueGoogle}
         </button>
 
-        <div className="auth-divider"><span>or</span></div>
+        <div className="auth-divider"><span>{m.or}</span></div>
 
         <button className="auth-email-option" disabled={googleBusy || busy} onClick={showEmailSignin}>
           <Mail size={17}/>
-          Continue with Email
+          {m.continueEmail}
         </button>
 
         {error && <div className="auth-error">{error}</div>}
 
         <button className="auth-switch" onClick={showSignup}>
-          New here? Create an account
+          {m.newHere}
         </button>
       </> : <>
-        <input type="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} />
-        <input type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} />
+        <input type="email" placeholder={m.email} value={email} onChange={e=>setEmail(e.target.value)} />
+        <input type="password" placeholder={m.password} value={password} onChange={e=>setPassword(e.target.value)} />
         {mode === 'signup' && (
           <input
             type="password"
-            placeholder="Confirm password"
+            placeholder={m.confirmPassword}
             value={confirmPassword}
             onChange={e=>setConfirmPassword(e.target.value)}
           />
@@ -158,22 +159,22 @@ export function AuthModal({ open, onClose, onAuthed }: { open: boolean; onClose:
           onClick={() => void submit()}
         >
           {busy ? <Loader2 className="spin" size={16}/> : null}
-          {mode === 'signin' ? 'Sign in' : 'Create account'}
+          {mode === 'signin' ? m.signIn : m.createAccount}
         </button>
 
         {mode === 'signin' ? (
           <>
             <button className="auth-back" onClick={showSigninOptions}>
               <ArrowLeft size={14}/>
-              Back to sign-in options
+              {m.backToOptions}
             </button>
             <button className="auth-switch" onClick={showSignup}>
-              New here? Create an account
+              {m.newHere}
             </button>
           </>
         ) : (
           <button className="auth-switch" onClick={showSigninOptions}>
-            Already have an account? Sign in
+            {m.alreadyHaveAccount}
           </button>
         )}
       </>}

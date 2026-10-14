@@ -1,8 +1,9 @@
-import { HeadContent, Outlet, Scripts, createRootRoute } from '@tanstack/react-router'
+import { HeadContent, Outlet, Scripts, createRootRoute, useLocation } from '@tanstack/react-router'
 import appCss from '@/styles/app.css?url'
 import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics'
 import { Clarity } from '@/components/analytics/Clarity'
 import { SITE_CONFIG } from '@/config/site'
+import { getLocaleFromPathname, htmlLangForLocale } from '@/i18n/config'
 
 export const Route = createRootRoute({
   head: () => ({
@@ -25,8 +26,11 @@ export const Route = createRootRoute({
 })
 
 function RootDocument() {
+  const location = useLocation()
+  const locale = getLocaleFromPathname(location.pathname)
+
   return (
-    <html lang="en">
+    <html lang={htmlLangForLocale(locale)}>
       <head><HeadContent /></head>
       <body>
         <Outlet />

@@ -5,6 +5,7 @@ import { SiteHeader } from '@/components/layout/SiteHeader'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { HOTEL_LOBBY_FRIENDS_WEBP, HOTEL_LOBBY_PETS_WEBP, HOTEL_LOBBY_STREETWEAR_WEBP } from '@/config/hotel-lobby-visuals'
 import { SITE_CONFIG, siteUrl } from '@/config/site'
+import { localizedAlternates } from '@/i18n/seo'
 
 const faqItems = [
   {
@@ -118,7 +119,10 @@ export const Route = createFileRoute('/')({
       },
       { name: 'robots', content: 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1' },
     ],
-    links: [{ rel: 'canonical', href: siteUrl('/') }],
+    links: [
+      { rel: 'canonical', href: siteUrl('/') },
+      ...localizedAlternates('/'),
+    ],
   }),
   component: HomePage,
 })
