@@ -1195,3 +1195,23 @@ body{background:#f7f8fb;color:#17191f}
 .results-demo-topline{
   justify-content:flex-start;
 }
+
+
+/* Template-level language switcher */
+.language-switcher{position:relative;display:flex;align-items:center;flex:0 0 auto}
+.language-trigger{min-width:112px;height:36px;display:inline-flex;align-items:center;justify-content:space-between;gap:8px;padding:0 11px;border:1px solid #dfe2e8;border-radius:10px;background:#fff;color:#353943;box-shadow:0 1px 2px rgba(24,28,38,.04);cursor:pointer;font-size:12px;font-weight:750;line-height:1}
+.language-trigger:hover{background:#f2f4f7;color:#17191f}
+.language-trigger:focus-visible{outline:3px solid rgba(111,70,217,.18);outline-offset:2px}
+.language-chevron{flex:0 0 auto;transition:transform .16s ease}
+.language-chevron.open{transform:rotate(180deg)}
+.language-menu{position:absolute;right:0;top:calc(100% + 8px);z-index:80;min-width:156px;padding:6px;background:#fff;color:#252933;border:1px solid #e1e4ea;border-radius:12px;box-shadow:0 18px 50px rgba(24,28,38,.18)}
+.language-option{width:100%;min-height:36px;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:8px 10px;border:0;border-radius:8px;background:transparent;color:#353943;text-align:left;cursor:pointer;font-size:12px;font-weight:650}
+.language-option:hover{background:#f4f5f8;color:#17191f}
+.language-option.active{background:#f1eefb;color:#5f42b7}
+.site-header-overlay .language-trigger{background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.24);color:#fff;box-shadow:none;backdrop-filter:blur(10px)}
+.site-header-overlay .language-trigger:hover{background:rgba(255,255,255,.2);color:#fff}
+.site-header-overlay .language-menu{background:#fff;color:#252933;border-color:rgba(24,28,38,.1);box-shadow:0 18px 50px rgba(24,28,38,.24)}
+.site-header-overlay .language-option{color:#353943}
+.site-header-overlay .language-option:hover{background:#f4f5f8;color:#17191f}
+.site-header-overlay .language-option.active{background:#f1eefb;color:#5f42b7}
+@media(max-width:760px){.language-trigger{min-width:94px;padding:0 9px}.language-menu{min-width:146px}}
