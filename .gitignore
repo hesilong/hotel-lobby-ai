@@ -1,12 +1,16 @@
 node_modules
 .output
 .vite
+
+# Local environment files may contain credentials.
 .env
-.env.local
+.env.*
+!.env.example
+!.env.*.example
+
 .wrangler
 .DS_Store
 /dist/
-.env.production
 .tanstack/
 .waffo/
 supabase/.temp
