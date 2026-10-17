@@ -8,6 +8,7 @@
     "dev": "vite dev",
     "build": "vite build && tsc --noEmit",
     "preview": "vite preview",
+    "env:init:prod": "node scripts/production-env.mjs init",
     "env:check:prod": "node scripts/production-env.mjs check",
     "deploy:prod": "node scripts/production-env.mjs deploy",
     "deploy": "npm run deploy:prod",

@@ -19,22 +19,37 @@ Standalone Hotel Lobby AI video generator for **hotel-lobby-ai.pro**.
 
 ## Production environment
 
-Production deployment intentionally does not reuse `.env.local`.
+Local development is the test environment. Once the project works locally, bootstrap the production environment directly from the keys that actually exist in `.env.local`:
 
-- `.env.production.vars` contains regular production variables.
-- `.env.production.secrets` contains production secrets.
-- Both real files are gitignored.
-- `.env.production.vars.example` and `.env.production.secrets.example` are the required-production checklists committed to Git.
-- If a variable is intentionally optional or has a runtime fallback, remove it from the corresponding `.example` checklist. It may still be present in the real file when you want to configure it.
+```bash
+npm run env:init:prod
+```
 
-Create the real files from the examples, fill the values, then run:
+This generates two gitignored files:
+
+- `.env.production.vars` for regular production variables.
+- `.env.production.secrets` for production secrets.
+
+The initializer classifies common secret names such as `*_API_KEY`, `*_SECRET`, `*_PRIVATE_KEY`, `*_SERVICE_ROLE_KEY`, `*_ACCESS_KEY_ID`, `*_TOKEN`, and `*_PASSWORD`. Client-exposed prefixes such as `VITE_*` are always treated as regular variables.
+
+Only variable names are copied from `.env.local`; local/test values are never copied into production files. Fill the production values manually. If a variable is optional or has a runtime fallback, simply delete that key from the generated production file.
+
+Then run:
 
 ```bash
 npm run env:check:prod
 npm run deploy:prod
 ```
 
-`npm run deploy` uses the same safe production deployment path. Deployment stops before build when a required production value is missing. Secret values are never printed by the checker.
+The checker treats every key remaining in the two production files as required and blocks deployment when any value is empty. Secret values are never printed.
+
+The initializer refuses to overwrite existing production files. If you intentionally need to regenerate them from the current `.env.local`, use:
+
+```bash
+npm run env:init:prod -- --force
+```
+
+`npm run deploy` uses the same safe production deployment path.
 
 ## Architecture decisions
 - The UI reuses the proven Hotel Lobby flow from ClothMotion, but not its AppContext, Studio, task system, or credit service.

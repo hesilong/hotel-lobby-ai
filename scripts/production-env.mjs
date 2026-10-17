@@ -7,10 +7,9 @@ import { parseEnv } from 'node:util'
 const ROOT = process.cwd()
 
 const paths = {
+  local: resolve(ROOT, '.env.local'),
   vars: resolve(ROOT, '.env.production.vars'),
-  varsExample: resolve(ROOT, '.env.production.vars.example'),
   secrets: resolve(ROOT, '.env.production.secrets'),
-  secretsExample: resolve(ROOT, '.env.production.secrets.example'),
 }
 
 const hasValue = value => typeof value === 'string' && value.trim().length > 0
@@ -22,7 +21,7 @@ function fail(message) {
 
 function readEnvFile(path, label) {
   if (!existsSync(path)) {
-    fail(`Missing ${label}: ${path.replace(ROOT, '.')}\nCopy its .example file and fill the production values first.`)
+    fail(`Missing ${label}: ${path.replace(ROOT, '.')}`)
   }
 
   try {
@@ -33,17 +32,87 @@ function readEnvFile(path, label) {
   }
 }
 
+function isSecretKey(key) {
+  const upper = key.toUpperCase()
+
+  // Client-exposed prefixes are always regular variables.
+  if (
+    upper.startsWith('VITE_') ||
+    upper.startsWith('NEXT_PUBLIC_') ||
+    upper.startsWith('NUXT_PUBLIC_')
+  ) {
+    return false
+  }
+
+  return (
+    /(^|_)SERVICE_ROLE_KEY($|_)/.test(upper) ||
+    /(^|_)PRIVATE_KEY($|_)/.test(upper) ||
+    /(^|_)SECRET($|_)/.test(upper) ||
+    /(^|_)API_KEY($|_)/.test(upper) ||
+    /(^|_)ACCESS_KEY_ID($|_)/.test(upper) ||
+    /(^|_)PASSWORD($|_)/.test(upper) ||
+    /(^|_)TOKEN($|_)/.test(upper)
+  )
+}
+
+function renderEnvFile(kind, keys) {
+  const title = kind === 'vars' ? 'regular variables' : 'secrets'
+  return [
+    `# Production ${title}.`,
+    '# Generated from .env.local by: npm run env:init:prod',
+    '# Production values are intentionally NOT copied from local/test.',
+    '# Fill every value you want to require in production.',
+    '# Delete any optional/fallback key that should not be required.',
+    '',
+    ...keys.map(key => `${key}=`),
+    '',
+  ].join('\n')
+}
+
+function initProductionEnv() {
+  const force = process.argv.includes('--force')
+
+  if (!force && (existsSync(paths.vars) || existsSync(paths.secrets))) {
+    fail(
+      'Production env files already exist. Refusing to overwrite them.\n' +
+      'Remove them first, or run "npm run env:init:prod -- --force" if you intentionally want to regenerate them.',
+    )
+  }
+
+  const local = readEnvFile(paths.local, 'local/test env file')
+  const keys = Object.keys(local)
+
+  if (!keys.length) fail('.env.local does not contain any variables.')
+
+  const vars = keys.filter(key => !isSecretKey(key))
+  const secrets = keys.filter(isSecretKey)
+
+  writeFileSync(paths.vars, renderEnvFile('vars', vars), { mode: 0o600 })
+  writeFileSync(paths.secrets, renderEnvFile('secrets', secrets), { mode: 0o600 })
+
+  console.log('\nProduction env files generated from .env.local')
+  console.log('----------------------------------------------')
+  console.log(`Regular vars: ${vars.length}`)
+  for (const key of vars) console.log(`  - ${key}`)
+  console.log(`Secrets:      ${secrets.length}`)
+  for (const key of secrets) console.log(`  - ${key}`)
+  console.log('\nNo local/test values were copied.')
+  console.log('Fill production values, delete optional/fallback keys you do not need, then run:')
+  console.log('  npm run env:check:prod')
+}
+
 function configuredEntries(env) {
   return Object.entries(env).filter(([, value]) => hasValue(value))
 }
 
 function validateProductionEnv() {
-  const requiredVars = readEnvFile(paths.varsExample, 'production vars example')
-  const requiredSecrets = readEnvFile(paths.secretsExample, 'production secrets example')
   const vars = readEnvFile(paths.vars, 'production vars file')
   const secrets = readEnvFile(paths.secrets, 'production secrets file')
 
-  const duplicateKeys = Object.keys(vars).filter(key => Object.prototype.hasOwnProperty.call(secrets, key))
+  const duplicateKeys = Object.keys(vars).filter(key =>
+    Object.prototype.hasOwnProperty.call(secrets, key),
+  )
+
   if (duplicateKeys.length) {
     fail(
       'The same key exists in both production files:\n' +
@@ -51,13 +120,13 @@ function validateProductionEnv() {
     )
   }
 
-  const missingVars = Object.keys(requiredVars).filter(key => !hasValue(vars[key]))
-  const missingSecrets = Object.keys(requiredSecrets).filter(key => !hasValue(secrets[key]))
+  const missingVars = Object.keys(vars).filter(key => !hasValue(vars[key]))
+  const missingSecrets = Object.keys(secrets).filter(key => !hasValue(secrets[key]))
 
   console.log('\nProduction environment check')
   console.log('----------------------------')
-  console.log(`Regular vars: ${Object.keys(requiredVars).length - missingVars.length}/${Object.keys(requiredVars).length} required configured`)
-  console.log(`Secrets:      ${Object.keys(requiredSecrets).length - missingSecrets.length}/${Object.keys(requiredSecrets).length} required configured`)
+  console.log(`Regular vars: ${Object.keys(vars).length - missingVars.length}/${Object.keys(vars).length} configured`)
+  console.log(`Secrets:      ${Object.keys(secrets).length - missingSecrets.length}/${Object.keys(secrets).length} configured`)
 
   if (missingVars.length) {
     console.error('\nMissing regular variables:')
@@ -97,18 +166,25 @@ function run(name, args, env) {
 
 function deployProduction() {
   const { vars, secrets } = validateProductionEnv()
-  const deploymentEnv = { ...process.env, ...vars, ...secrets }
 
-  console.log('\nBuilding with production environment...')
+  // Build only needs regular production variables. Do not expose production
+  // secrets to the build process unless the runtime explicitly needs them.
+  const deploymentEnv = { ...process.env, ...vars }
+
+  console.log('\nBuilding with production variables...')
   run('npm', ['run', 'build'], deploymentEnv)
 
-  const tempDir = mkdtempSync(join(tmpdir(), 'hotel-lobby-prod-secrets-'))
+  const tempDir = mkdtempSync(join(tmpdir(), 'production-env-secrets-'))
   const secretsFile = join(tempDir, 'secrets.json')
 
   try {
-    writeFileSync(secretsFile, JSON.stringify(secrets), { mode: 0o600 })
+    const args = ['wrangler', 'deploy']
 
-    const args = ['wrangler', 'deploy', '--secrets-file', secretsFile]
+    if (Object.keys(secrets).length) {
+      writeFileSync(secretsFile, JSON.stringify(secrets), { mode: 0o600 })
+      args.push('--secrets-file', secretsFile)
+    }
+
     for (const [key, value] of Object.entries(vars)) {
       args.push('--var', `${key}:${value}`)
     }
@@ -122,10 +198,12 @@ function deployProduction() {
 
 const action = process.argv[2] || 'check'
 
-if (action === 'check') {
+if (action === 'init') {
+  initProductionEnv()
+} else if (action === 'check') {
   validateProductionEnv()
 } else if (action === 'deploy') {
   deployProduction()
 } else {
-  fail(`Unknown action "${action}". Use "check" or "deploy".`)
+  fail(`Unknown action "${action}". Use "init", "check", or "deploy".`)
 }
