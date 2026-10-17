@@ -8,7 +8,9 @@
     "dev": "vite dev",
     "build": "vite build && tsc --noEmit",
     "preview": "vite preview",
-    "deploy": "npm run build && wrangler deploy",
+    "env:check:prod": "node scripts/production-env.mjs check",
+    "deploy:prod": "node scripts/production-env.mjs deploy",
+    "deploy": "npm run deploy:prod",
     "cf-typegen": "wrangler types"
   },
   "dependencies": {
