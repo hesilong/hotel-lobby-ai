@@ -447,11 +447,35 @@ export async function persistGeneratedVideo(params: {
     })
   }
 
-  assertRemoteGeneratedVideoUrl(params.sourceUrl)
-  const response = await fetch(params.sourceUrl, {
-    headers: { Accept: 'video/*,application/octet-stream;q=0.9,*/*;q=0.5' },
+  const source = assertRemoteGeneratedVideoUrl(params.sourceUrl)
+  console.info('[storage] generated video source download started', {
+    taskId: params.taskId,
+    host: source.host,
   })
-  if (!response.ok || !response.body) throw new Error(`RESULT_DOWNLOAD_FAILED_${response.status}`)
+
+  let response: Response
+  try {
+    response = await fetch(params.sourceUrl, {
+      headers: { Accept: 'video/*,application/octet-stream;q=0.9,*/*;q=0.5' },
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    console.warn('[storage] generated video source fetch failed', {
+      taskId: params.taskId,
+      host: source.host,
+      message,
+    })
+    throw new Error(`RESULT_SOURCE_FETCH_FAILED:${message}`)
+  }
+
+  if (!response.ok || !response.body) {
+    console.warn('[storage] generated video source HTTP failure', {
+      taskId: params.taskId,
+      host: source.host,
+      status: response.status,
+    })
+    throw new Error(`RESULT_DOWNLOAD_FAILED_${response.status}`)
+  }
 
   const declaredSize = Number(response.headers.get('content-length') || 0)
   if (Number.isFinite(declaredSize) && declaredSize > MAX_GENERATED_VIDEO_BYTES) {
@@ -461,20 +485,77 @@ export async function persistGeneratedVideo(params: {
 
   const rawContentType = response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() || ''
   const contentType = rawContentType.startsWith('video/') ? rawContentType : 'video/mp4'
-  const stored = await params.bucket.put(key, response.body, {
-    httpMetadata: {
-      contentType,
-      cacheControl: 'public, max-age=31536000, immutable',
-      contentDisposition: 'inline',
+  console.info('[storage] generated video source download ready', {
+    taskId: params.taskId,
+    host: source.host,
+    status: response.status,
+    declaredSize: declaredSize || null,
+    contentType,
+  })
+
+  let sourceStreamFailed = false
+  let sourceStreamError = ''
+  const sourceReader = response.body.getReader()
+  const monitoredBody = new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      try {
+        const chunk = await sourceReader.read()
+        if (chunk.done) {
+          controller.close()
+          return
+        }
+        controller.enqueue(chunk.value)
+      } catch (error) {
+        sourceStreamFailed = true
+        sourceStreamError = error instanceof Error ? error.message : String(error)
+        controller.error(error)
+      }
     },
-    customMetadata: {
-      mediaKind: 'generated-video',
-      taskId: params.taskId,
+    async cancel(reason) {
+      await sourceReader.cancel(reason)
     },
   })
 
+  console.info('[storage] generated video R2 upload started', {
+    taskId: params.taskId,
+    key,
+    declaredSize: declaredSize || null,
+  })
+
+  let stored: R2Object
+  try {
+    stored = await params.bucket.put(key, monitoredBody, {
+      httpMetadata: {
+        contentType,
+        cacheControl: 'public, max-age=31536000, immutable',
+        contentDisposition: 'inline',
+      },
+      customMetadata: {
+        mediaKind: 'generated-video',
+        taskId: params.taskId,
+      },
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    if (sourceStreamFailed) {
+      console.warn('[storage] generated video source stream failed', {
+        taskId: params.taskId,
+        host: source.host,
+        message: sourceStreamError || message,
+      })
+      throw new Error(`RESULT_SOURCE_STREAM_FAILED:${sourceStreamError || message}`)
+    }
+
+    console.warn('[storage] generated video R2 upload failed', {
+      taskId: params.taskId,
+      key,
+      message,
+    })
+    throw new Error(`RESULT_R2_PUT_FAILED:${message}`)
+  }
+
   if (!stored) {
-    throw new Error('RESULT_PERSIST_PUT_FAILED')
+    throw new Error('RESULT_R2_PUT_FAILED:EMPTY_RESULT')
   }
 
   console.info('[storage] generated video persisted', {
