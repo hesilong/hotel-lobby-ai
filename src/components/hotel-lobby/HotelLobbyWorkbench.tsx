@@ -180,8 +180,7 @@ export function HotelLobbyWorkbench() {
       task.audio_status === 'pending' ||
       task.audio_status === 'processing' ||
       (task.status === 'completed' &&
-        task.audio_status === 'mixed' &&
-        task.storage_status === 'pending') ||
+        (task.storage_status === 'pending' || task.storage_status === 'fallback')) ||
       task.generation_order_status === 'refund_requested'
     )) return
     const timer = window.setInterval(() => void refreshActiveTasks(), 3000)
@@ -412,7 +411,6 @@ export function HotelLobbyWorkbench() {
       task.audio_status === 'pending' ||
       task.audio_status === 'processing' ||
       (task.status === 'completed' &&
-        task.audio_status === 'mixed' &&
         (task.storage_status === 'pending' || task.storage_status === 'fallback')) ||
       task.generation_order_status === 'refund_requested'
     )
@@ -459,6 +457,14 @@ export function HotelLobbyWorkbench() {
         }
       }),
     )
+
+    if (updates.some(task => !task)) {
+      // Recover from a transient single-task refresh failure by reloading the
+      // canonical list. Otherwise the browser can keep rendering a stale
+      // processing snapshot even after the backend has persisted the result.
+      await loadTasks()
+      return
+    }
 
     const map = new Map(
       updates
