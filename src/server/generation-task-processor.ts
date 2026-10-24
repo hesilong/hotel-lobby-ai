@@ -376,12 +376,14 @@ async function claimAudioJobCreation(
       return null
     }
 
-    query = query
-      .eq('audio_status', 'processing')
-      .lt(
+    query = query.eq('audio_status', 'processing')
+
+    if (Number.isFinite(updatedAt) && updatedAt > 0) {
+      query = query.lt(
         'audio_updated_at',
         new Date(now.getTime() - AUDIO_CREATE_LEASE_MS).toISOString(),
       )
+    }
   } else {
     return null
   }
@@ -399,6 +401,15 @@ async function mixCompletedTaskAudio(
 ): Promise<GenerationTaskRow> {
   if (!task.generate_audio) return task
   if (task.audio_status === 'mixed' || task.audio_status === 'fallback') return task
+
+  // Compatibility with tasks already re-queued by the previous implementation:
+  // an expired CloudConvert export URL must never trigger another paid mix.
+  if (
+    !task.audio_job_id &&
+    /^RESULT_DOWNLOAD_FAILED_(401|403|404|410)$/.test(task.audio_last_error || '')
+  ) {
+    return markAudioFallback(task, task.audio_last_error || 'CLOUDCONVERT_EXPORT_UNAVAILABLE')
+  }
 
   const sourceUrl = task.provider_result_url || task.result_url
   if (!sourceUrl) return task
