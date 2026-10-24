@@ -30,6 +30,7 @@ const emptyImage: ImageAssetState = {
 }
 
 const PURCHASE_RECOVERY_KEY = 'hotel_lobby_generation_purchase_v1'
+const PURCHASE_CHECKOUT_MODE_KEY = 'hotel_lobby_generation_checkout_mode_v1'
 
 export function HotelLobbyWorkbench() {
   const { messages } = useI18n()
@@ -94,6 +95,7 @@ export function HotelLobbyWorkbench() {
   const clearPurchaseRecovery = () => {
     if (typeof window !== 'undefined') {
       window.sessionStorage.removeItem(PURCHASE_RECOVERY_KEY)
+      window.sessionStorage.removeItem(PURCHASE_CHECKOUT_MODE_KEY)
       const url = new URL(window.location.href)
       url.searchParams.delete('purchase_return')
       url.searchParams.delete('generation_order')
@@ -180,6 +182,60 @@ export function HotelLobbyWorkbench() {
   useEffect(() => {
     if (!authed || !purchaseOrderId || typeof window === 'undefined') return
 
+    const params = new URLSearchParams(window.location.search)
+    const checkoutMode = window.sessionStorage.getItem(PURCHASE_CHECKOUT_MODE_KEY)
+    const successfulReturn =
+      params.get('purchase_return') === '1' &&
+      params.get('generation_order') === purchaseOrderId
+
+    if (checkoutMode !== 'same-page' || successfulReturn) return
+
+    let stopped = false
+    setSubmitStage('payment-check')
+
+    const resolveSamePageReturn = async () => {
+      // Browser Back from a same-page Waffo checkout has no success marker.
+      // Allow a short webhook grace period, then release an unpaid order.
+      for (let attempt = 0; attempt < 3 && !stopped; attempt += 1) {
+        try {
+          const order = await getGenerationPurchase({ data: { orderId: purchaseOrderId } })
+
+          if (order.status !== 'pending_payment') {
+            await loadTasks()
+            clearPurchaseRecovery()
+            setSubmitStage('idle')
+            return
+          }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : ''
+          if (message.includes('GENERATION_ORDER_NOT_FOUND')) {
+            clearPurchaseRecovery()
+            setSubmitStage('idle')
+            return
+          }
+        }
+
+        if (attempt < 2) {
+          await new Promise(resolve => window.setTimeout(resolve, 800))
+        }
+      }
+
+      if (!stopped) {
+        clearPurchaseRecovery()
+        setSubmitStage('idle')
+      }
+    }
+
+    void resolveSamePageReturn()
+
+    return () => {
+      stopped = true
+    }
+  }, [authed, purchaseOrderId])
+
+  useEffect(() => {
+    if (!authed || !purchaseOrderId || typeof window === 'undefined') return
+
     let stopped = false
     let recovering = false
 
@@ -235,6 +291,19 @@ export function HotelLobbyWorkbench() {
 
   useEffect(() => {
     if (!authed || !purchaseOrderId) return
+
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const checkoutMode = window.sessionStorage.getItem(PURCHASE_CHECKOUT_MODE_KEY)
+      const successfulReturn =
+        params.get('purchase_return') === '1' &&
+        params.get('generation_order') === purchaseOrderId
+
+      // Same-page browser-back recovery is handled by the dedicated effect
+      // above. Do not let the generic popup recovery re-lock the UI as
+      // "Waiting for payment".
+      if (checkoutMode === 'same-page' && !successfulReturn) return
+    }
 
     let stopped = false
     let detachedPendingChecks = 0
@@ -569,21 +638,25 @@ export function HotelLobbyWorkbench() {
     try {
       const purchase = await createGenerationPurchase({ data })
       window.sessionStorage.setItem(PURCHASE_RECOVERY_KEY, purchase.orderId)
-      setPurchaseOrderId(purchase.orderId)
       setSubmitStage('checkout')
       setPendingGenerate(false)
 
       if (samePageCheckout) {
-        window.location.assign(purchase.checkoutUrl)
-        return
-      }
-
-      if (!paymentTab || paymentTab.closed) {
+        window.sessionStorage.setItem(PURCHASE_CHECKOUT_MODE_KEY, 'same-page')
         paymentWindowRef.current = null
         window.location.assign(purchase.checkoutUrl)
         return
       }
 
+      if (!paymentTab || paymentTab.closed) {
+        window.sessionStorage.setItem(PURCHASE_CHECKOUT_MODE_KEY, 'same-page')
+        paymentWindowRef.current = null
+        window.location.assign(purchase.checkoutUrl)
+        return
+      }
+
+      window.sessionStorage.setItem(PURCHASE_CHECKOUT_MODE_KEY, 'popup')
+      setPurchaseOrderId(purchase.orderId)
       paymentTab.location.replace(purchase.checkoutUrl)
 
       // Some in-app browsers return a WindowProxy but discard the new window
@@ -596,6 +669,7 @@ export function HotelLobbyWorkbench() {
           window.sessionStorage.getItem(PURCHASE_RECOVERY_KEY) === purchase.orderId
         ) {
           paymentWindowRef.current = null
+          window.sessionStorage.setItem(PURCHASE_CHECKOUT_MODE_KEY, 'same-page')
           window.location.assign(purchase.checkoutUrl)
         }
       }, 700)
