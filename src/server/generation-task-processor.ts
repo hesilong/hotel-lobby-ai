@@ -53,6 +53,8 @@ type GenerationTaskRow = {
   generation_order_id: string | null
 }
 
+const AUDIO_CREATE_LEASE_MS = 5 * 60_000
+
 const TASK_SELECT = [
   'id',
   'user_id',
@@ -223,24 +225,16 @@ async function persistCompletedTask(
     const exportUnavailable =
       mixedAudioSource &&
       /^RESULT_DOWNLOAD_FAILED_(401|403|404|410)$/.test(message)
-    const audioAttempts = Number(task.audio_attempts || 0)
-
     const audioRecovery = exportUnavailable
-      ? audioAttempts >= 3
-        ? {
-            audio_status: 'fallback' as const,
-            audio_job_id: null,
-            audio_result_url: null,
-            audio_last_error: message,
-            audio_updated_at: attemptedAt,
-          }
-        : {
-            audio_status: 'pending' as const,
-            audio_job_id: null,
-            audio_result_url: null,
-            audio_last_error: message,
-            audio_updated_at: attemptedAt,
-          }
+      ? {
+          // The soundtrack job already completed. A dead/expired CloudConvert
+          // export URL is a delivery failure, not a reason to pay for another
+          // full FFmpeg job. Fall back to the stable provider video instead.
+          audio_status: 'fallback' as const,
+          audio_result_url: null,
+          audio_last_error: message,
+          audio_updated_at: attemptedAt,
+        }
       : {}
 
     const { data, error: updateError } = await admin
@@ -263,10 +257,9 @@ async function persistCompletedTask(
     if (updateError) throw new Error(updateError.message)
 
     if (exportUnavailable) {
-      console.warn('[generation] CloudConvert export unavailable; soundtrack will be retried', {
+      console.warn('[generation] CloudConvert export unavailable; using provider fallback', {
         taskId: task.id,
-        audioAttempts,
-        audioStatus: audioAttempts >= 3 ? 'fallback' : 'pending',
+        cloudConvertJobId: task.audio_job_id,
       })
     }
 
@@ -345,6 +338,62 @@ async function recordAudioAttemptFailure(
   return (data as GenerationTaskRow | null) || (await readTask(task.id)) || task
 }
 
+async function claimAudioJobCreation(
+  task: GenerationTaskRow,
+): Promise<GenerationTaskRow | null> {
+  if (task.audio_job_id) return task
+
+  const admin = getSupabaseAdminClient()
+  const now = new Date()
+  const nowIso = now.toISOString()
+  const attempts = Number(task.audio_attempts || 0) + 1
+
+  let query = admin
+    .from('generation_tasks')
+    .update({
+      audio_status: 'processing',
+      audio_attempts: attempts,
+      audio_last_error: null,
+      audio_updated_at: nowIso,
+      updated_at: nowIso,
+    })
+    .eq('id', task.id)
+    .eq('status', 'completed')
+    .is('audio_job_id', null)
+
+  if (task.audio_status === 'pending') {
+    query = query.eq('audio_status', 'pending')
+  } else if (task.audio_status === 'processing') {
+    const updatedAt = task.audio_updated_at
+      ? Date.parse(task.audio_updated_at)
+      : 0
+
+    if (
+      Number.isFinite(updatedAt) &&
+      updatedAt > 0 &&
+      Date.now() - updatedAt < AUDIO_CREATE_LEASE_MS
+    ) {
+      return null
+    }
+
+    query = query
+      .eq('audio_status', 'processing')
+      .lt(
+        'audio_updated_at',
+        new Date(now.getTime() - AUDIO_CREATE_LEASE_MS).toISOString(),
+      )
+  } else {
+    return null
+  }
+
+  const { data, error } = await query
+    .select(TASK_SELECT)
+    .maybeSingle()
+
+  if (error) throw new Error(error.message)
+  return data as GenerationTaskRow | null
+}
+
 async function mixCompletedTaskAudio(
   task: GenerationTaskRow,
 ): Promise<GenerationTaskRow> {
@@ -362,7 +411,17 @@ async function mixCompletedTaskAudio(
   let current = task
 
   if (!current.audio_job_id) {
-    const attempts = Number(current.audio_attempts || 0) + 1
+    const claimed = await claimAudioJobCreation(current)
+
+    // Another browser poll / callback / Cron worker already owns the creation
+    // lease. Do not create a second CloudConvert job.
+    if (!claimed) {
+      return (await readTask(current.id)) || current
+    }
+
+    current = claimed
+    const attempts = Number(current.audio_attempts || 0)
+
     try {
       const job = await createCloudConvertAudioJob({
         taskId: current.id,
@@ -373,20 +432,31 @@ async function mixCompletedTaskAudio(
       const { data, error } = await admin
         .from('generation_tasks')
         .update({
-          audio_status: 'processing',
           audio_job_id: job.id,
-          audio_attempts: attempts,
           audio_last_error: null,
           audio_updated_at: now,
           updated_at: now,
         })
         .eq('id', current.id)
         .eq('status', 'completed')
+        .eq('audio_status', 'processing')
+        .eq('audio_attempts', attempts)
+        .is('audio_job_id', null)
         .select(TASK_SELECT)
         .maybeSingle()
 
       if (error) throw new Error(error.message)
-      current = (data as GenerationTaskRow | null) || (await readTask(current.id)) || current
+
+      if (!data) {
+        console.warn('[generation] soundtrack job created after lease was lost', {
+          taskId: current.id,
+          cloudConvertJobId: job.id,
+          attempts,
+        })
+        return (await readTask(current.id)) || current
+      }
+
+      current = data as GenerationTaskRow
 
       // Do not block this request waiting for CloudConvert. The browser poll,
       // KIE callback recovery, or Cron will pick up the processing job.
@@ -424,6 +494,8 @@ async function mixCompletedTaskAudio(
       })
       .eq('id', current.id)
       .eq('status', 'completed')
+      .eq('audio_status', 'processing')
+      .eq('audio_job_id', current.audio_job_id)
       .select(TASK_SELECT)
       .maybeSingle()
 
