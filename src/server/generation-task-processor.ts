@@ -54,6 +54,8 @@ type GenerationTaskRow = {
 }
 
 const AUDIO_CREATE_LEASE_MS = 5 * 60_000
+const cloudConvertAudioEnabled = () =>
+  process.env.CLOUDCONVERT_AUDIO_ENABLED?.trim().toLowerCase() !== 'false'
 
 const TASK_SELECT = [
   'id',
@@ -267,6 +269,37 @@ async function persistCompletedTask(
   }
 }
 
+async function markAudioNotRequested(
+  task: GenerationTaskRow,
+): Promise<GenerationTaskRow> {
+  if (!task.generate_audio && task.audio_status === 'not_requested') return task
+
+  const admin = getSupabaseAdminClient()
+  const now = new Date().toISOString()
+
+  const { data, error } = await admin
+    .from('generation_tasks')
+    .update({
+      generate_audio: false,
+      audio_status: 'not_requested',
+      audio_job_id: null,
+      audio_result_url: null,
+      audio_last_error: null,
+      audio_updated_at: now,
+      updated_at: now,
+    })
+    .eq('id', task.id)
+    .eq('status', 'completed')
+    .select(TASK_SELECT)
+    .maybeSingle()
+
+  if (error) throw new Error(error.message)
+  console.info('[generation] soundtrack disabled; using provider video', {
+    taskId: task.id,
+  })
+  return (data as GenerationTaskRow | null) || (await readTask(task.id)) || task
+}
+
 async function markAudioFallback(
   task: GenerationTaskRow,
   message: string,
@@ -399,6 +432,7 @@ async function claimAudioJobCreation(
 async function mixCompletedTaskAudio(
   task: GenerationTaskRow,
 ): Promise<GenerationTaskRow> {
+  if (!cloudConvertAudioEnabled()) return markAudioNotRequested(task)
   if (!task.generate_audio) return task
   if (task.audio_status === 'mixed' || task.audio_status === 'fallback') return task
 
@@ -584,6 +618,7 @@ async function completeProviderTask(
 ) {
   const admin = getSupabaseAdminClient()
   const now = new Date().toISOString()
+  const shouldGenerateAudio = Boolean(task.generate_audio && cloudConvertAudioEnabled())
 
   const { data, error } = await admin
     .from('generation_tasks')
@@ -594,7 +629,8 @@ async function completeProviderTask(
       storage_status: 'pending',
       storage_last_error: null,
       storage_updated_at: now,
-      audio_status: task.generate_audio ? 'pending' : 'not_requested',
+      generate_audio: shouldGenerateAudio,
+      audio_status: shouldGenerateAudio ? 'pending' : 'not_requested',
       audio_job_id: null,
       audio_result_url: null,
       audio_attempts: 0,
