@@ -59,6 +59,8 @@ export function HotelLobbyWorkbench() {
   const assetErrorTimer = useRef<number | null>(null)
   const paymentWindowRef = useRef<Window | null>(null)
   const checkoutLockRef = useRef(false)
+  const generatorResultsRef = useRef<HTMLDivElement | null>(null)
+  const paymentScrollOrderRef = useRef<string | null>(null)
 
   const selectedScene = HOTEL_LOBBY_SCENES[0]
   const fixedTemplate = getHotelLobbyGenerationTemplate(duration)
@@ -71,6 +73,22 @@ export function HotelLobbyWorkbench() {
       /FBAN|FBAV|Instagram|Line\/|TikTok|BytedanceWebview|GSA\/|GoogleApp/i.test(ua)
     return mobile || inAppBrowser
   }
+  const scrollToGenerationResultsAfterPayment = (orderId: string) => {
+    if (
+      typeof window === 'undefined' ||
+      !shouldUseSamePageCheckout() ||
+      paymentScrollOrderRef.current === orderId
+    ) return
+
+    paymentScrollOrderRef.current = orderId
+    window.requestAnimationFrame(() => {
+      generatorResultsRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      })
+    })
+  }
+
   const priceLabel = generationPriceLabel(resolution)
   const isSubmitting = submitStage !== 'idle'
   const imagesReady = personA.status === 'approved' && personB.status === 'approved'
@@ -205,6 +223,7 @@ export function HotelLobbyWorkbench() {
 
           if (order.status !== 'pending_payment') {
             await loadTasks()
+            scrollToGenerationResultsAfterPayment(purchaseOrderId)
             clearPurchaseRecovery()
             setSubmitStage('idle')
             return
@@ -259,6 +278,7 @@ export function HotelLobbyWorkbench() {
 
           if (order.status !== 'pending_payment') {
             await loadTasks()
+            scrollToGenerationResultsAfterPayment(purchaseOrderId)
             clearPurchaseRecovery()
             setSubmitStage('idle')
             return
@@ -319,6 +339,10 @@ export function HotelLobbyWorkbench() {
         const order = await getGenerationPurchase({ data: { orderId: purchaseOrderId } })
 
         if (order.status === 'pending_payment' || order.status === 'paid') {
+          if (order.status === 'paid') {
+            scrollToGenerationResultsAfterPayment(purchaseOrderId)
+          }
+
           const returnState =
             order.status === 'pending_payment'
               ? checkoutReturnState(purchaseOrderId)
@@ -357,6 +381,7 @@ export function HotelLobbyWorkbench() {
           paymentWindowRef.current?.close()
           paymentWindowRef.current = null
           await loadTasks()
+          scrollToGenerationResultsAfterPayment(purchaseOrderId)
           clearPurchaseRecovery()
           setSubmitStage('idle')
           return
@@ -889,7 +914,7 @@ export function HotelLobbyWorkbench() {
         </p>
       </div>
 
-      <div className="generator-results">
+      <div className="generator-results" ref={generatorResultsRef}>
         <ResultsGallery
           tasks={tasks}
           latestOnly
