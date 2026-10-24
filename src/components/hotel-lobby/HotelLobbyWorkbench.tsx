@@ -61,6 +61,15 @@ export function HotelLobbyWorkbench() {
 
   const selectedScene = HOTEL_LOBBY_SCENES[0]
   const fixedTemplate = getHotelLobbyGenerationTemplate(duration)
+
+  const shouldUseSamePageCheckout = () => {
+    if (typeof navigator === 'undefined') return false
+    const ua = navigator.userAgent || ''
+    const mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua)
+    const inAppBrowser =
+      /FBAN|FBAV|Instagram|Line\/|TikTok|BytedanceWebview|GSA\/|GoogleApp/i.test(ua)
+    return mobile || inAppBrowser
+  }
   const priceLabel = generationPriceLabel(resolution)
   const isSubmitting = submitStage !== 'idle'
   const imagesReady = personA.status === 'approved' && personB.status === 'approved'
@@ -543,14 +552,16 @@ export function HotelLobbyWorkbench() {
     if (!data) return
 
     checkoutLockRef.current = true
-    const paymentTab = window.open('about:blank', '_blank')
-    if (!paymentTab) {
-      checkoutLockRef.current = false
-      setError(m.popupRequired)
-      return
+    const samePageCheckout = shouldUseSamePageCheckout()
+    let paymentTab: Window | null = null
+
+    if (!samePageCheckout) {
+      paymentTab = window.open('about:blank', '_blank')
+      if (paymentTab) {
+        paymentTab.opener = null
+        paymentWindowRef.current = paymentTab
+      }
     }
-    paymentTab.opener = null
-    paymentWindowRef.current = paymentTab
 
     setError('')
     setSubmitStage('checking')
@@ -560,10 +571,36 @@ export function HotelLobbyWorkbench() {
       window.sessionStorage.setItem(PURCHASE_RECOVERY_KEY, purchase.orderId)
       setPurchaseOrderId(purchase.orderId)
       setSubmitStage('checkout')
-      paymentTab.location.replace(purchase.checkoutUrl)
       setPendingGenerate(false)
+
+      if (samePageCheckout) {
+        window.location.assign(purchase.checkoutUrl)
+        return
+      }
+
+      if (!paymentTab || paymentTab.closed) {
+        paymentWindowRef.current = null
+        window.location.assign(purchase.checkoutUrl)
+        return
+      }
+
+      paymentTab.location.replace(purchase.checkoutUrl)
+
+      // Some in-app browsers return a WindowProxy but discard the new window
+      // immediately. Fall back to same-page checkout only during this initial
+      // handoff window; later closures are treated as user cancellation.
+      window.setTimeout(() => {
+        if (
+          paymentWindowRef.current === paymentTab &&
+          paymentTab?.closed &&
+          window.sessionStorage.getItem(PURCHASE_RECOVERY_KEY) === purchase.orderId
+        ) {
+          paymentWindowRef.current = null
+          window.location.assign(purchase.checkoutUrl)
+        }
+      }, 700)
     } catch (e) {
-      paymentTab.close()
+      paymentTab?.close()
       paymentWindowRef.current = null
       checkoutLockRef.current = false
       setSubmitStage('idle')
