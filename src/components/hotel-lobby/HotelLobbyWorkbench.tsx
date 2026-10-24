@@ -31,6 +31,7 @@ const emptyImage: ImageAssetState = {
 
 const PURCHASE_RECOVERY_KEY = 'hotel_lobby_generation_purchase_v1'
 const PURCHASE_CHECKOUT_MODE_KEY = 'hotel_lobby_generation_checkout_mode_v1'
+const MAX_STORAGE_ATTEMPTS = 5
 
 export function HotelLobbyWorkbench() {
   const { messages } = useI18n()
@@ -180,7 +181,13 @@ export function HotelLobbyWorkbench() {
       task.audio_status === 'pending' ||
       task.audio_status === 'processing' ||
       (task.status === 'completed' &&
-        (task.storage_status === 'pending' || task.storage_status === 'fallback')) ||
+        (
+          task.storage_status === 'pending' ||
+          (
+            task.storage_status === 'fallback' &&
+            Number(task.storage_attempts || 0) < MAX_STORAGE_ATTEMPTS
+          )
+        )) ||
       task.generation_order_status === 'refund_requested'
     )) return
     const timer = window.setInterval(() => void refreshActiveTasks(), 3000)
@@ -411,7 +418,13 @@ export function HotelLobbyWorkbench() {
       task.audio_status === 'pending' ||
       task.audio_status === 'processing' ||
       (task.status === 'completed' &&
-        (task.storage_status === 'pending' || task.storage_status === 'fallback')) ||
+        (
+          task.storage_status === 'pending' ||
+          (
+            task.storage_status === 'fallback' &&
+            Number(task.storage_attempts || 0) < MAX_STORAGE_ATTEMPTS
+          )
+        )) ||
       task.generation_order_status === 'refund_requested'
     )
     if (!active.length) return
