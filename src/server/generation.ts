@@ -34,6 +34,7 @@ export type GenerationTask = {
   result_url: string | null
   provider_result_url?: string | null
   storage_status?: 'pending' | 'persisted' | 'fallback'
+  storage_attempts?: number
   audio_status?: 'not_requested' | 'pending' | 'processing' | 'mixed' | 'fallback'
   audio_job_id?: string | null
   audio_result_url?: string | null
@@ -310,7 +311,7 @@ export const listGenerationTasks = createServerFn({ method: 'GET' }).handler(asy
   const user = await authUser()
   const admin = getSupabaseAdminClient()
   const { data, error } = await admin.from('generation_tasks')
-    .select('id,status,result_url,provider_result_url,storage_status,audio_status,audio_job_id,audio_result_url,audio_last_error,failure_message,created_at,provider_task_id,provider,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio,prompt,generation_order_id')
+    .select('id,status,result_url,provider_result_url,storage_status,storage_attempts,audio_status,audio_job_id,audio_result_url,audio_last_error,failure_message,created_at,provider_task_id,provider,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio,prompt,generation_order_id')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(100)
@@ -352,7 +353,7 @@ export const refreshGenerationTask = createServerFn({ method: 'POST' })
     const user = await authUser()
     const admin = getSupabaseAdminClient()
     const { data: task, error } = await admin.from('generation_tasks')
-      .select('id,user_id,status,provider,provider_task_id,result_url,provider_result_url,storage_status,audio_status,audio_job_id,audio_result_url,audio_last_error,failure_message,created_at,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio,prompt,generation_order_id')
+      .select('id,user_id,status,provider,provider_task_id,result_url,provider_result_url,storage_status,storage_attempts,audio_status,audio_job_id,audio_result_url,audio_last_error,failure_message,created_at,credits_used,duration_seconds,resolution,aspect_ratio,generate_audio,prompt,generation_order_id')
       .eq('id', data.taskId)
       .eq('user_id', user.id)
       .maybeSingle()
