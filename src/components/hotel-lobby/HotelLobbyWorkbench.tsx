@@ -188,7 +188,10 @@ export function HotelLobbyWorkbench() {
       params.get('purchase_return') === '1' &&
       params.get('generation_order') === purchaseOrderId
 
-    if (checkoutMode !== 'same-page' || successfulReturn) return
+    const legacySamePageReturn =
+      !checkoutMode && shouldUseSamePageCheckout()
+
+    if ((checkoutMode !== 'same-page' && !legacySamePageReturn) || successfulReturn) return
 
     let stopped = false
     setSubmitStage('payment-check')
@@ -302,7 +305,10 @@ export function HotelLobbyWorkbench() {
       // Same-page browser-back recovery is handled by the dedicated effect
       // above. Do not let the generic popup recovery re-lock the UI as
       // "Waiting for payment".
-      if (checkoutMode === 'same-page' && !successfulReturn) return
+      const legacySamePageReturn =
+        !checkoutMode && shouldUseSamePageCheckout()
+
+      if ((checkoutMode === 'same-page' || legacySamePageReturn) && !successfulReturn) return
     }
 
     let stopped = false
