@@ -54,6 +54,7 @@ type GenerationTaskRow = {
 }
 
 const AUDIO_CREATE_LEASE_MS = 5 * 60_000
+const MAX_STORAGE_ATTEMPTS = 5
 const cloudConvertAudioEnabled = () =>
   process.env.CLOUDCONVERT_AUDIO_ENABLED?.trim().toLowerCase() !== 'false'
 
@@ -172,6 +173,10 @@ async function persistCompletedTask(
   bindings: GenerationWorkerBindings,
 ): Promise<GenerationTaskRow> {
   if (task.storage_status === 'persisted') return task
+  if (
+    task.storage_status === 'fallback' &&
+    Number(task.storage_attempts || 0) >= MAX_STORAGE_ATTEMPTS
+  ) return task
   if (task.audio_status === 'pending' || task.audio_status === 'processing') return task
 
   const sourceUrl =
@@ -213,7 +218,7 @@ async function persistCompletedTask(
   } catch (error) {
     const message = error instanceof Error ? error.message : 'RESULT_PERSIST_FAILED'
     const logPayload = { taskId: task.id, attempts, message }
-    if (attempts >= 5) {
+    if (attempts >= MAX_STORAGE_ATTEMPTS) {
       console.error('[generation] repeated result persistence failure', logPayload)
     } else {
       console.warn('[generation] result persistence fallback', logPayload)
@@ -827,6 +832,7 @@ export async function reconcileGenerationTasks(bindings: GenerationWorkerBinding
       .select('id')
       .eq('status', 'completed')
       .in('storage_status', ['pending', 'fallback'])
+      .lt('storage_attempts', MAX_STORAGE_ATTEMPTS)
       .not('provider_result_url', 'is', null)
       .order('storage_updated_at', { ascending: true, nullsFirst: true })
       .limit(20),
