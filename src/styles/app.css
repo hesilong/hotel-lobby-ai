@@ -208,8 +208,9 @@ body{background:#f7f8fb;color:#17191f}
 .pricing-loading{display:flex;align-items:center;justify-content:center;gap:8px;min-height:240px;color:#777d88}
 @media(max-width:980px){.pricing-grid-plans,.pricing-grid-packs{grid-template-columns:1fr;max-width:620px}.pricing-grid-paid{max-width:620px}}
 @media(max-width:760px){.header-credits{min-width:auto;padding:8px}.pricing-page{padding:58px 18px 80px}.pricing-modal-shell{padding:20px 14px;border-radius:20px}.pricing-grid,.pricing-grid-paid{grid-template-columns:1fr}.pricing-card{min-height:0;padding:22px}.subscription-manage{align-items:flex-start;flex-direction:column}.pricing-switcher{width:100%;margin-bottom:34px}.pricing-switcher button{flex:1;padding:10px 8px;font-size:12px}.pricing-switcher button span{display:block;margin:2px 0 0}}
-.asset-uploading{position:absolute;inset:0;display:grid;place-items:center;background:rgba(255,255,255,.42);backdrop-filter:blur(1px);pointer-events:none}
+.asset-uploading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:6px;background:rgba(255,255,255,.42);backdrop-filter:blur(1px);pointer-events:none}
 .asset-uploading svg{filter:drop-shadow(0 1px 2px rgba(0,0,0,.12))}
+.asset-uploading-label{font-size:12px;font-weight:700;color:#4b5563}
 
 .support-card{align-items:flex-start;flex-direction:column;padding:22px}.support-card h2{font-size:26px}.support-email{width:100%;white-space:normal;text-align:center}
 

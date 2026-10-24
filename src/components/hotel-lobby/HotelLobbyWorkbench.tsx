@@ -773,9 +773,10 @@ function ImageUpload({
     <span className="image-slot-label">{label}</span>
     <div className="asset-tile">
       {state.previewUrl ? <img src={state.previewUrl} alt=""/> : <Plus size={22}/>}
-      {state.status === 'uploading' && (
+      {(state.status === 'uploading' || state.status === 'moderating') && (
         <span className="asset-uploading" aria-label={uploadingLabel}>
           <Loader2 size={18} className="spin" />
+          <span className="asset-uploading-label">{uploadingLabel}</span>
         </span>
       )}
     </div>

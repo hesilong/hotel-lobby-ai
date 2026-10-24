@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LocaleRouteImport } from './routes/$locale'
 import { Route as BestPhotosForHotelLobbyAiRouteImport } from './routes/best-photos-for-hotel-lobby-ai'
 import { Route as BlogRouteImport } from './routes/blog'
 import { Route as HowToFixFaceDriftHotelLobbyAiRouteImport } from './routes/how-to-fix-face-drift-hotel-lobby-ai'
@@ -20,6 +21,9 @@ import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as TermsOfServiceRouteImport } from './routes/terms-of-service'
 import { Route as WhatIsHotelLobbyAiTrendRouteImport } from './routes/what-is-hotel-lobby-ai-trend'
+import { Route as LocaleIndexRouteImport } from './routes/$locale.index'
+import { Route as LocaleMigosAiVideoRouteImport } from './routes/$locale.migos-ai-video'
+import { Route as LocalePricingRouteImport } from './routes/$locale.pricing'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as ApiCreemWebhookRouteImport } from './routes/api.creem.webhook'
 import { Route as ApiDownloadTaskIdRouteImport } from './routes/api.download.$taskId'
@@ -29,6 +33,11 @@ import { Route as ApiWaffoWebhookRouteImport } from './routes/api.waffo.webhook'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LocaleRoute = LocaleRouteImport.update({
+  id: '/$locale',
+  path: '/$locale',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BestPhotosForHotelLobbyAiRoute =
@@ -84,6 +93,21 @@ const WhatIsHotelLobbyAiTrendRoute = WhatIsHotelLobbyAiTrendRouteImport.update({
   path: '/what-is-hotel-lobby-ai-trend',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LocaleIndexRoute = LocaleIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LocaleRoute,
+} as any)
+const LocaleMigosAiVideoRoute = LocaleMigosAiVideoRouteImport.update({
+  id: '/migos-ai-video',
+  path: '/migos-ai-video',
+  getParentRoute: () => LocaleRoute,
+} as any)
+const LocalePricingRoute = LocalePricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => LocaleRoute,
+} as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/auth/callback',
   path: '/auth/callback',
@@ -112,6 +136,7 @@ const ApiWaffoWebhookRoute = ApiWaffoWebhookRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/$locale': typeof LocaleRouteWithChildren
   '/best-photos-for-hotel-lobby-ai': typeof BestPhotosForHotelLobbyAiRoute
   '/blog': typeof BlogRoute
   '/how-to-fix-face-drift-hotel-lobby-ai': typeof HowToFixFaceDriftHotelLobbyAiRoute
@@ -122,7 +147,10 @@ export interface FileRoutesByFullPath {
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/terms-of-service': typeof TermsOfServiceRoute
   '/what-is-hotel-lobby-ai-trend': typeof WhatIsHotelLobbyAiTrendRoute
+  '/$locale/migos-ai-video': typeof LocaleMigosAiVideoRoute
+  '/$locale/pricing': typeof LocalePricingRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/$locale/': typeof LocaleIndexRoute
   '/api/creem/webhook': typeof ApiCreemWebhookRoute
   '/api/download/$taskId': typeof ApiDownloadTaskIdRoute
   '/api/handoff/$token': typeof ApiHandoffTokenRoute
@@ -140,7 +168,10 @@ export interface FileRoutesByTo {
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/terms-of-service': typeof TermsOfServiceRoute
   '/what-is-hotel-lobby-ai-trend': typeof WhatIsHotelLobbyAiTrendRoute
+  '/$locale/migos-ai-video': typeof LocaleMigosAiVideoRoute
+  '/$locale/pricing': typeof LocalePricingRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/$locale': typeof LocaleIndexRoute
   '/api/creem/webhook': typeof ApiCreemWebhookRoute
   '/api/download/$taskId': typeof ApiDownloadTaskIdRoute
   '/api/handoff/$token': typeof ApiHandoffTokenRoute
@@ -149,6 +180,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/$locale': typeof LocaleRouteWithChildren
   '/best-photos-for-hotel-lobby-ai': typeof BestPhotosForHotelLobbyAiRoute
   '/blog': typeof BlogRoute
   '/how-to-fix-face-drift-hotel-lobby-ai': typeof HowToFixFaceDriftHotelLobbyAiRoute
@@ -159,7 +191,10 @@ export interface FileRoutesById {
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/terms-of-service': typeof TermsOfServiceRoute
   '/what-is-hotel-lobby-ai-trend': typeof WhatIsHotelLobbyAiTrendRoute
+  '/$locale/migos-ai-video': typeof LocaleMigosAiVideoRoute
+  '/$locale/pricing': typeof LocalePricingRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/$locale/': typeof LocaleIndexRoute
   '/api/creem/webhook': typeof ApiCreemWebhookRoute
   '/api/download/$taskId': typeof ApiDownloadTaskIdRoute
   '/api/handoff/$token': typeof ApiHandoffTokenRoute
@@ -169,6 +204,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/$locale'
     | '/best-photos-for-hotel-lobby-ai'
     | '/blog'
     | '/how-to-fix-face-drift-hotel-lobby-ai'
@@ -179,7 +215,10 @@ export interface FileRouteTypes {
     | '/privacy-policy'
     | '/terms-of-service'
     | '/what-is-hotel-lobby-ai-trend'
+    | '/$locale/migos-ai-video'
+    | '/$locale/pricing'
     | '/auth/callback'
+    | '/$locale/'
     | '/api/creem/webhook'
     | '/api/download/$taskId'
     | '/api/handoff/$token'
@@ -197,7 +236,10 @@ export interface FileRouteTypes {
     | '/privacy-policy'
     | '/terms-of-service'
     | '/what-is-hotel-lobby-ai-trend'
+    | '/$locale/migos-ai-video'
+    | '/$locale/pricing'
     | '/auth/callback'
+    | '/$locale'
     | '/api/creem/webhook'
     | '/api/download/$taskId'
     | '/api/handoff/$token'
@@ -205,6 +247,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/$locale'
     | '/best-photos-for-hotel-lobby-ai'
     | '/blog'
     | '/how-to-fix-face-drift-hotel-lobby-ai'
@@ -215,7 +258,10 @@ export interface FileRouteTypes {
     | '/privacy-policy'
     | '/terms-of-service'
     | '/what-is-hotel-lobby-ai-trend'
+    | '/$locale/migos-ai-video'
+    | '/$locale/pricing'
     | '/auth/callback'
+    | '/$locale/'
     | '/api/creem/webhook'
     | '/api/download/$taskId'
     | '/api/handoff/$token'
@@ -224,6 +270,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LocaleRoute: typeof LocaleRouteWithChildren
   BestPhotosForHotelLobbyAiRoute: typeof BestPhotosForHotelLobbyAiRoute
   BlogRoute: typeof BlogRoute
   HowToFixFaceDriftHotelLobbyAiRoute: typeof HowToFixFaceDriftHotelLobbyAiRoute
@@ -248,6 +295,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$locale': {
+      id: '/$locale'
+      path: '/$locale'
+      fullPath: '/$locale'
+      preLoaderRoute: typeof LocaleRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/best-photos-for-hotel-lobby-ai': {
@@ -320,6 +374,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WhatIsHotelLobbyAiTrendRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$locale/': {
+      id: '/$locale/'
+      path: '/'
+      fullPath: '/$locale/'
+      preLoaderRoute: typeof LocaleIndexRouteImport
+      parentRoute: typeof LocaleRoute
+    }
+    '/$locale/migos-ai-video': {
+      id: '/$locale/migos-ai-video'
+      path: '/migos-ai-video'
+      fullPath: '/$locale/migos-ai-video'
+      preLoaderRoute: typeof LocaleMigosAiVideoRouteImport
+      parentRoute: typeof LocaleRoute
+    }
+    '/$locale/pricing': {
+      id: '/$locale/pricing'
+      path: '/pricing'
+      fullPath: '/$locale/pricing'
+      preLoaderRoute: typeof LocalePricingRouteImport
+      parentRoute: typeof LocaleRoute
+    }
     '/auth/callback': {
       id: '/auth/callback'
       path: '/auth/callback'
@@ -358,8 +433,24 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface LocaleRouteChildren {
+  LocaleMigosAiVideoRoute: typeof LocaleMigosAiVideoRoute
+  LocalePricingRoute: typeof LocalePricingRoute
+  LocaleIndexRoute: typeof LocaleIndexRoute
+}
+
+const LocaleRouteChildren: LocaleRouteChildren = {
+  LocaleMigosAiVideoRoute: LocaleMigosAiVideoRoute,
+  LocalePricingRoute: LocalePricingRoute,
+  LocaleIndexRoute: LocaleIndexRoute,
+}
+
+const LocaleRouteWithChildren =
+  LocaleRoute._addFileChildren(LocaleRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LocaleRoute: LocaleRouteWithChildren,
   BestPhotosForHotelLobbyAiRoute: BestPhotosForHotelLobbyAiRoute,
   BlogRoute: BlogRoute,
   HowToFixFaceDriftHotelLobbyAiRoute: HowToFixFaceDriftHotelLobbyAiRoute,
