@@ -217,11 +217,12 @@ async function persistCompletedTask(
     return (data as GenerationTaskRow | null) || (await readTask(task.id)) || task
   } catch (error) {
     const message = error instanceof Error ? error.message : 'RESULT_PERSIST_FAILED'
+    const storageExhausted = attempts >= MAX_STORAGE_ATTEMPTS
     const logPayload = { taskId: task.id, attempts, message }
-    if (attempts >= MAX_STORAGE_ATTEMPTS) {
-      console.error('[generation] repeated result persistence failure', logPayload)
+    if (storageExhausted) {
+      console.error('[generation] result persistence exhausted; using provider fallback', logPayload)
     } else {
-      console.warn('[generation] result persistence fallback', logPayload)
+      console.warn('[generation] result persistence retry scheduled', logPayload)
     }
 
     const providerFallbackUrl = task.provider_result_url || task.result_url
@@ -232,27 +233,28 @@ async function persistCompletedTask(
     const exportUnavailable =
       mixedAudioSource &&
       /^RESULT_DOWNLOAD_FAILED_(401|403|404|410)$/.test(message)
-    const fallbackUrl =
-      mixedAudioSource && !exportUnavailable && task.audio_result_url
-        ? task.audio_result_url
-        : providerFallbackUrl
-    const audioRecovery = exportUnavailable
-      ? {
-          // The soundtrack job already completed. A dead/expired CloudConvert
-          // export URL is a delivery failure, not a reason to pay for another
-          // full FFmpeg job. Fall back to the stable provider video instead.
-          audio_status: 'fallback' as const,
-          audio_result_url: null,
-          audio_last_error: message,
-          audio_updated_at: attemptedAt,
-        }
-      : {}
+    const audioRecovery =
+      mixedAudioSource && (exportUnavailable || storageExhausted)
+        ? {
+            // Never expose a CloudConvert export URL as the user-facing result.
+            // If the export is already unavailable, switch future persistence
+            // attempts to the provider video. If storage retries are exhausted,
+            // the provider video becomes the final user-facing fallback.
+            audio_status: 'fallback' as const,
+            audio_result_url: null,
+            audio_last_error: message,
+            audio_updated_at: attemptedAt,
+          }
+        : {}
 
     const { data, error: updateError } = await admin
       .from('generation_tasks')
       .update({
-        result_url: fallbackUrl,
-        storage_status: 'fallback',
+        // Keep the provider result as the only fallback URL visible to clients.
+        // While retries remain, storage_status stays pending so the UI keeps
+        // showing Generating instead of exposing a partial delivery.
+        result_url: providerFallbackUrl,
+        storage_status: storageExhausted ? 'fallback' : 'pending',
         storage_attempts: attempts,
         storage_last_error: message,
         storage_updated_at: attemptedAt,
@@ -268,7 +270,7 @@ async function persistCompletedTask(
     if (updateError) throw new Error(updateError.message)
 
     if (exportUnavailable) {
-      console.warn('[generation] CloudConvert export unavailable; using provider fallback', {
+      console.warn('[generation] CloudConvert export unavailable; retrying persistence from provider video', {
         taskId: task.id,
         cloudConvertJobId: task.audio_job_id,
       })
