@@ -13,12 +13,25 @@ export const Route = createFileRoute('/api/download/$taskId')({
         const admin = getSupabaseAdminClient()
         const { data: task, error } = await admin
           .from('generation_tasks')
-          .select('id,status,result_url')
+          .select('id,status,result_url,storage_status,storage_attempts')
           .eq('id', params.taskId)
           .eq('user_id', auth.user.id)
           .maybeSingle()
 
-        if (error || !task || task.status !== 'completed' || !task.result_url) {
+        const deliveryReady =
+          task?.storage_status === 'persisted' ||
+          (
+            task?.storage_status === 'fallback' &&
+            Number(task.storage_attempts || 0) >= 5
+          )
+
+        if (
+          error ||
+          !task ||
+          task.status !== 'completed' ||
+          !task.result_url ||
+          !deliveryReady
+        ) {
           return new Response('Video not found', { status: 404 })
         }
 
