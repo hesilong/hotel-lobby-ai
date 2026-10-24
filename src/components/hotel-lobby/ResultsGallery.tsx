@@ -132,7 +132,6 @@ export function ResultsGallery({
               (task.audio_status === 'pending' || task.audio_status === 'processing')
             const deliveryPending =
               task.status === 'completed' &&
-              task.audio_status === 'mixed' &&
               task.storage_status === 'pending'
             const completed =
               task.status === 'completed' &&
@@ -241,7 +240,6 @@ export function ResultsGallery({
                 (task.audio_status === 'pending' || task.audio_status === 'processing')
               const deliveryPending =
                 task.status === 'completed' &&
-                task.audio_status === 'mixed' &&
                 task.storage_status === 'pending'
               const completed =
                 task.status === 'completed' &&
@@ -399,7 +397,6 @@ function taskStatus(task: GenerationTask, m: Messages['results']) {
     task.audio_status === 'processing' ||
     (
       task.status === 'completed' &&
-      task.audio_status === 'mixed' &&
       task.storage_status === 'pending'
     )
   ) {
