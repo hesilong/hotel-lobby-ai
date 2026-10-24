@@ -176,7 +176,44 @@ async function persistCompletedTask(
   if (
     task.storage_status === 'fallback' &&
     Number(task.storage_attempts || 0) >= MAX_STORAGE_ATTEMPTS
-  ) return task
+  ) {
+    const providerFallbackUrl = task.provider_result_url || task.result_url
+    const needsNormalization =
+      Boolean(providerFallbackUrl) &&
+      (
+        task.result_url !== providerFallbackUrl ||
+        task.audio_status === 'mixed' ||
+        Boolean(task.audio_result_url)
+      )
+
+    if (!needsNormalization) return task
+
+    const normalizedAt = new Date().toISOString()
+    const { data, error } = await getSupabaseAdminClient()
+      .from('generation_tasks')
+      .update({
+        result_url: providerFallbackUrl,
+        audio_status: task.audio_status === 'mixed' ? 'fallback' : task.audio_status,
+        audio_result_url: null,
+        audio_last_error:
+          task.audio_status === 'mixed'
+            ? task.storage_last_error || 'RESULT_PERSIST_RETRIES_EXHAUSTED'
+            : task.audio_last_error,
+        audio_updated_at:
+          task.audio_status === 'mixed'
+            ? normalizedAt
+            : task.audio_updated_at,
+        updated_at: normalizedAt,
+      })
+      .eq('id', task.id)
+      .eq('status', 'completed')
+      .eq('storage_status', 'fallback')
+      .select(TASK_SELECT)
+      .maybeSingle()
+
+    if (error) throw new Error(error.message)
+    return (data as GenerationTaskRow | null) || (await readTask(task.id)) || task
+  }
   if (task.audio_status === 'pending' || task.audio_status === 'processing') return task
 
   const sourceUrl =
