@@ -20,6 +20,21 @@ function resultMediaLayout(task: GenerationTask) {
   return 'landscape'
 }
 
+const MAX_STORAGE_ATTEMPTS = 5
+
+function isDeliveryPending(task: GenerationTask) {
+  return (
+    task.status === 'completed' &&
+    (
+      task.storage_status === 'pending' ||
+      (
+        task.storage_status === 'fallback' &&
+        Number(task.storage_attempts || 0) < MAX_STORAGE_ATTEMPTS
+      )
+    )
+  )
+}
+
 export function ResultsGallery({
   tasks,
   onRetry,
@@ -46,7 +61,8 @@ export function ResultsGallery({
       task.status === 'completed' &&
       task.result_url &&
       task.audio_status !== 'pending' &&
-      task.audio_status !== 'processing'
+      task.audio_status !== 'processing' &&
+      !isDeliveryPending(task)
     ) || null,
     [tasks, selectedTaskId],
   )
@@ -130,9 +146,7 @@ export function ResultsGallery({
             const soundtrackPending =
               task.status === 'completed' &&
               (task.audio_status === 'pending' || task.audio_status === 'processing')
-            const deliveryPending =
-              task.status === 'completed' &&
-              task.storage_status === 'pending'
+            const deliveryPending = isDeliveryPending(task)
             const completed =
               task.status === 'completed' &&
               Boolean(task.result_url) &&
@@ -238,9 +252,7 @@ export function ResultsGallery({
               const soundtrackPending =
                 task.status === 'completed' &&
                 (task.audio_status === 'pending' || task.audio_status === 'processing')
-              const deliveryPending =
-                task.status === 'completed' &&
-                task.storage_status === 'pending'
+              const deliveryPending = isDeliveryPending(task)
               const completed =
                 task.status === 'completed' &&
                 Boolean(task.result_url) &&
@@ -395,10 +407,7 @@ function taskStatus(task: GenerationTask, m: Messages['results']) {
   if (
     task.audio_status === 'pending' ||
     task.audio_status === 'processing' ||
-    (
-      task.status === 'completed' &&
-      task.storage_status === 'pending'
-    )
+    isDeliveryPending(task)
   ) {
     return { key: 'generating', label: m.generating }
   }
