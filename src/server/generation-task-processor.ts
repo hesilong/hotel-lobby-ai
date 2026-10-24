@@ -212,7 +212,7 @@ async function persistCompletedTask(
       .maybeSingle()
 
     if (error) throw new Error(error.message)
-    return (data as GenerationTaskRow | null) || (await readTask(task.id)) || task
+    return (await readTask(task.id)) || task
   }
   if (task.audio_status === 'pending' || task.audio_status === 'processing') return task
 
