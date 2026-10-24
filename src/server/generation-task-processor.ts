@@ -219,7 +219,7 @@ async function persistCompletedTask(
       console.warn('[generation] result persistence fallback', logPayload)
     }
 
-    const fallbackUrl = task.provider_result_url || task.result_url
+    const providerFallbackUrl = task.provider_result_url || task.result_url
     const mixedAudioSource =
       task.audio_status === 'mixed' &&
       Boolean(task.audio_result_url) &&
@@ -227,6 +227,10 @@ async function persistCompletedTask(
     const exportUnavailable =
       mixedAudioSource &&
       /^RESULT_DOWNLOAD_FAILED_(401|403|404|410)$/.test(message)
+    const fallbackUrl =
+      mixedAudioSource && !exportUnavailable && task.audio_result_url
+        ? task.audio_result_url
+        : providerFallbackUrl
     const audioRecovery = exportUnavailable
       ? {
           // The soundtrack job already completed. A dead/expired CloudConvert
