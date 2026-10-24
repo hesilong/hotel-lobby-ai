@@ -107,6 +107,7 @@ export type Messages = {
     popupRequired: string
     imageRejected: string
     unsupportedImage: string
+    uploadFailed: string
     moderationUnavailable: string
     errors: {
       promptRejected: string
@@ -278,6 +279,7 @@ const en: Messages = {
     popupRequired: 'Please allow popups so we can open the secure Waffo checkout.',
     imageRejected: 'This image can’t be used. Please choose another image.',
     unsupportedImage: 'Please choose a JPG, PNG, or WebP image.',
+    uploadFailed: 'Image upload failed. Please try again.',
     moderationUnavailable: 'We couldn’t verify this image right now. Please try again shortly.',
     errors: {
       promptRejected: 'This request can’t be generated. Please try again with different source photos.',
@@ -449,6 +451,7 @@ const zhCN: Messages = {
     popupRequired: '请允许弹出窗口，以便打开安全的 Waffo 支付页面。',
     imageRejected: '这张图片无法使用，请更换其他图片。',
     unsupportedImage: '请选择 JPG、PNG 或 WebP 图片。',
+    uploadFailed: '图片上传失败，请重试。',
     moderationUnavailable: '暂时无法完成图片安全检查，请稍后重试。',
     errors: {
       promptRejected: '当前请求无法生成，请更换素材后重试。',
@@ -620,6 +623,7 @@ const ja: Messages = {
     popupRequired: '安全な Waffo 決済画面を開くため、ポップアップを許可してください。',
     imageRejected: 'この画像は使用できません。別の画像を選択してください。',
     unsupportedImage: 'JPG、PNG、WebP のいずれかを選択してください。',
+    uploadFailed: '画像のアップロードに失敗しました。もう一度お試しください。',
     moderationUnavailable: '現在この画像を確認できません。しばらくしてから再試行してください。',
     errors: {
       promptRejected: 'この内容は生成できません。別の素材でお試しください。',

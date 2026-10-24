@@ -7,7 +7,7 @@ import { GENERATION_PURCHASE_OPTIONS, generationPriceLabel } from '@/config/gene
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { AuthModal } from '@/components/auth/AuthModal'
 import { ResultsGallery } from '@/components/hotel-lobby/ResultsGallery'
-import { createUploadUrl, finalizeUploadedAsset } from '@/server/storage'
+import { createUploadUrl, finalizeUploadedAsset, recordUploadFailure } from '@/server/storage'
 import { listGenerationTasks, refreshGenerationTask, retryGenerationTask, type CreateGenerationInput, type GenerationTask } from '@/server/generation'
 import { createGenerationPurchase, getGenerationPurchase, requestGenerationRefund } from '@/server/generation-purchases'
 import { useI18n } from '@/i18n/useI18n'
@@ -361,14 +361,69 @@ export function HotelLobbyWorkbench() {
   }
 
   const uploadFile = async (file: File) => {
-    const signed = await createUploadUrl({ data: { fileName: file.name, mimeType: file.type, kind: 'image' } })
-    const response = await fetch(signed.uploadUrl, {
-      method: 'PUT',
-      headers: { 'Content-Type': file.type },
-      body: file,
+    const signed = await createUploadUrl({
+      data: { fileName: file.name, mimeType: file.type, kind: 'image' },
     })
-    if (!response.ok) throw new Error('UPLOAD_FAILED')
-    return signed
+
+    const maxAttempts = 3
+    let finalErrorCode = 'UPLOAD_FAILED'
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        const response = await fetch(signed.uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type },
+          body: file,
+        })
+
+        if (response.ok) return signed
+
+        finalErrorCode = `UPLOAD_HTTP_${response.status}`
+        console.warn('[upload] R2 PUT failed', {
+          assetId: signed.assetId,
+          attempt,
+          status: response.status,
+          statusText: response.statusText,
+        })
+
+        const retryable =
+          response.status === 408 ||
+          response.status === 425 ||
+          response.status === 429 ||
+          response.status >= 500
+
+        if (!retryable || attempt >= maxAttempts) break
+      } catch (error) {
+        finalErrorCode = 'UPLOAD_NETWORK_ERROR'
+        console.warn('[upload] R2 PUT network error', {
+          assetId: signed.assetId,
+          attempt,
+          error,
+        })
+
+        if (attempt >= maxAttempts) break
+      }
+
+      await new Promise(resolve =>
+        window.setTimeout(resolve, attempt === 1 ? 500 : 1200),
+      )
+    }
+
+    await recordUploadFailure({
+      data: {
+        assetId: signed.assetId,
+        assetToken: signed.assetToken,
+        errorCode: finalErrorCode,
+      },
+    }).catch(error => {
+      console.warn('[upload] failed to persist upload error state', {
+        assetId: signed.assetId,
+        errorCode: finalErrorCode,
+        error,
+      })
+    })
+
+    throw new Error(finalErrorCode)
   }
 
   const prepareImage = async (
@@ -425,7 +480,9 @@ export function HotelLobbyWorkbench() {
           ? m.imageRejected
           : message.includes('UNSUPPORTED_FILE_TYPE')
             ? m.unsupportedImage
-            : m.moderationUnavailable,
+            : message.includes('UPLOAD_') || message.includes('R2_')
+              ? m.uploadFailed
+              : m.moderationUnavailable,
       )
     }
   }

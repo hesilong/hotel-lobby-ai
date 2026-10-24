@@ -15,6 +15,12 @@ type FinalizeInput = {
   assetToken: string
 }
 
+type UploadFailureInput = {
+  assetId: string
+  assetToken: string
+  errorCode: string
+}
+
 type AssetTokenPayload = {
   assetId: string
   ownerKey: string
@@ -151,6 +157,34 @@ export const createUploadUrl = createServerFn({ method: 'POST' })
       publicUrl,
       key,
     }
+  })
+
+export const recordUploadFailure = createServerFn({ method: 'POST' })
+  .inputValidator((input: UploadFailureInput) => input)
+  .handler(async ({ data }) => {
+    const capability = await readAssetToken(data.assetToken)
+    if (!capability || capability.assetId !== data.assetId) {
+      throw new Error('UPLOAD_ASSET_FORBIDDEN')
+    }
+
+    const normalizedCode = data.errorCode
+      .trim()
+      .slice(0, 160)
+      .replace(/[^A-Z0-9_:-]/gi, '_') || 'UPLOAD_FAILED'
+
+    const { error } = await getSupabaseAdminClient()
+      .from('uploaded_assets')
+      .update({
+        status: 'error',
+        error_code: normalizedCode,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', data.assetId)
+      .eq('owner_key', capability.ownerKey)
+      .eq('status', 'uploading')
+
+    if (error) throw new Error(error.message)
+    return { ok: true as const }
   })
 
 export const finalizeUploadedAsset = createServerFn({ method: 'POST' })
