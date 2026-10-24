@@ -510,7 +510,7 @@ async function mixCompletedTaskAudio(
         return (await readTask(current.id)) || current
       }
 
-      current = data as GenerationTaskRow
+      current = (await readTask(current.id)) || current
 
       // Do not block this request waiting for CloudConvert. The browser poll,
       // KIE callback recovery, or Cron will pick up the processing job.
