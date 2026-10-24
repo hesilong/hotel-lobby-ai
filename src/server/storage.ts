@@ -3,6 +3,7 @@ import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { moderateReferenceImage } from '@/server/moderation'
 import { createR2PresignedPutUrl } from '@/server/r2Presign'
+import { responseBodyForR2 } from '@/server/r2-response-body'
 
 type PresignInput = {
   fileName: string
@@ -493,28 +494,7 @@ export async function persistGeneratedVideo(params: {
     contentType,
   })
 
-  let sourceStreamFailed = false
-  let sourceStreamError = ''
-  const sourceReader = response.body.getReader()
-  const monitoredBody = new ReadableStream<Uint8Array>({
-    async pull(controller) {
-      try {
-        const chunk = await sourceReader.read()
-        if (chunk.done) {
-          controller.close()
-          return
-        }
-        controller.enqueue(chunk.value)
-      } catch (error) {
-        sourceStreamFailed = true
-        sourceStreamError = error instanceof Error ? error.message : String(error)
-        controller.error(error)
-      }
-    },
-    async cancel(reason) {
-      await sourceReader.cancel(reason)
-    },
-  })
+  const uploadBody = responseBodyForR2(response)
 
   console.info('[storage] generated video R2 upload started', {
     taskId: params.taskId,
@@ -524,7 +504,7 @@ export async function persistGeneratedVideo(params: {
 
   let stored: R2Object
   try {
-    stored = await params.bucket.put(key, monitoredBody, {
+    stored = await params.bucket.put(key, uploadBody, {
       httpMetadata: {
         contentType,
         cacheControl: 'public, max-age=31536000, immutable',
@@ -537,15 +517,6 @@ export async function persistGeneratedVideo(params: {
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    if (sourceStreamFailed) {
-      console.warn('[storage] generated video source stream failed', {
-        taskId: params.taskId,
-        host: source.host,
-        message: sourceStreamError || message,
-      })
-      throw new Error(`RESULT_SOURCE_STREAM_FAILED:${sourceStreamError || message}`)
-    }
-
     console.warn('[storage] generated video R2 upload failed', {
       taskId: params.taskId,
       key,

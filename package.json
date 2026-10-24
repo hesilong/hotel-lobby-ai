@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "test:payments": "node --test tests/waffo-payments.test.mjs tests/generation-purchases.test.mjs",
+    "test:storage": "node --experimental-strip-types --test tests/r2-response-body.test.mjs",
     "dev": "vite dev",
     "build": "vite build && tsc --noEmit",
     "preview": "vite preview",
