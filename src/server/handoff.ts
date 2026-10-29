@@ -68,7 +68,7 @@ export const getGenerationHandoffMode = createServerFn({ method: 'GET' }).handle
 }))
 
 export const createGenerationHandoff = createServerFn({ method: 'POST' })
-  .inputValidator((input: GenerationHandoffInput) => input)
+  .validator((input: GenerationHandoffInput) => input)
   .handler(async ({ data }) => {
     if (!handoffEnabled()) throw new Error('HANDOFF_DISABLED')
     validate(data)

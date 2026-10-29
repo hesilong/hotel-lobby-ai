@@ -239,7 +239,7 @@ async function submitGenerationForUser(userId: string, data: CreateGenerationInp
 }
 
 export const createGeneration = createServerFn({ method: 'POST' })
-  .inputValidator((input: CreateGenerationInput) => input)
+  .validator((input: CreateGenerationInput) => input)
   .handler(async ({ data }) => {
     const user = await authUser()
     if (!data.imageAAssetId || !data.imageAAssetToken || !data.imageBAssetId || !data.imageBAssetToken) {
@@ -274,7 +274,7 @@ export const createGeneration = createServerFn({ method: 'POST' })
   })
 
 export const retryGenerationTask = createServerFn({ method: 'POST' })
-  .inputValidator((input: { taskId: string }) => input)
+  .validator((input: { taskId: string }) => input)
   .handler(async ({ data }) => {
     const user = await authUser()
     const admin = getSupabaseAdminClient()
@@ -348,7 +348,7 @@ export const listGenerationTasks = createServerFn({ method: 'GET' }).handler(asy
 })
 
 export const refreshGenerationTask = createServerFn({ method: 'POST' })
-  .inputValidator((input: { taskId: string }) => input)
+  .validator((input: { taskId: string }) => input)
   .handler(async ({ data }) => {
     const user = await authUser()
     const admin = getSupabaseAdminClient()

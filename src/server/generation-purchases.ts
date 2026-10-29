@@ -418,7 +418,7 @@ export async function reconcileGenerationPurchaseOrders() {
 }
 
 export const createGenerationPurchase = createServerFn({ method: 'POST' })
-  .inputValidator((input: CreateGenerationInput) => input)
+  .validator((input: CreateGenerationInput) => input)
   .handler(async ({ data }) => {
     const user = await authUser()
     await verifyPurchaseInput(user.id, data)
@@ -482,7 +482,7 @@ export const createGenerationPurchase = createServerFn({ method: 'POST' })
   })
 
 export const getGenerationPurchase = createServerFn({ method: 'POST' })
-  .inputValidator((input: { orderId: string }) => input)
+  .validator((input: { orderId: string }) => input)
   .handler(async ({ data }) => {
     const user = await authUser()
     const { data: order, error } = await getSupabaseAdminClient()
@@ -516,7 +516,7 @@ export const getGenerationPurchase = createServerFn({ method: 'POST' })
   })
 
 export const requestGenerationRefund = createServerFn({ method: 'POST' })
-  .inputValidator((input: { taskId: string }) => input)
+  .validator((input: { taskId: string }) => input)
   .handler(async ({ data }) => {
     const user = await authUser()
     const admin = getSupabaseAdminClient()

@@ -116,7 +116,7 @@ async function readAssetToken(token: string): Promise<AssetTokenPayload | null> 
 }
 
 export const createUploadUrl = createServerFn({ method: 'POST' })
-  .inputValidator((input: PresignInput) => input)
+  .validator((input: PresignInput) => input)
   .handler(async ({ data }) => {
     const allowed = data.kind === 'image' ? allowedImageTypes : allowedVideoTypes
     if (!allowed.has(data.mimeType)) throw new Error('UNSUPPORTED_FILE_TYPE')
@@ -161,7 +161,7 @@ export const createUploadUrl = createServerFn({ method: 'POST' })
   })
 
 export const recordUploadFailure = createServerFn({ method: 'POST' })
-  .inputValidator((input: UploadFailureInput) => input)
+  .validator((input: UploadFailureInput) => input)
   .handler(async ({ data }) => {
     const capability = await readAssetToken(data.assetToken)
     if (!capability || capability.assetId !== data.assetId) {
@@ -189,7 +189,7 @@ export const recordUploadFailure = createServerFn({ method: 'POST' })
   })
 
 export const finalizeUploadedAsset = createServerFn({ method: 'POST' })
-  .inputValidator((input: FinalizeInput) => input)
+  .validator((input: FinalizeInput) => input)
   .handler(async ({ data }) => {
     const capability = await readAssetToken(data.assetToken)
     if (!capability || capability.assetId !== data.assetId) throw new Error('UPLOAD_ASSET_FORBIDDEN')

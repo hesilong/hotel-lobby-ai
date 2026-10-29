@@ -2,7 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
 
 export const completeOAuthSignIn = createServerFn({ method: 'POST' })
-  .inputValidator((input: { code: string; flowId?: string | null }) => input)
+  .validator((input: { code: string; flowId?: string | null }) => input)
   .handler(async ({ data }) => {
     if (!data.code) throw new Error('OAUTH_CODE_MISSING')
 

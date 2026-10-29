@@ -69,7 +69,7 @@ export type CheckoutInput =
   | { type: 'subscription'; plan: 'pro' | 'ultimate'; cycle: BillingCycle; returnPath?: string }
 
 export const createCheckout = createServerFn({ method: 'POST' })
-  .inputValidator((input: CheckoutInput) => {
+  .validator((input: CheckoutInput) => {
     if (input?.type === 'credit_pack' && ['starter','creator','studio'].includes(input.key)) return input
     if (input?.type === 'subscription' && ['pro','ultimate'].includes(input.plan) && ['monthly','yearly'].includes(input.cycle)) return input
     throw new Error('INVALID_CHECKOUT_INPUT')
@@ -116,7 +116,7 @@ export const createCheckout = createServerFn({ method: 'POST' })
   })
 
 export const changeSubscription = createServerFn({ method: 'POST' })
-  .inputValidator((input: { plan: 'pro' | 'ultimate'; cycle: BillingCycle }) => input)
+  .validator((input: { plan: 'pro' | 'ultimate'; cycle: BillingCycle }) => input)
   .handler(async ({ data }) => {
     const user = await requireUser()
     const admin = getSupabaseAdminClient()
